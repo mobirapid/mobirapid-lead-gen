@@ -1,0 +1,11 @@
+node_modules/
+.env
+leads.db
+leads.db-journal
+leads.db-wal
+leads.db-shm
+server.log
+*.log
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/banner-hero.jpg

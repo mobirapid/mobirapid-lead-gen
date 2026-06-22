@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Mobirapid Leads</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { background: var(--bg); }
+    .admin-top { background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30; }
+    .admin-top .container { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .admin-actions { display: flex; gap: 10px; align-items: center; }
+    .btn { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 9px 14px; font-weight: 600; cursor: pointer; color: var(--ink); font-size: 0.9rem; }
+    .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .btn.danger { color: var(--err); border-color: #f3c9c9; }
+    .btn.small { padding: 6px 10px; font-size: 0.82rem; }
+    .btn:hover { background: #f1f3f6; }
+    .btn.primary:hover { background: var(--brand-dark); }
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 22px 0 24px; flex-wrap: wrap; }
+    .tab { padding: 10px 16px; border: none; background: none; cursor: pointer; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; font-size: 0.95rem; }
+    .tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; margin-bottom: 20px; }
+    .card h3 { margin: 0 0 4px; font-size: 1.15rem; }
+    .card .muted { color: var(--muted); font-size: 0.88rem; margin: 0 0 16px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label.fld { display: block; font-weight: 600; font-size: 0.85rem; margin: 0 0 5px; }
+    .save-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+    .saved-msg { color: var(--ok); font-weight: 600; font-size: 0.88rem; }
+    .img-prev { height: 54px; margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fafbfc; display: none; }
+    .upload-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    /* stats */
+    .stats { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+    .stat { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; min-width: 130px; }
+    .stat b { display: block; font-size: 1.6rem; letter-spacing: -0.02em; }
+    .stat span { color: var(--muted); font-size: 0.82rem; }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .toolbar input, .toolbar select { width: auto; }
+    .toolbar input { min-width: 220px; }
+    .table-wrap { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 11px 13px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+    th { background: #f8fafc; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); position: sticky; top: 0; }
+    td.msg { white-space: normal; min-width: 200px; max-width: 300px; color: var(--muted); }
+    tr:last-child td { border-bottom: none; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .pill.req { background: rgba(37,99,235,0.1); color: var(--brand); }
+    .pill.type { background: #eef2f7; color: var(--ink); }
+    .verified { color: var(--ok); font-weight: 700; }
+    .empty { text-align: center; color: var(--muted); padding: 44px 20px; }
+    /* model editor */
+    .model-row { display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .model-row:last-child { border-bottom: none; }
+    .model-thumb { width: 70px; height: 48px; border-radius: 8px; background: #eef2f7 center/cover; }
+    .model-row .info b { display: block; }
+    .model-row .info small { color: var(--muted); }
+    .inactive-tag { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+    textarea.code { min-height: 280px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+    dialog { border: none; border-radius: var(--radius); box-shadow: 0 30px 60px rgba(0,0,0,0.3); padding: 0; width: min(560px, 94vw); }
+    dialog::backdrop { background: rgba(8,15,35,0.45); }
+    .dlg-head { padding: 18px 22px; border-bottom: 1px solid var(--line); font-weight: 700; }
+    .dlg-body { padding: 18px 22px; max-height: 70vh; overflow: auto; }
+    .dlg-foot { padding: 14px 22px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
+    @media (max-width: 720px){ .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="admin-top">
+    <div class="container">
+      <div class="brand"><span class="brand-mark">M</span><span class="brand-name">Mobirapid Admin</span></div>
+      <div class="admin-actions">
+        <a class="btn" href="/" target="_blank">View site ↗</a>
+        <form method="POST" action="/admin/logout" style="margin:0;"><button class="btn" type="submit">Log out</button></form>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <nav class="tabs">
+      <button class="tab active" data-tab="leads">Leads</button>
+      <button class="tab" data-tab="branding">Branding</button>
+      <button class="tab" data-tab="models">MacBook Models</button>
+      <button class="tab" data-tab="options">Form Options</button>
+      <button class="tab" data-tab="reviews">Google Reviews</button>
+      <button class="tab" data-tab="pages">Compliance Pages</button>
+    </nav>
+
+    <!-- ===================== LEADS ===================== -->
+    <section class="panel active" id="panel-leads">
+      <div class="stats">
+        <div class="stat"><b id="statTotal">—</b><span>Total leads</span></div>
+        <div class="stat"><b id="statToday">—</b><span>Today</span></div>
+        <div class="stat"><b id="statCompany">—</b><span>Companies</span></div>
+        <div class="stat"><b id="statIndividual">—</b><span>Individuals</span></div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="Search name, phone, company, message…" />
+        <select id="filterReq"><option value="">All requirements</option></select>
+        <select id="filterType"><option value="">All types</option><option>Individual</option><option>Company</option></select>
+        <a class="btn" href="/api/admin/leads.csv">Export CSV</a>
+        <button class="btn" id="refreshLeads">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Phone</th><th>Type</th><th>Company</th><th>Requirement</th>
+            <th>Budget</th><th>Best time</th><th>Message</th><th>Received</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="emptyState" hidden>No leads yet.</div>
+      </div>
+    </section>
+
+    <!-- ===================== BRANDING ===================== -->
+    <section class="panel" id="panel-branding">
+      <div class="card">
+        <h3>Logo & header</h3>
+        <p class="muted">Upload a logo and set the header button text.</p>
+        <div class="grid2">
+          <div>
+            <label class="fld">Logo image</label>
+            <div class="upload-row">
+              <input type="file" id="logoFile" accept="image/*" />
+              <button class="btn small" id="logoUploadBtn" type="button">Upload</button>
+              <button class="btn small danger" id="logoRemoveBtn" type="button">Remove</button>
+            </div>
+            <p class="muted" style="margin:8px 0 0;">Recommended: transparent <b>PNG/SVG</b>, ~<b>200×60 px</b> (displays at 34&nbsp;px tall).</p>
+            <img class="img-prev" id="logoPrev" />
+          </div>
+          <div>
+            <label class="fld">Brand name</label>
+            <input type="text" id="set-brand_name" />
+            <label class="fld" style="margin-top:12px;">Header button text</label>
+            <input type="text" id="set-header_cta_text" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Banner / hero</h3>
+        <p class="muted">The big section at the top of the landing page.</p>
+        <label class="fld">Banner background image</label>
+        <div class="upload-row">
+          <input type="file" id="bannerFile" accept="image/*" />
+          <button class="btn small" id="bannerUploadBtn" type="button">Upload</button>
+          <button class="btn small danger" id="bannerRemoveBtn" type="button">Remove</button>
+        </div>
+        <p class="muted" style="margin:8px 0 0;">Recommended: <b>1920×1080 px</b> (16:9), JPG or WebP, under ~500&nbsp;KB. Keep the main subject toward the left/centre — the form card covers the right side on desktop. Max upload 5&nbsp;MB.</p>
+        <img class="img-prev" id="bannerPrev" />
+        <div style="margin-top:14px;">
+          <label class="fld">Eyebrow (small text above heading)</label>
+          <input type="text" id="set-banner_eyebrow" />
+          <label class="fld" style="margin-top:12px;">Heading</label>
+          <input type="text" id="set-banner_heading" />
+          <label class="fld" style="margin-top:12px;">Sub-text</label>
+          <textarea id="set-banner_subtext" rows="3"></textarea>
+          <label class="fld" style="margin-top:12px;">Trust points (one per line)</label>
+          <textarea id="set-trust_points" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Models section heading</h3>
+        <div class="grid2">
+          <div><label class="fld">Section title</label><input type="text" id="set-models_title" /></div>
+          <div><label class="fld">Section subtitle</label><input type="text" id="set-models_subtitle" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>USP strip — "Why buy from us"</h3><p class="muted">The icon row near the top of the page. Edit text, pick icons, add or remove items.</p></div>
+          <button class="btn" id="addUspBtn" type="button">+ Add USP</button>
+        </div>
+        <div class="grid2">
+          <div><label class="fld">Show USP section?</label>
+            <select id="set-usps_enabled"><option value="1">Visible on site</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Section title</label><input type="text" id="set-usps_title" /></div>
+        </div>
+        <div id="uspRows" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>About section</h3>
+        <p class="muted">The "About Mobirapid" block. Leave a blank line between paragraphs.</p>
+        <div class="grid2">
+          <div><label class="fld">Show About section?</label>
+            <select id="set-about_enabled"><option value="1">Visible on site</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Section title</label><input type="text" id="set-about_title" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">About text</label>
+        <textarea id="set-about_text" rows="6"></textarea>
+      </div>
+
+      <div class="card">
+        <h3>Contact section</h3>
+        <p class="muted">Shows Call, WhatsApp, Email and Address cards. Phone/WhatsApp/Email come from "Social &amp; contact links" below; set the address here.</p>
+        <div class="grid2">
+          <div><label class="fld">Show Contact section?</label>
+            <select id="set-contact_enabled"><option value="1">Visible on site</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Section title</label><input type="text" id="set-contact_title" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Subtitle</label>
+        <input type="text" id="set-contact_subtitle" />
+        <label class="fld" style="margin-top:12px;">Address</label>
+        <input type="text" id="set-contact_address" placeholder="e.g. 2nd Floor, Tech Park, Mohali, Punjab 160055" />
+        <label class="fld" style="margin-top:12px;">Google Maps link (for the "Visit us" / directions button)</label>
+        <input type="text" id="set-google_maps_url" placeholder="https://maps.app.goo.gl/..." />
+        <label class="fld" style="margin-top:12px;">Google Maps embed link (optional — shows a live map)</label>
+        <input type="text" id="set-google_maps_embed" placeholder="https://www.google.com/maps/embed?pb=..." />
+        <p class="muted" style="margin:8px 0 0;">To get the embed link: open your place on Google Maps → <b>Share</b> → <b>Embed a map</b> → copy the <code>src="..."</code> URL from the code and paste it here.</p>
+      </div>
+
+      <div class="card">
+        <h3>Social &amp; contact links</h3>
+        <p class="muted">Leave a field blank to hide that icon. These show in the footer; WhatsApp &amp; Call also appear as floating buttons.</p>
+        <div class="grid2">
+          <div><label class="fld">Instagram URL</label><input type="text" id="set-social_instagram" placeholder="https://instagram.com/mobirapid" /></div>
+          <div><label class="fld">Facebook URL</label><input type="text" id="set-social_facebook" placeholder="https://facebook.com/mobirapid" /></div>
+          <div><label class="fld">LinkedIn URL</label><input type="text" id="set-social_linkedin" placeholder="https://linkedin.com/company/mobirapid" /></div>
+          <div><label class="fld">Email</label><input type="text" id="set-social_email" placeholder="sachin@mobirapid.com" /></div>
+          <div><label class="fld">Call number</label><input type="text" id="set-social_phone" placeholder="+91 98765 43210" /></div>
+          <div><label class="fld">WhatsApp number (with country code)</label><input type="text" id="set-social_whatsapp" placeholder="919876543210" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Business &amp; compliance (India)</h3>
+        <p class="muted">Shown in the footer for Indian IT / e-commerce compliance (IT Act 2000, DPDP Act 2023, Consumer Protection E-Commerce Rules 2020, IT Rules 2021). Fill in your real details.</p>
+        <div class="grid2">
+          <div><label class="fld">Legal entity name</label><input type="text" id="set-legal_name" placeholder="Mobirapid Technologies Pvt. Ltd." /></div>
+          <div><label class="fld">GSTIN</label><input type="text" id="set-gstin" placeholder="22AAAAA0000A1Z5" /></div>
+          <div><label class="fld">Customer care email</label><input type="text" id="set-customer_care_email" /></div>
+          <div><label class="fld">Customer care phone</label><input type="text" id="set-customer_care_phone" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Registered address</label>
+        <input type="text" id="set-registered_address" placeholder="2nd Floor, Tech Park, Mohali, Punjab 160055" />
+        <label class="fld" style="margin-top:12px;">Footer tagline</label>
+        <input type="text" id="set-footer_tagline" />
+        <h4 style="margin:18px 0 4px;font-size:0.95rem;">Grievance Officer</h4>
+        <p class="muted">Required to be published under IT Rules 2021 &amp; Consumer Protection (E-Commerce) Rules 2020.</p>
+        <div class="grid2">
+          <div><label class="fld">Name</label><input type="text" id="set-grievance_officer_name" /></div>
+          <div><label class="fld">Email</label><input type="text" id="set-grievance_officer_email" /></div>
+          <div><label class="fld">Phone</label><input type="text" id="set-grievance_officer_phone" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Footer</h3>
+        <div class="grid2">
+          <div><label class="fld">Footer text (legacy)</label><input type="text" id="set-footer_text" /></div>
+          <div><label class="fld">Contact email (legacy)</label><input type="text" id="set-footer_email" /></div>
+        </div>
+      </div>
+
+      <div class="save-row">
+        <button class="btn primary" id="saveBranding">Save all branding</button>
+        <span class="saved-msg" id="brandingSaved" hidden>Saved ✓</span>
+      </div>
+    </section>
+
+    <!-- ===================== MODELS ===================== -->
+    <section class="panel" id="panel-models">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>Hot &amp; Available MacBooks</h3><p class="muted">These cards show on the landing page. Add, edit, reorder or hide them.</p></div>
+          <button class="btn primary" id="addModelBtn">+ Add model</button>
+        </div>
+        <div id="modelsList"></div>
+      </div>
+    </section>
+
+    <!-- ===================== OPTIONS ===================== -->
+    <section class="panel" id="panel-options">
+      <div class="card">
+        <h3>"MacBook use" options (requirement dropdown)</h3>
+        <p class="muted">One option per line. These appear in the "What will you use the MacBook for?" dropdown.</p>
+        <textarea id="set-requirement_options" rows="6"></textarea>
+      </div>
+      <div class="card">
+        <h3>Budget options</h3>
+        <p class="muted">One option per line.</p>
+        <textarea id="set-budget_options" rows="6"></textarea>
+      </div>
+      <div class="save-row">
+        <button class="btn primary" id="saveOptions">Save options</button>
+        <span class="saved-msg" id="optionsSaved" hidden>Saved ✓</span>
+      </div>
+    </section>
+
+    <!-- ===================== GOOGLE REVIEWS ===================== -->
+    <section class="panel" id="panel-reviews">
+      <div class="card">
+        <h3>Google Reviews integration</h3>
+        <p class="muted">Show a reviews section on the landing page with your Google rating and a link to your Google profile. Add curated reviews below.</p>
+        <div class="grid2">
+          <div>
+            <label class="fld">Show reviews section?</label>
+            <select id="set-reviews_enabled"><option value="0">Hidden</option><option value="1">Visible on site</option></select>
+          </div>
+          <div>
+            <label class="fld">Section title</label>
+            <input type="text" id="set-reviews_title" />
+          </div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Google reviews link (your Google Business profile / "leave a review" URL)</label>
+        <input type="text" id="set-google_reviews_url" placeholder="https://g.page/r/your-business/review" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Overall Google rating (e.g. 4.9)</label><input type="text" id="set-google_rating" /></div>
+          <div><label class="fld">Total Google review count</label><input type="text" id="set-google_review_count" /></div>
+        </div>
+        <div class="save-row">
+          <button class="btn primary" id="saveReviewSettings">Save review settings</button>
+          <span class="saved-msg" id="reviewSettingsSaved" hidden>Saved ✓</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>Curated reviews</h3><p class="muted">These display as cards in the reviews section.</p></div>
+          <button class="btn primary" id="addReviewBtn">+ Add review</button>
+        </div>
+        <div id="reviewsList"></div>
+      </div>
+    </section>
+
+    <!-- ===================== PAGES ===================== -->
+    <section class="panel" id="panel-pages">
+      <div class="card">
+        <h3>Compliance pages</h3>
+        <p class="muted">Edit the content of your policy pages. They appear in the footer and at <code>/p/&lt;slug&gt;</code>. Basic HTML is supported.</p>
+        <div class="toolbar">
+          <select id="pageSelect"></select>
+          <a class="btn" id="viewPageLink" href="#" target="_blank">View page ↗</a>
+        </div>
+        <label class="fld">Page title</label>
+        <input type="text" id="pageTitle" />
+        <label class="fld" style="margin-top:12px;">Content (HTML)</label>
+        <textarea id="pageContent" class="code"></textarea>
+        <div class="save-row">
+          <button class="btn primary" id="savePage">Save page</button>
+          <span class="saved-msg" id="pageSaved" hidden>Saved ✓</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Model editor dialog -->
+  <dialog id="modelDialog">
+    <form id="modelForm" method="dialog">
+      <div class="dlg-head" id="modelDlgTitle">Add model</div>
+      <div class="dlg-body">
+        <input type="hidden" id="m-id" />
+        <label class="fld">Model name *</label>
+        <input type="text" id="m-name" required placeholder='MacBook Pro 14" M3' />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Price</label><input type="text" id="m-price" placeholder="₹1,29,000" /></div>
+          <div><label class="fld">Badge</label>
+            <select id="m-badge"><option value="">None</option><option>Hot</option><option>Available</option><option>Sold out</option></select>
+          </div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Specs (short line)</label>
+        <input type="text" id="m-specs" placeholder="M3 · 16GB · 512GB SSD" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Condition grade</label><input type="text" id="m-condition_grade" placeholder="Excellent" /></div>
+          <div><label class="fld">Warranty note</label><input type="text" id="m-warranty" placeholder="6-month warranty" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Image</label>
+        <div class="upload-row">
+          <input type="file" id="m-imageFile" accept="image/*" />
+          <button class="btn small" id="m-uploadBtn" type="button">Upload</button>
+        </div>
+        <img class="img-prev" id="m-imagePrev" />
+        <input type="hidden" id="m-image" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Sort order</label><input type="number" id="m-sort_order" value="0" /></div>
+          <div><label class="fld">Visible?</label>
+            <select id="m-active"><option value="1">Visible on site</option><option value="0">Hidden</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" type="button" id="modelCancel">Cancel</button>
+        <button class="btn primary" type="button" id="modelSave">Save model</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Review editor dialog -->
+  <dialog id="reviewDialog">
+    <form method="dialog">
+      <div class="dlg-head" id="reviewDlgTitle">Add review</div>
+      <div class="dlg-body">
+        <input type="hidden" id="r-id" />
+        <label class="fld">Reviewer name *</label>
+        <input type="text" id="r-author" required placeholder="Priya N." />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Rating</label>
+            <select id="r-rating"><option value="5">★★★★★ (5)</option><option value="4">★★★★ (4)</option><option value="3">★★★ (3)</option><option value="2">★★ (2)</option><option value="1">★ (1)</option></select>
+          </div>
+          <div><label class="fld">Date label</label><input type="text" id="r-date_label" placeholder="2 weeks ago" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Review text</label>
+        <textarea id="r-text" rows="4" placeholder="Great service…"></textarea>
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Sort order</label><input type="number" id="r-sort_order" value="0" /></div>
+          <div><label class="fld">Visible?</label><select id="r-active"><option value="1">Visible</option><option value="0">Hidden</option></select></div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" type="button" id="reviewCancel">Cancel</button>
+        <button class="btn primary" type="button" id="reviewSave">Save review</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/icons.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

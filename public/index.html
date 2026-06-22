@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobirapid — Book a Free Consultation for Refurbished MacBooks</title>
+  <meta name="description" content="Get a refurbished MacBook matched to your work — AI, Machine Learning, Data Science or daily tasks. Book a free consultation with Mobirapid." />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" id="brandLink">
+        <span class="brand-mark" id="brandMark">M</span>
+        <img class="brand-logo" id="brandLogo" alt="" hidden />
+        <span class="brand-name" id="brandName">Mobirapid</span>
+      </a>
+      <a class="header-cta" href="#lead-form" id="headerCta">Book Consultation</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <div class="hero-overlay"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow" id="eyebrow">Refurbished MacBooks · Expert-matched</p>
+          <h1 id="heroHeading">Find the right MacBook for the work you actually do.</h1>
+          <p class="lead" id="heroSub"></p>
+          <ul class="trust" id="trustList"></ul>
+          <a class="hero-button" href="#lead-form">Book your free call →</a>
+        </div>
+
+        <div class="form-card" id="lead-form">
+          <h2>Book a free consultation</h2>
+          <p class="form-sub">Takes under a minute. We'll verify your number and call at your preferred time.</p>
+
+          <form id="leadForm" novalidate>
+            <div class="field">
+              <label for="name">Full name <span class="req">*</span></label>
+              <input type="text" id="name" name="name" placeholder="e.g. Sachin Sharma" required />
+            </div>
+
+            <div class="field">
+              <label for="phone">Phone number <span class="req">*</span></label>
+              <div class="phone-row">
+                <input type="tel" id="phone" name="phone" placeholder="+91 98765 43210" required />
+                <button type="button" id="sendOtpBtn" class="otp-btn">Send code</button>
+              </div>
+              <small class="hint">Include your country code. We'll text you a verification code.</small>
+            </div>
+
+            <div class="field otp-field" id="otpField" hidden>
+              <label for="otp">Enter the 6-digit code <span class="req">*</span></label>
+              <div class="phone-row">
+                <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+                <button type="button" id="verifyOtpBtn" class="otp-btn">Verify</button>
+              </div>
+              <small class="hint" id="otpHint"></small>
+            </div>
+
+            <div class="field">
+              <label for="client_type">I am a <span class="req">*</span></label>
+              <select id="client_type" name="client_type" required>
+                <option value="" disabled selected>Select one</option>
+                <option value="Individual">Individual</option>
+                <option value="Company">Company</option>
+              </select>
+            </div>
+
+            <!-- Company-only fields -->
+            <div id="companyFields" hidden>
+              <div class="field">
+                <label for="company_name">Company name <span class="req">*</span></label>
+                <input type="text" id="company_name" name="company_name" placeholder="e.g. Acme Pvt Ltd" />
+              </div>
+              <div class="field">
+                <label for="company_email">Company email <span class="req">*</span></label>
+                <input type="email" id="company_email" name="company_email" placeholder="you@company.com" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="requirement">What will you use the MacBook for? <span class="req">*</span></label>
+              <select id="requirement" name="requirement" required>
+                <option value="" disabled selected>Select your primary use</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="budget">Budget <span class="req">*</span></label>
+              <select id="budget" name="budget" required>
+                <option value="" disabled selected>Select a range</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Best time to connect <span class="req">*</span></label>
+              <div class="datetime-row">
+                <input type="date" id="best_date" name="best_date" required />
+                <input type="time" id="best_time_input" name="best_time_input" required />
+              </div>
+              <small class="hint">Pick a date and a time that suits you.</small>
+            </div>
+
+            <div class="field">
+              <label for="message">Anything else? <span class="optional">(optional)</span></label>
+              <textarea id="message" name="message" rows="3" placeholder="Tell us about your specific needs, preferred model, etc."></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="submit-btn" disabled>Verify phone to continue</button>
+            <p class="form-status" id="formStatus" role="status"></p>
+            <p class="privacy">By submitting, you agree to be contacted about your enquiry. We never share your details.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- USP / WHY BUY FROM US -->
+    <section class="usps" id="uspsSection" hidden>
+      <div class="container">
+        <h2 id="uspsTitle">Why buy from Mobirapid</h2>
+        <div class="usp-grid" id="uspGrid"></div>
+        <p class="usp-gstin" id="uspGstin" hidden></p>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how">
+      <div class="container">
+        <h2>How it works</h2>
+        <div class="steps">
+          <div class="step"><span class="step-num">1</span><h3>Tell us your needs</h3><p>Share your use-case and budget in the form above.</p></div>
+          <div class="step"><span class="step-num">2</span><h3>We match a MacBook</h3><p>Our team shortlists quality-checked devices that fit.</p></div>
+          <div class="step"><span class="step-num">3</span><h3>Free consultation call</h3><p>We call at your chosen time and answer everything.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOT & AVAILABLE MACBOOKS -->
+    <section class="models" id="modelsSection" hidden>
+      <div class="container">
+        <h2 id="modelsTitle">Hot &amp; Available MacBooks</h2>
+        <p class="section-sub" id="modelsSubtitle"></p>
+        <div class="carousel">
+          <button class="car-arrow car-prev" type="button" aria-label="Previous">‹</button>
+          <div class="car-viewport"><div class="models-grid car-track" id="modelsGrid"></div></div>
+          <button class="car-arrow car-next" type="button" aria-label="Next">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GOOGLE REVIEWS -->
+    <section class="reviews" id="reviewsSection" hidden>
+      <div class="container">
+        <div class="reviews-head">
+          <h2 id="reviewsTitle">What our customers say</h2>
+          <div class="google-rating" id="googleRating" hidden>
+            <span class="g-logo" aria-hidden="true">G</span>
+            <span class="g-score" id="gScore"></span>
+            <span class="g-stars" id="gStars"></span>
+            <span class="g-count" id="gCount"></span>
+          </div>
+          <a class="btn-google" id="googleReviewLink" href="#" target="_blank" rel="noopener" hidden>Read our Google reviews →</a>
+        </div>
+        <div class="carousel">
+          <button class="car-arrow car-prev" type="button" aria-label="Previous">‹</button>
+          <div class="car-viewport"><div class="reviews-grid car-track" id="reviewsGrid"></div></div>
+          <button class="car-arrow car-next" type="button" aria-label="Next">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="about" id="about" hidden>
+      <div class="container">
+        <div class="about-inner">
+          <h2 id="aboutTitle">About Mobirapid</h2>
+          <div class="about-text" id="aboutText"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT US -->
+    <section class="contact" id="contact" hidden>
+      <div class="container">
+        <h2 id="contactTitle">Contact us</h2>
+        <p class="section-sub" id="contactSubtitle"></p>
+        <div class="contact-grid" id="contactGrid"></div>
+        <div class="contact-map" id="contactMap" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-top">
+      <div class="footer-col footer-brand-col">
+        <div class="footer-brand">
+          <span class="brand-mark" id="footerMark">M</span>
+          <img class="brand-logo" id="footerLogo" alt="" hidden />
+          <span class="footer-brand-name" id="footerBrandName">Mobirapid</span>
+        </div>
+        <p class="footer-tagline" id="footerTagline"></p>
+        <div class="footer-social" id="footerSocial" hidden></div>
+      </div>
+
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul class="footer-list">
+          <li><a href="#about">About us</a></li>
+          <li><a href="#modelsSection">MacBooks</a></li>
+          <li><a href="#contact">Contact us</a></li>
+          <li><a href="#lead-form">Book consultation</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Policies</h4>
+        <ul class="footer-list" id="footerPolicies"></ul>
+      </div>
+
+      <div class="footer-col footer-reach">
+        <h4>Reach us</h4>
+        <ul class="footer-list footer-contact-list" id="footerContact"></ul>
+        <div class="footer-grievance" id="footerGrievance" hidden></div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <span id="footerCopy">© Mobirapid. All rights reserved.</span>
+        <span class="footer-legal" id="footerLegal"></span>
+      </div>
+      <div class="container footer-disclaimer">Apple, MacBook, MacBook Air and MacBook Pro are trademarks of Apple Inc., registered in the U.S. and other countries. Mobirapid is an independent reseller and is not affiliated with, authorised, sponsored or endorsed by Apple Inc.</div>
+    </div>
+  </footer>
+
+  <!-- Cookie consent (DPDP Act, 2023) -->
+  <div class="cookie-banner" id="cookieBanner" hidden>
+    <p>We use cookies to improve your experience and for analytics, in line with our <a href="/p/privacy-policy">Privacy Policy</a> and the DPDP Act, 2023.</p>
+    <div class="cookie-actions">
+      <button type="button" class="cookie-decline" id="cookieDecline">Decline</button>
+      <button type="button" class="cookie-accept" id="cookieAccept">Accept</button>
+    </div>
+  </div>
+
+  <!-- Floating contact buttons -->
+  <div class="float-contact" id="floatContact"></div>
+
+  <script src="/icons.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "mobirapid-lead-gen",
+  "version": "1.0.0",
+  "description": "Lead generation landing page for Mobirapid with OTP phone verification, SQLite storage, email notifications, and admin panel.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "multer": "^2.0.1",
+    "nodemailer": "^6.9.14",
+    "twilio": "^5.3.0"
+  },
+  "license": "MIT"
+}
