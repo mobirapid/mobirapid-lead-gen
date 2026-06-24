@@ -16,11 +16,11 @@
   const companyFields = $('companyFields');
   const companyName = $('company_name');
   const companyEmail = $('company_email');
-  const bestDate = $('best_date');
-  const bestTimeInput = $('best_time_input');
+  const bestTimeSel = $('best_time_sel');
 
   let phoneVerified = false;
   let resendTimer = null;
+  let ctaText = 'Schedule call now';
 
   // ========================================================================
   // Load dynamic site content from the backend
@@ -54,6 +54,7 @@
       $('brandName').hidden = true;
     }
     if (s.header_cta_text) $('headerCta').textContent = s.header_cta_text;
+    if (s.cta_text) { ctaText = s.cta_text; if (phoneVerified) submitBtn.textContent = ctaText; }
     if (s.banner_eyebrow) $('eyebrow').textContent = s.banner_eyebrow;
     if (s.banner_heading) $('heroHeading').textContent = s.banner_heading;
     if (s.banner_subtext) $('heroSub').textContent = s.banner_subtext;
@@ -65,8 +66,8 @@
     const trust = Array.isArray(s.trust_points) ? s.trust_points : [];
     $('trustList').innerHTML = trust.map((t) => `<li><span>✓</span> ${esc(t)}</li>`).join('');
 
-    fillSelect($('requirement'), s.requirement_options, 'Select your primary use');
-    fillSelect($('budget'), s.budget_options, 'Select a range');
+    fillSelect($('requirement'), s.requirement_options, 'Select use');
+    fillSelect($('budget'), s.budget_options, 'Select range');
     // Footer (text/email) is now handled by renderFooter; these legacy elements
     // may not exist, so guard before touching them.
     const ft = $('footerText'); if (ft && s.footer_text) ft.textContent = s.footer_text;
@@ -75,8 +76,9 @@
 
   function fillSelect(sel, options, placeholder) {
     if (!sel || !Array.isArray(options)) return;
+    // Placeholder is selectable (not disabled) because these fields are optional.
     sel.innerHTML =
-      `<option value="" disabled selected>${esc(placeholder)}</option>` +
+      `<option value="" selected>${esc(placeholder)}</option>` +
       options.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
   }
 
@@ -329,7 +331,7 @@
     status.className = 'form-status' + (type ? ' ' + type : '');
   }
   function lockSubmit() {
-    if (phoneVerified) { submitBtn.disabled = false; submitBtn.textContent = 'Book my free consultation'; }
+    if (phoneVerified) { submitBtn.disabled = false; submitBtn.textContent = ctaText; }
     else { submitBtn.disabled = true; submitBtn.textContent = 'Verify phone to continue'; }
   }
   phone.addEventListener('input', () => {
@@ -382,7 +384,7 @@
     if (!phoneVerified) { setStatus('Please verify your phone number first.', 'err'); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
 
-    const best_time = bestDate.value && bestTimeInput.value ? `${bestDate.value} ${bestTimeInput.value}` : '';
+    const best_time = bestTimeSel.value;
     const payload = {
       name: $('name').value.trim(),
       phone: phone.value.trim(),
@@ -403,7 +405,7 @@
       form.reset(); otpField.hidden = true; companyFields.hidden = true; phoneVerified = false;
       setStatus(data.message, 'ok'); submitBtn.textContent = 'Request received ✓';
     } catch (err) {
-      setStatus(err.message, 'err'); submitBtn.disabled = false; submitBtn.textContent = 'Book my free consultation';
+      setStatus(err.message, 'err'); submitBtn.disabled = false; submitBtn.textContent = ctaText;
     }
   });
 
@@ -469,9 +471,6 @@
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     els.forEach((e, i) => { e.classList.add('reveal'); e.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(e); });
   }
-
-  // Set min date to today
-  bestDate.min = new Date().toISOString().slice(0, 10);
 
   lockSubmit();
   loadSite().then(initReveal);

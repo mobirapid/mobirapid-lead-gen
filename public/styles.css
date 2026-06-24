@@ -104,6 +104,7 @@ h1, h2, h3 { font-weight: 700; }
 .form-card h2 { margin: 0 0 5px; font-size: 1.5rem; letter-spacing: -0.02em; }
 .form-sub { margin: 0 0 20px; color: var(--muted); font-size: 0.93rem; }
 .field { margin-bottom: 15px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 7px; color: var(--ink-soft); }
 .req { color: var(--err); }
 .optional { color: var(--muted); font-weight: 400; }
@@ -321,6 +322,7 @@ body.cookie-open .float-contact { bottom: 104px; }
   .hero-copy h1 { font-size: 1.95rem; }
   .lead { font-size: 1rem; }
   .form-card { padding: 22px; }
+  .field-row { grid-template-columns: 1fr; gap: 0; }
   .usps h2, .models h2, .reviews-head h2, .how h2 { font-size: 1.6rem; }
   .footer-top { grid-template-columns: 1fr; gap: 28px; }
   .footer-bottom-inner { flex-direction: column; align-items: flex-start; }

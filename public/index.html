@@ -60,53 +60,58 @@
               <small class="hint" id="otpHint"></small>
             </div>
 
-            <div class="field">
-              <label for="client_type">I am a <span class="req">*</span></label>
-              <select id="client_type" name="client_type" required>
-                <option value="" disabled selected>Select one</option>
-                <option value="Individual">Individual</option>
-                <option value="Company">Company</option>
-              </select>
+            <div class="field-row">
+              <div class="field">
+                <label for="client_type">I am a <span class="optional">(optional)</span></label>
+                <select id="client_type" name="client_type">
+                  <option value="" selected>Individual / Company</option>
+                  <option value="Individual">Individual</option>
+                  <option value="Company">Company</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="best_time_sel">Best time to call <span class="optional">(optional)</span></label>
+                <select id="best_time_sel" name="best_time_sel">
+                  <option value="" selected>Any time</option>
+                  <option value="Morning (9am – 12pm)">Morning (9am – 12pm)</option>
+                  <option value="Afternoon (12pm – 4pm)">Afternoon (12pm – 4pm)</option>
+                  <option value="Evening (4pm – 8pm)">Evening (4pm – 8pm)</option>
+                </select>
+              </div>
             </div>
 
             <!-- Company-only fields -->
             <div id="companyFields" hidden>
+              <div class="field-row">
+                <div class="field">
+                  <label for="company_name">Company name <span class="req">*</span></label>
+                  <input type="text" id="company_name" name="company_name" placeholder="e.g. Acme Pvt Ltd" />
+                </div>
+                <div class="field">
+                  <label for="company_email">Company email <span class="req">*</span></label>
+                  <input type="email" id="company_email" name="company_email" placeholder="you@company.com" />
+                </div>
+              </div>
+            </div>
+
+            <div class="field-row">
               <div class="field">
-                <label for="company_name">Company name <span class="req">*</span></label>
-                <input type="text" id="company_name" name="company_name" placeholder="e.g. Acme Pvt Ltd" />
+                <label for="requirement">MacBook for <span class="optional">(optional)</span></label>
+                <select id="requirement" name="requirement">
+                  <option value="" selected>Select use</option>
+                </select>
               </div>
               <div class="field">
-                <label for="company_email">Company email <span class="req">*</span></label>
-                <input type="email" id="company_email" name="company_email" placeholder="you@company.com" />
+                <label for="budget">Budget <span class="optional">(optional)</span></label>
+                <select id="budget" name="budget">
+                  <option value="" selected>Select range</option>
+                </select>
               </div>
-            </div>
-
-            <div class="field">
-              <label for="requirement">What will you use the MacBook for? <span class="req">*</span></label>
-              <select id="requirement" name="requirement" required>
-                <option value="" disabled selected>Select your primary use</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="budget">Budget <span class="req">*</span></label>
-              <select id="budget" name="budget" required>
-                <option value="" disabled selected>Select a range</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label>Best time to connect <span class="req">*</span></label>
-              <div class="datetime-row">
-                <input type="date" id="best_date" name="best_date" required />
-                <input type="time" id="best_time_input" name="best_time_input" required />
-              </div>
-              <small class="hint">Pick a date and a time that suits you.</small>
             </div>
 
             <div class="field">
               <label for="message">Anything else? <span class="optional">(optional)</span></label>
-              <textarea id="message" name="message" rows="3" placeholder="Tell us about your specific needs, preferred model, etc."></textarea>
+              <textarea id="message" name="message" rows="2" placeholder="Preferred model, questions, etc."></textarea>
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn" disabled>Verify phone to continue</button>

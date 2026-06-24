@@ -1,17 +1,32 @@
-// Uses Node's built-in SQLite (node:sqlite), available in Node.js 24+.
-// No native module to compile or install — works out of the box on any platform.
-const { DatabaseSync } = require('node:sqlite');
+// Database layer with automatic driver selection for maximum host compatibility:
+//   1. Node's built-in SQLite (node:sqlite) — Node 22.5+/24+, no install needed.
+//   2. Fallback to better-sqlite3 — for older Node versions (e.g. cPanel hosts on
+//      Node 18/20). Install it there with: npm install better-sqlite3
 const path = require('path');
-
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'leads.db');
-const rawDb = new DatabaseSync(dbPath);
 
-// Thin wrapper so the rest of the app keeps a small, familiar API.
-const db = {
-  exec: (sql) => rawDb.exec(sql),
-  prepare: (sql) => rawDb.prepare(sql),
-  pragma: (str) => rawDb.exec('PRAGMA ' + str),
-};
+let db;
+try {
+  // --- Preferred: built-in node:sqlite ---
+  const { DatabaseSync } = require('node:sqlite');
+  const rawDb = new DatabaseSync(dbPath);
+  db = {
+    exec: (sql) => rawDb.exec(sql),
+    prepare: (sql) => rawDb.prepare(sql),
+    pragma: (str) => rawDb.exec('PRAGMA ' + str),
+  };
+  console.log('DB: using built-in node:sqlite');
+} catch (e) {
+  // --- Fallback: better-sqlite3 (native module) ---
+  const Database = require('better-sqlite3');
+  const rawDb = new Database(dbPath);
+  db = {
+    exec: (sql) => rawDb.exec(sql),
+    prepare: (sql) => rawDb.prepare(sql),
+    pragma: (str) => rawDb.pragma(str),
+  };
+  console.log('DB: using better-sqlite3 fallback');
+}
 
 // WAL gives better concurrency on normal disks, but fails on some network/FUSE
 // mounts — fall back to the default journal mode if it isn't supported.
@@ -97,6 +112,7 @@ const DEFAULT_SETTINGS = {
   brand_name: 'Mobirapid',
   logo_path: '',
   header_cta_text: 'Book Consultation',
+  cta_text: 'Schedule call now',
   banner_image: '/uploads/banner-hero.jpg',
   banner_eyebrow: 'Refurbished MacBooks · Expert-matched',
   banner_heading: 'Find the right MacBook for the work you actually do.',
@@ -165,6 +181,23 @@ const DEFAULT_SETTINGS = {
   google_reviews_url: '',
   google_rating: '4.9',
   google_review_count: '0',
+  // --- Integrations: SMS (OTP) + Email. Seeded once from .env if present, then
+  //     managed from the admin panel. These are NOT exposed in the public API. ---
+  otp_provider: process.env.OTP_PROVIDER || 'mock',
+  otp_ttl_minutes: process.env.OTP_TTL_MINUTES || '10',
+  twilio_account_sid: process.env.TWILIO_ACCOUNT_SID || '',
+  twilio_auth_token: process.env.TWILIO_AUTH_TOKEN || '',
+  twilio_messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || '',
+  twilio_from_number: process.env.TWILIO_FROM_NUMBER || '',
+  twofactor_api_key: process.env.TWOFACTOR_API_KEY || '',
+  twofactor_template_name: process.env.TWOFACTOR_TEMPLATE || '',
+  smtp_host: process.env.SMTP_HOST || '',
+  smtp_port: process.env.SMTP_PORT || '587',
+  smtp_secure: process.env.SMTP_SECURE || 'false',
+  smtp_user: process.env.SMTP_USER || '',
+  smtp_pass: process.env.SMTP_PASS || '',
+  mail_from: process.env.MAIL_FROM || '',
+  lead_notify_to: process.env.LEAD_NOTIFY_TO || 'sachin@mobirapid.com',
 };
 const insSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) insSetting.run(k, v);

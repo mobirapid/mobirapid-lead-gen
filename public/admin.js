@@ -170,7 +170,7 @@
 
   // Branding save (all branding keys + uploaded image paths)
   $('saveBranding').addEventListener('click', () => {
-    const keys = ['brand_name', 'header_cta_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'usps_enabled', 'usps_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
+    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'usps_enabled', 'usps_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
     const payload = collectSettings(keys);
     payload.logo_path = settings.logo_path || '';
     payload.banner_image = settings.banner_image || '';
@@ -283,6 +283,41 @@
     await api('/api/admin/models/' + id, { method: 'DELETE' });
     loadModels();
   }
+
+  // ========================================================================
+  // SMS & EMAIL INTEGRATIONS
+  // ========================================================================
+  $('saveIntegrations').addEventListener('click', () => {
+    const keys = ['otp_provider', 'otp_ttl_minutes', 'twofactor_api_key', 'twofactor_template_name',
+      'twilio_account_sid', 'twilio_auth_token', 'twilio_messaging_service_sid', 'twilio_from_number',
+      'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'lead_notify_to'];
+    saveSettings(collectSettings(keys), $('integrationsSaved'));
+  });
+
+  function showTestMsg(el, text, ok) {
+    el.textContent = text;
+    el.style.display = 'inline';
+    el.style.color = ok ? 'var(--ok)' : 'var(--err)';
+  }
+  $('testSmsBtn').addEventListener('click', async () => {
+    const phone = $('testSmsPhone').value.trim();
+    if (!phone) { showTestMsg($('testSmsMsg'), 'Enter a phone number.', false); return; }
+    showTestMsg($('testSmsMsg'), 'Sending… (save first if you changed keys)', true);
+    try {
+      const r = await api('/api/admin/test-sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
+      const d = await r.json();
+      showTestMsg($('testSmsMsg'), d.ok ? d.message : (d.error || 'Failed'), !!d.ok);
+    } catch (e) { showTestMsg($('testSmsMsg'), 'Failed', false); }
+  });
+  $('testEmailBtn').addEventListener('click', async () => {
+    const to = $('testEmailTo').value.trim();
+    showTestMsg($('testEmailMsg'), 'Sending… (save first if you changed settings)', true);
+    try {
+      const r = await api('/api/admin/test-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to }) });
+      const d = await r.json();
+      showTestMsg($('testEmailMsg'), d.ok ? d.message : (d.error || 'Failed'), !!d.ok);
+    } catch (e) { showTestMsg($('testEmailMsg'), 'Failed', false); }
+  });
 
   // ========================================================================
   // GOOGLE REVIEWS

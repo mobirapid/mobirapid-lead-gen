@@ -12,6 +12,30 @@ const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Behind LiteSpeed/Passenger (cPanel), Node sits behind a reverse proxy.
+// Trust it so Express reads the real client IP and protocol from X-Forwarded-* headers.
+app.set('trust proxy', 1);
+
+// Force HTTPS — only when actually proxied over http (skips local dev, which has no proxy header).
+app.use((req, res, next) => {
+  const xfp = req.headers['x-forwarded-proto'];
+  if (xfp && xfp !== 'https' && !req.secure) {
+    return res.redirect(301, 'https://' + req.headers.host + req.originalUrl);
+  }
+  next();
+});
+
+// Security headers
+app.use((req, res, next) => {
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -20,12 +44,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const OTP_PROVIDER = (process.env.OTP_PROVIDER || 'mock').toLowerCase();
-const OTP_TTL_MINUTES = parseInt(process.env.OTP_TTL_MINUTES || '10', 10);
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me-now';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-secret-change-me';
-const LEAD_NOTIFY_TO = process.env.LEAD_NOTIFY_TO || 'sachin@mobirapid.com';
+
+// Integration settings that must NEVER be exposed in the public /api/site response.
+const PRIVATE_KEYS = new Set([
+  'otp_provider', 'otp_ttl_minutes',
+  'twilio_account_sid', 'twilio_auth_token', 'twilio_messaging_service_sid', 'twilio_from_number',
+  'twofactor_api_key', 'twofactor_template_name',
+  'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'lead_notify_to',
+]);
 
 // ---------------------------------------------------------------------------
 // Uploads (logo, banner, model images)
@@ -71,35 +100,36 @@ function parseJsonSetting(key, fallback) {
 }
 
 // ---------------------------------------------------------------------------
-// Twilio (lazy init only if configured)
+// Dynamic config: read from DB settings first, fall back to env, then default.
+// This lets the admin manage SMS/email credentials from the panel.
 // ---------------------------------------------------------------------------
-let twilioClient = null;
-if (OTP_PROVIDER === 'twilio') {
-  try {
-    twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-  } catch (e) {
-    console.error('Twilio init failed:', e.message);
-  }
+function cfg(key, envName, def = '') {
+  const v = getSetting(key, '');
+  if (v !== '' && v != null) return v;
+  if (envName && process.env[envName]) return process.env[envName];
+  return def;
 }
+const otpProvider = () => String(cfg('otp_provider', 'OTP_PROVIDER', 'mock')).toLowerCase();
+const otpTtlMinutes = () => parseInt(cfg('otp_ttl_minutes', 'OTP_TTL_MINUTES', '10'), 10) || 10;
+const leadNotifyTo = () => cfg('lead_notify_to', 'LEAD_NOTIFY_TO', 'sachin@mobirapid.com');
 
 // ---------------------------------------------------------------------------
-// Mailer
+// Mailer (built fresh from current config)
 // ---------------------------------------------------------------------------
-let transporter = null;
-function getTransporter() {
-  if (transporter) return transporter;
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: String(process.env.SMTP_SECURE) === 'true',
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-  }
-  return transporter;
+function buildTransporter() {
+  const host = cfg('smtp_host', 'SMTP_HOST');
+  const user = cfg('smtp_user', 'SMTP_USER');
+  if (!host || !user) return null;
+  return nodemailer.createTransport({
+    host,
+    port: parseInt(cfg('smtp_port', 'SMTP_PORT', '587'), 10),
+    secure: String(cfg('smtp_secure', 'SMTP_SECURE', 'false')) === 'true',
+    auth: { user, pass: cfg('smtp_pass', 'SMTP_PASS') },
+  });
 }
 async function sendLeadEmail(lead) {
-  const t = getTransporter();
+  const t = buildTransporter();
+  const to = leadNotifyTo();
   const legalName = getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid');
   const gstin = getSetting('gstin', '');
   const subject = `New Mobirapid lead: ${lead.name} (${lead.requirement || 'N/A'})`;
@@ -120,13 +150,13 @@ Submitted at:  ${lead.created_at} UTC
 ${legalName}${gstin ? '\nGSTIN: ' + gstin : ''}
 `;
   if (!t) {
-    console.log('\n[EMAIL MOCK] (SMTP not configured) Would send to', LEAD_NOTIFY_TO);
+    console.log('\n[EMAIL MOCK] (SMTP not configured) Would send to', to);
     console.log(body);
     return;
   }
   await t.sendMail({
-    from: process.env.MAIL_FROM || 'Mobirapid Leads <no-reply@mobirapid.com>',
-    to: LEAD_NOTIFY_TO,
+    from: cfg('mail_from', 'MAIL_FROM') || 'Mobirapid Leads <no-reply@mobirapid.com>',
+    to,
     subject,
     text: body,
   });
@@ -147,14 +177,41 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 async function sendSms(phone, code) {
-  const text = `Your Mobirapid verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`;
-  if (OTP_PROVIDER === 'twilio' && twilioClient) {
-    const opts = { to: phone, body: text };
-    if (process.env.TWILIO_MESSAGING_SERVICE_SID) opts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-    else opts.from = process.env.TWILIO_FROM_NUMBER;
-    await twilioClient.messages.create(opts);
+  const provider = otpProvider();
+  const text = `Your Mobirapid verification code is ${code}. It expires in ${otpTtlMinutes()} minutes.`;
+
+  // --- 2Factor.in (India) ---
+  if (provider === '2factor') {
+    const apiKey = cfg('twofactor_api_key', 'TWOFACTOR_API_KEY');
+    if (!apiKey) throw new Error('2Factor API key is not set.');
+    const tpl = cfg('twofactor_template_name', 'TWOFACTOR_TEMPLATE');
+    const num = phone.replace(/\D/g, ''); // 2Factor accepts digits (with country code)
+    let url = `https://2factor.in/API/V1/${encodeURIComponent(apiKey)}/SMS/${num}/${code}`;
+    if (tpl) url += `/${encodeURIComponent(tpl)}`;
+    const resp = await fetch(url);
+    let data = {};
+    try { data = await resp.json(); } catch (e) {}
+    if (!resp.ok || (data.Status && data.Status !== 'Success')) {
+      throw new Error('2Factor: ' + (data.Details || ('HTTP ' + resp.status)));
+    }
     return;
   }
+
+  // --- Twilio ---
+  if (provider === 'twilio') {
+    const sid = cfg('twilio_account_sid', 'TWILIO_ACCOUNT_SID');
+    const token = cfg('twilio_auth_token', 'TWILIO_AUTH_TOKEN');
+    if (!sid || !token) throw new Error('Twilio credentials are not set.');
+    const client = require('twilio')(sid, token);
+    const opts = { to: phone, body: text };
+    const msgSid = cfg('twilio_messaging_service_sid', 'TWILIO_MESSAGING_SERVICE_SID');
+    if (msgSid) opts.messagingServiceSid = msgSid;
+    else opts.from = cfg('twilio_from_number', 'TWILIO_FROM_NUMBER');
+    await client.messages.create(opts);
+    return;
+  }
+
+  // --- Mock (default) ---
   console.log(`\n[OTP MOCK] Code for ${phone}: ${code}\n`);
 }
 
@@ -170,7 +227,9 @@ const submitLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, standardHea
 
 // Site content for the landing page
 app.get('/api/site', (req, res) => {
-  const s = getAllSettings();
+  const all = getAllSettings();
+  const s = {};
+  for (const k of Object.keys(all)) if (!PRIVATE_KEYS.has(k)) s[k] = all[k]; // never expose secrets
   const models = db
     .prepare('SELECT * FROM macbook_models WHERE active = 1 ORDER BY sort_order ASC, id ASC')
     .all();
@@ -237,7 +296,7 @@ app.post('/api/otp/send', otpLimiter, async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!phone) return res.status(400).json({ ok: false, error: 'Please enter a valid phone number with country code.' });
   const code = genOtp();
-  const expires = Date.now() + OTP_TTL_MINUTES * 60 * 1000;
+  const expires = Date.now() + otpTtlMinutes() * 60 * 1000;
   db.prepare(
     `INSERT INTO otps (phone, code, expires_at, attempts, verified) VALUES (?, ?, ?, 0, 0)
      ON CONFLICT(phone) DO UPDATE SET code=excluded.code, expires_at=excluded.expires_at, attempts=0, verified=0`
@@ -248,7 +307,7 @@ app.post('/api/otp/send', otpLimiter, async (req, res) => {
     console.error('SMS send failed:', e.message);
     return res.status(502).json({ ok: false, error: 'Could not send the code. Please try again.' });
   }
-  res.json({ ok: true, message: 'Verification code sent.', mock: OTP_PROVIDER !== 'twilio' });
+  res.json({ ok: true, message: 'Verification code sent.', mock: otpProvider() === 'mock' });
 });
 
 // Verify OTP
@@ -380,6 +439,41 @@ app.post('/api/admin/upload', requireAdmin, (req, res) => {
   });
 });
 
+// Test the configured SMS provider
+app.post('/api/admin/test-sms', requireAdmin, async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return res.status(400).json({ ok: false, error: 'Enter a valid phone number with country code.' });
+  const provider = otpProvider();
+  if (provider === 'mock') {
+    return res.json({ ok: true, message: 'Provider is "mock" — no real SMS sent. The code prints to the server console. Switch to 2factor or twilio for real SMS.' });
+  }
+  try {
+    await sendSms(phone, genOtp());
+    res.json({ ok: true, message: `Test SMS sent via ${provider} to ${phone}.` });
+  } catch (e) {
+    res.status(502).json({ ok: false, error: e.message });
+  }
+});
+
+// Test the configured email (SMTP)
+app.post('/api/admin/test-email', requireAdmin, async (req, res) => {
+  const to = (req.body.to || '').trim() || leadNotifyTo();
+  if (!isEmail(to)) return res.status(400).json({ ok: false, error: 'Enter a valid email address.' });
+  const t = buildTransporter();
+  if (!t) return res.status(400).json({ ok: false, error: 'SMTP is not configured. Fill in the SMTP fields and save first.' });
+  try {
+    await t.sendMail({
+      from: cfg('mail_from', 'MAIL_FROM') || 'Mobirapid Leads <no-reply@mobirapid.com>',
+      to,
+      subject: 'Mobirapid test email',
+      text: 'This is a test email confirming your SMTP settings work. — Mobirapid admin',
+    });
+    res.json({ ok: true, message: 'Test email sent to ' + to + '.' });
+  } catch (e) {
+    res.status(502).json({ ok: false, error: e.message });
+  }
+});
+
 // Delete an uploaded image file from disk
 app.post('/api/admin/upload/delete', requireAdmin, (req, res) => {
   const p = String((req.body && req.body.path) || '');
@@ -488,6 +582,8 @@ app.put('/api/admin/pages/:slug', requireAdmin, (req, res) => {
 app.listen(PORT, () => {
   console.log(`\nMobirapid lead-gen running:  http://localhost:${PORT}`);
   console.log(`Admin panel:                 http://localhost:${PORT}/admin`);
-  console.log(`OTP provider: ${OTP_PROVIDER}${OTP_PROVIDER !== 'twilio' ? '  (codes printed to this console)' : ''}`);
-  console.log(`Lead emails -> ${LEAD_NOTIFY_TO}${getTransporter() ? '' : '  (SMTP not set: emails printed to console)'}\n`);
+  const prov = otpProvider();
+  console.log(`OTP provider: ${prov}${prov === 'mock' ? '  (codes printed to this console)' : ''}`);
+  console.log(`Lead emails -> ${leadNotifyTo()}${buildTransporter() ? '' : '  (SMTP not set: emails printed to console)'}`);
+  console.log(`Configure SMS/email from the admin → "SMS & Email" tab.\n`);
 });

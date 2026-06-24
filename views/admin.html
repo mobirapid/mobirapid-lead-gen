@@ -83,6 +83,7 @@
       <button class="tab" data-tab="models">MacBook Models</button>
       <button class="tab" data-tab="options">Form Options</button>
       <button class="tab" data-tab="reviews">Google Reviews</button>
+      <button class="tab" data-tab="integrations">SMS &amp; Email</button>
       <button class="tab" data-tab="pages">Compliance Pages</button>
     </nav>
 
@@ -134,6 +135,8 @@
             <input type="text" id="set-brand_name" />
             <label class="fld" style="margin-top:12px;">Header button text</label>
             <input type="text" id="set-header_cta_text" />
+            <label class="fld" style="margin-top:12px;">Form submit button text</label>
+            <input type="text" id="set-cta_text" placeholder="Schedule call now" />
           </div>
         </div>
       </div>
@@ -291,6 +294,71 @@
       <div class="save-row">
         <button class="btn primary" id="saveOptions">Save options</button>
         <span class="saved-msg" id="optionsSaved" hidden>Saved ✓</span>
+      </div>
+    </section>
+
+    <!-- ===================== SMS & EMAIL ===================== -->
+    <section class="panel" id="panel-integrations">
+      <div class="card">
+        <h3>SMS / OTP provider</h3>
+        <p class="muted">Choose how verification codes are sent. "Mock" just prints the code to the server console (for testing).</p>
+        <div class="grid2">
+          <div><label class="fld">Provider</label>
+            <select id="set-otp_provider">
+              <option value="mock">Mock (console, no SMS)</option>
+              <option value="2factor">2Factor.in (India)</option>
+              <option value="twilio">Twilio</option>
+            </select>
+          </div>
+          <div><label class="fld">OTP validity (minutes)</label><input type="number" id="set-otp_ttl_minutes" min="1" max="60" /></div>
+        </div>
+
+        <h4 style="margin:18px 0 4px;font-size:0.95rem;">2Factor.in</h4>
+        <p class="muted">Get your API key from your 2Factor.in dashboard. Template name is optional (uses your approved DLT template).</p>
+        <div class="grid2">
+          <div><label class="fld">API key</label><input type="password" id="set-twofactor_api_key" autocomplete="off" /></div>
+          <div><label class="fld">Template name (optional)</label><input type="text" id="set-twofactor_template_name" /></div>
+        </div>
+
+        <h4 style="margin:18px 0 4px;font-size:0.95rem;">Twilio</h4>
+        <div class="grid2">
+          <div><label class="fld">Account SID</label><input type="text" id="set-twilio_account_sid" autocomplete="off" /></div>
+          <div><label class="fld">Auth Token</label><input type="password" id="set-twilio_auth_token" autocomplete="off" /></div>
+          <div><label class="fld">Messaging Service SID (optional)</label><input type="text" id="set-twilio_messaging_service_sid" /></div>
+          <div><label class="fld">From number (if no Messaging Service)</label><input type="text" id="set-twilio_from_number" placeholder="+1..." /></div>
+        </div>
+
+        <div class="toolbar" style="margin-top:16px;">
+          <input type="tel" id="testSmsPhone" placeholder="+91 98765 43210" />
+          <button class="btn" id="testSmsBtn" type="button">Send test SMS</button>
+          <span class="saved-msg" id="testSmsMsg" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Email (SMTP)</h3>
+        <p class="muted">Used to email new leads. For Gmail/Workspace use an App Password. Leave blank to print emails to the console.</p>
+        <div class="grid2">
+          <div><label class="fld">SMTP host</label><input type="text" id="set-smtp_host" placeholder="smtp.gmail.com" /></div>
+          <div><label class="fld">SMTP port</label><input type="number" id="set-smtp_port" placeholder="587" /></div>
+          <div><label class="fld">Secure (SSL)?</label>
+            <select id="set-smtp_secure"><option value="false">No (STARTTLS / 587)</option><option value="true">Yes (SSL / 465)</option></select>
+          </div>
+          <div><label class="fld">SMTP username</label><input type="text" id="set-smtp_user" autocomplete="off" /></div>
+          <div><label class="fld">SMTP password</label><input type="password" id="set-smtp_pass" autocomplete="off" /></div>
+          <div><label class="fld">From address</label><input type="text" id="set-mail_from" placeholder="Mobirapid Leads &lt;no-reply@mobirapid.com&gt;" /></div>
+          <div><label class="fld">Send new leads to</label><input type="text" id="set-lead_notify_to" placeholder="sachin@mobirapid.com" /></div>
+        </div>
+        <div class="toolbar" style="margin-top:16px;">
+          <input type="email" id="testEmailTo" placeholder="you@example.com" />
+          <button class="btn" id="testEmailBtn" type="button">Send test email</button>
+          <span class="saved-msg" id="testEmailMsg" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div class="save-row">
+        <button class="btn primary" id="saveIntegrations">Save SMS &amp; Email settings</button>
+        <span class="saved-msg" id="integrationsSaved" hidden>Saved ✓</span>
       </div>
     </section>
 
