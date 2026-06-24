@@ -381,22 +381,24 @@ function requireAdmin(req, res, next) {
   const data = verifyToken(req.cookies.admin_session);
   if (!data) {
     if (req.path.startsWith('/api/')) return res.status(401).json({ ok: false, error: 'Not authenticated.' });
-    return res.redirect('/admin/login');
+    return res.redirect('/manage/login');
   }
   next();
 }
 
-app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
-app.post('/admin/login', (req, res) => {
+// Admin UI lives at /manage (not /admin) to avoid clashing with a /admin path
+// that some hosts/other apps occupy. The /api/admin/* API paths are unaffected.
+app.get(['/manage/login', '/admin/login'], (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
+app.post(['/manage/login', '/admin/login'], (req, res) => {
   const { username, password } = req.body;
   if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
     res.cookie('admin_session', signToken(username), { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
-    return res.redirect('/admin');
+    return res.redirect('/manage');
   }
-  res.redirect('/admin/login?error=1');
+  res.redirect('/manage/login?error=1');
 });
-app.post('/admin/logout', (req, res) => { res.clearCookie('admin_session'); res.redirect('/admin/login'); });
-app.get('/admin', requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.post(['/manage/logout', '/admin/logout'], (req, res) => { res.clearCookie('admin_session'); res.redirect('/manage/login'); });
+app.get(['/manage', '/admin'], requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 
 // ===========================================================================
 // ADMIN API
@@ -581,7 +583,7 @@ app.put('/api/admin/pages/:slug', requireAdmin, (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\nMobirapid lead-gen running:  http://localhost:${PORT}`);
-  console.log(`Admin panel:                 http://localhost:${PORT}/admin`);
+  console.log(`Admin panel:                 http://localhost:${PORT}/manage`);
   const prov = otpProvider();
   console.log(`OTP provider: ${prov}${prov === 'mock' ? '  (codes printed to this console)' : ''}`);
   console.log(`Lead emails -> ${leadNotifyTo()}${buildTransporter() ? '' : '  (SMTP not set: emails printed to console)'}`);

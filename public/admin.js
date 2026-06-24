@@ -15,7 +15,7 @@
 
   async function api(url, opts) {
     const r = await fetch(url, opts);
-    if (r.status === 401) { location.href = '/admin/login'; throw new Error('Not authenticated'); }
+    if (r.status === 401) { location.href = '/manage/login'; throw new Error('Not authenticated'); }
     return r;
   }
   function flash(el) { el.hidden = false; setTimeout(() => (el.hidden = true), 2000); }
