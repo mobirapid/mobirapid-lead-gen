@@ -139,6 +139,13 @@
         </div>
       </article>`;
     }).join('');
+    const note = $('modelsNote');
+    if (note) {
+      if (s.price_note) {
+        note.hidden = false;
+        note.textContent = `All prices are exclusive of GST (${esc(s.price_note).replace(/[^0-9%]/g, '') || '18%'}). A GST invoice with serial number is provided with every purchase.`;
+      } else { note.hidden = true; }
+    }
     setupCarousel('modelsGrid');
   }
 
