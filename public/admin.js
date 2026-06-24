@@ -170,7 +170,7 @@
 
   // Branding save (all branding keys + uploaded image paths)
   $('saveBranding').addEventListener('click', () => {
-    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'usps_enabled', 'usps_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
+    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
     const payload = collectSettings(keys);
     payload.logo_path = settings.logo_path || '';
     payload.banner_image = settings.banner_image || '';

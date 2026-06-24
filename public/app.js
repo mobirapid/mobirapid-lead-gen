@@ -131,6 +131,7 @@
           ${m.description ? `<p class="model-desc">${esc(m.description)}</p>` : ''}
           <div class="model-meta">
             ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
+            ${m.price && s.price_note ? `<span class="model-gst">${esc(s.price_note)}</span>` : ''}
             ${m.condition_grade ? `<span class="model-grade">${esc(m.condition_grade)}</span>` : ''}
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}

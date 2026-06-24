@@ -134,6 +134,7 @@ const DEFAULT_SETTINGS = {
   ]),
   models_title: 'Hot & Available MacBooks',
   models_subtitle: 'Hand-picked, quality-checked devices ready to ship.',
+  price_note: '+ 18% GST',
   // About section
   about_enabled: '1',
   about_title: 'About Mobirapid',
