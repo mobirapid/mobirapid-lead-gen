@@ -128,6 +128,7 @@
         <div class="model-body">
           <h3>${esc(m.name)}</h3>
           ${m.specs ? `<p class="model-specs">${esc(m.specs)}</p>` : ''}
+          ${m.description ? `<p class="model-desc">${esc(m.description)}</p>` : ''}
           <div class="model-meta">
             ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
             ${m.condition_grade ? `<span class="model-grade">${esc(m.condition_grade)}</span>` : ''}

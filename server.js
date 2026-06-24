@@ -498,6 +498,7 @@ function modelFromBody(b) {
     price: String(b.price || '').trim(),
     image: String(b.image || '').trim(),
     specs: String(b.specs || '').trim(),
+    description: String(b.description || '').trim().slice(0, 600),
     badge: String(b.badge || '').trim(),
     condition_grade: String(b.condition_grade || '').trim(),
     warranty: String(b.warranty || '').trim(),
@@ -509,8 +510,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   const m = modelFromBody(req.body);
   if (!m.name) return res.status(400).json({ ok: false, error: 'Model name is required.' });
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, price, image, specs, badge, condition_grade, warranty, sort_order, active)
-     VALUES (@name, @price, @image, @specs, @badge, @condition_grade, @warranty, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, price, image, specs, description, badge, condition_grade, warranty, sort_order, active)
+     VALUES (@name, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @sort_order, @active)`
   ).run(m);
   res.json({ ok: true, id: Number(info.lastInsertRowid) });
 });
@@ -518,7 +519,7 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   const m = modelFromBody(req.body);
   if (!m.name) return res.status(400).json({ ok: false, error: 'Model name is required.' });
   db.prepare(
-    `UPDATE macbook_models SET name=@name, price=@price, image=@image, specs=@specs, badge=@badge,
+    `UPDATE macbook_models SET name=@name, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, id: parseInt(req.params.id, 10) });
   res.json({ ok: true });

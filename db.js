@@ -106,6 +106,7 @@ function ensureColumn(table, column, type) {
 }
 ensureColumn('leads', 'company_name', 'TEXT');
 ensureColumn('leads', 'company_email', 'TEXT');
+ensureColumn('macbook_models', 'description', 'TEXT');
 
 // --- Seed default settings (only inserts missing keys) ---
 const DEFAULT_SETTINGS = {
@@ -332,6 +333,37 @@ if (modelCount === 0) {
     { name: 'MacBook Pro 16" M1 Pro', price: '₹1,45,000', image: '', specs: 'M1 Pro · 16GB · 1TB SSD', badge: 'Hot', condition_grade: 'Excellent', warranty: '6-month warranty', sort_order: 3, active: 1 },
   ];
   for (const m of seed) insModel.run(m);
+}
+
+// --- One-time catalog load (v1): replace the example models with the real
+//     refurbished MacBook line-up. Prices and images are left blank for the
+//     admin to fill/upload. Runs once, then never touches the table again. ---
+const catalogFlag = db.prepare("SELECT value FROM settings WHERE key = 'catalog_v1'").get();
+if (!catalogFlag || catalogFlag.value !== '1') {
+  db.exec('DELETE FROM macbook_models');
+  const insCat = db.prepare(
+    `INSERT INTO macbook_models (name, price, image, specs, description, badge, condition_grade, warranty, sort_order, active)
+     VALUES (@name, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @sort_order, @active)`
+  );
+  const W = '6-month warranty';
+  const catalog = [
+    { name: 'Refurbished MacBook Pro 16" M3 Pro', specs: 'M3 Pro · 16-inch · 36GB · 512GB SSD', description: '16-inch Liquid Retina XDR display with the M3 Pro chip and 36GB memory — built for the most demanding video editing, 3D and software-development workloads.', badge: 'Hot', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Pro 14" M3 Pro', specs: 'M3 Pro · 14-inch · 18GB · 512GB SSD', description: '14-inch MacBook Pro with the M3 Pro chip and 18GB memory — serious pro performance in a compact, portable body.', badge: 'Hot', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Pro 14" M2 Pro', specs: 'M2 Pro · 14-inch · 16GB · 512GB SSD', description: '14-inch MacBook Pro with the M2 Pro chip — fast, efficient and ideal for creators and developers.', badge: 'Available', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Pro 16" M1 Pro', specs: 'M1 Pro · 16-inch · 16GB · 512GB SSD', description: 'Large 16-inch Liquid Retina XDR display powered by the M1 Pro chip — a portable powerhouse with all-day battery life.', badge: 'Hot', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Pro 14" M1 Pro', specs: 'M1 Pro · 14-inch · 16GB · 512GB SSD', description: '14-inch MacBook Pro with M1 Pro performance — great for coding, photo and video work on the move.', badge: 'Available', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Air 13" M4', specs: 'M4 · 13-inch · 24GB · 512GB SSD', description: 'The latest M4 MacBook Air with 24GB memory — a thin, light machine that comfortably handles heavy multitasking.', badge: 'Hot', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Air 13" M4', specs: 'M4 · 13-inch · 16GB · 512GB SSD', description: 'The newest M4 MacBook Air — faster and more efficient than ever for everyday and creative work.', badge: 'Hot', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Air 13" M3', specs: 'M3 · 13-inch · 16GB · 512GB SSD', description: 'Ultra-thin, fanless MacBook Air with the fast, efficient M3 chip — ideal for work, study and creative tasks.', badge: 'Available', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Air 13" M2', specs: 'M2 · 13-inch · 16GB · 256GB SSD', description: 'MacBook Air with the M2 chip and 16GB memory — smooth multitasking in a sleek, lightweight design.', badge: 'Available', condition_grade: 'Excellent' },
+    { name: 'Refurbished MacBook Air 13" M2', specs: 'M2 · 13-inch · 8GB · 256GB SSD', description: 'Lightweight MacBook Air with the M2 chip — a reliable everyday laptop with excellent battery life.', badge: 'Available', condition_grade: 'Very Good' },
+    { name: 'Refurbished MacBook Air 13" M1', specs: 'M1 · 13-inch · 8GB · 256GB SSD', description: 'The classic M1 MacBook Air — silent, efficient and dependable for browsing, office work and study.', badge: 'Available', condition_grade: 'Very Good' },
+  ];
+  catalog.forEach((m, i) => insCat.run({
+    name: m.name, price: '', image: '', specs: m.specs, description: m.description,
+    badge: m.badge, condition_grade: m.condition_grade, warranty: W, sort_order: i + 1, active: 1,
+  }));
+  db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_v1', '1') ON CONFLICT(key) DO UPDATE SET value = '1'").run();
 }
 
 // --- Seed example reviews (only if table is empty) ---
