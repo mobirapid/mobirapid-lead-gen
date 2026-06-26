@@ -259,6 +259,19 @@ app.get('/api/site', (req, res) => {
   });
 });
 
+// security.txt (RFC 9116) — how to report a security issue. Expires auto-renews.
+app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
+  const email = getSetting('customer_care_email', '') || getSetting('footer_email', '') || 'security@mobirapid.com';
+  const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  const host = req.headers.host || 'mobirapid.com';
+  res.type('text/plain').send(
+    `Contact: mailto:${email}\n` +
+    `Expires: ${expires}\n` +
+    `Preferred-Languages: en\n` +
+    `Canonical: https://${host}/.well-known/security.txt\n`
+  );
+});
+
 // Compliance / content page (server-rendered)
 app.get('/p/:slug', (req, res) => {
   const page = db.prepare('SELECT * FROM content_pages WHERE slug = ?').get(req.params.slug);
