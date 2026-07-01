@@ -421,6 +421,32 @@ app.get(['/manage', '/admin'], requireAdmin, (req, res) => res.sendFile(path.joi
 app.get('/api/admin/leads', requireAdmin, (req, res) => {
   res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all() });
 });
+app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const lead = {
+    id: parseInt(req.params.id, 10),
+    name: String(b.name || '').trim(),
+    phone: String(b.phone || '').trim(),
+    client_type: String(b.client_type || '').trim(),
+    company_name: String(b.company_name || '').trim(),
+    company_email: String(b.company_email || '').trim(),
+    requirement: String(b.requirement || '').trim(),
+    budget: String(b.budget || '').trim(),
+    best_time: String(b.best_time || '').trim(),
+    message: String(b.message || '').trim().slice(0, 2000),
+  };
+  if (!lead.name) return res.status(400).json({ ok: false, error: 'Name is required.' });
+  db.prepare(
+    `UPDATE leads SET name=@name, phone=@phone, client_type=@client_type, company_name=@company_name,
+     company_email=@company_email, requirement=@requirement, budget=@budget, best_time=@best_time, message=@message
+     WHERE id=@id`
+  ).run(lead);
+  res.json({ ok: true });
+});
+app.delete('/api/admin/leads/:id', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM leads WHERE id = ?').run(parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
 app.get('/api/admin/leads.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM leads ORDER BY id DESC').all();
   const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message', 'created_at'];

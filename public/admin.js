@@ -58,7 +58,40 @@
         <td>${esc(l.best_time) || '—'}</td>
         <td class="msg">${esc(l.message) || '—'}</td>
         <td>${fmtDate(l.created_at)}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn small" data-ledit="${l.id}">Edit</button>
+          <button class="btn small danger" data-ldel="${l.id}">Delete</button>
+        </td>
       </tr>`).join('');
+    $('rows').querySelectorAll('[data-ledit]').forEach((b) => b.addEventListener('click', () => openLead(b.dataset.ledit)));
+    $('rows').querySelectorAll('[data-ldel]').forEach((b) => b.addEventListener('click', () => delLead(b.dataset.ldel)));
+  }
+
+  // ---- Lead edit / delete ----
+  const leadDlg = $('leadDialog');
+  function openLead(id) {
+    const l = allLeads.find((x) => String(x.id) === String(id));
+    if (!l) return;
+    $('l-id').value = l.id;
+    ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { $('l-' + f).value = l[f] ?? ''; });
+    $('l-client_type').value = l.client_type || '';
+    leadDlg.showModal();
+  }
+  $('leadCancel').addEventListener('click', () => leadDlg.close());
+  $('leadSave').addEventListener('click', async () => {
+    const id = $('l-id').value;
+    const payload = {};
+    ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { payload[f] = $('l-' + f).value.trim(); });
+    if (!payload.name) { alert('Name is required.'); return; }
+    const r = await api('/api/admin/leads/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (!data.ok) { alert(data.error || 'Save failed.'); return; }
+    leadDlg.close(); loadLeads();
+  });
+  async function delLead(id) {
+    if (!confirm('Delete this lead permanently?')) return;
+    await api('/api/admin/leads/' + id, { method: 'DELETE' });
+    loadLeads();
   }
   function updateStats() {
     const today = new Date().toISOString().slice(0, 10);

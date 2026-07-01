@@ -106,7 +106,7 @@
         <table>
           <thead><tr>
             <th>#</th><th>Name</th><th>Phone</th><th>Type</th><th>Company</th><th>Requirement</th>
-            <th>Budget</th><th>Best time</th><th>Message</th><th>Received</th>
+            <th>Budget</th><th>Best time</th><th>Message</th><th>Received</th><th>Actions</th>
           </tr></thead>
           <tbody id="rows"></tbody>
         </table>
@@ -459,6 +459,35 @@
       <div class="dlg-foot">
         <button class="btn" type="button" id="modelCancel">Cancel</button>
         <button class="btn primary" type="button" id="modelSave">Save model</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Lead editor dialog -->
+  <dialog id="leadDialog">
+    <form method="dialog">
+      <div class="dlg-head">Edit lead</div>
+      <div class="dlg-body">
+        <input type="hidden" id="l-id" />
+        <label class="fld">Name</label>
+        <input type="text" id="l-name" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Phone</label><input type="text" id="l-phone" /></div>
+          <div><label class="fld">Type</label>
+            <select id="l-client_type"><option value="">—</option><option>Individual</option><option>Company</option></select>
+          </div>
+          <div><label class="fld">Company name</label><input type="text" id="l-company_name" /></div>
+          <div><label class="fld">Company email</label><input type="text" id="l-company_email" /></div>
+          <div><label class="fld">Requirement</label><input type="text" id="l-requirement" /></div>
+          <div><label class="fld">Budget</label><input type="text" id="l-budget" /></div>
+          <div><label class="fld">Best time</label><input type="text" id="l-best_time" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Message</label>
+        <textarea id="l-message" rows="3"></textarea>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" type="button" id="leadCancel">Cancel</button>
+        <button class="btn primary" type="button" id="leadSave">Save lead</button>
       </div>
     </form>
   </dialog>
