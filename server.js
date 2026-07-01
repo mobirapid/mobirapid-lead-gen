@@ -55,6 +55,7 @@ const PRIVATE_KEYS = new Set([
   'twofactor_api_key', 'twofactor_template_name',
   'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'lead_notify_to',
   'ga_measurement_id', 'head_code', 'body_code',
+  'google_place_id', 'google_places_api_key',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -217,6 +218,35 @@ async function sendSms(phone, code) {
 }
 
 // ---------------------------------------------------------------------------
+// Live Google rating (Google Places API), cached to limit API calls.
+// ---------------------------------------------------------------------------
+let gCache = { rating: null, count: null, reviews: [], at: 0, error: '' };
+const G_TTL = 6 * 60 * 60 * 1000; // 6 hours
+async function refreshGoogleRating() {
+  const key = getSetting('google_places_api_key', '');
+  const pid = getSetting('google_place_id', '');
+  if (!key || !pid) { gCache = { rating: null, count: null, reviews: [], at: Date.now(), error: 'API key or Place ID missing' }; return gCache; }
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(pid)}&fields=rating,user_ratings_total,reviews&reviews_sort=newest&key=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.status === 'OK' && d.result) {
+      const reviews = (d.result.reviews || []).map((rv) => ({
+        author: rv.author_name || 'Google user', rating: rv.rating || 5,
+        text: rv.text || '', date_label: rv.relative_time_description || '',
+      }));
+      gCache = { rating: d.result.rating ?? null, count: d.result.user_ratings_total ?? null, reviews, at: Date.now(), error: '' };
+    } else {
+      gCache = { rating: gCache.rating, count: gCache.count, reviews: gCache.reviews, at: Date.now(), error: (d.status || 'ERROR') + (d.error_message ? ': ' + d.error_message : '') };
+    }
+  } catch (e) {
+    gCache = { rating: gCache.rating, count: gCache.count, reviews: gCache.reviews, at: Date.now(), error: e.message };
+  }
+  return gCache;
+}
+function googleLiveEnabled() { return getSetting('google_reviews_live', '0') === '1' && getSetting('google_places_api_key', '') && getSetting('google_place_id', ''); }
+
+// ---------------------------------------------------------------------------
 // Rate limiters
 // ---------------------------------------------------------------------------
 const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
@@ -256,12 +286,57 @@ function renderIndex(req) {
     ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>\n` +
       `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga}');</script>\n`
     : '';
+  head += buildJsonLd(base);
   head += getSetting('head_code', ''); // raw admin-provided code (GTM, pixel, verification…)
   const body = getSetting('body_code', '');
   return indexTemplate
     .replace('<!--SEO_META-->', seo)
     .replace('<!--HEAD_CODE-->', head)
     .replace('<!--BODY_CODE-->', body);
+}
+// Structured data (schema.org) for rich results.
+function buildJsonLd(base) {
+  const abs = (u) => (u && u.startsWith('/') ? base + u : u);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const org = { '@type': 'Organization', '@id': base + '/#org', name: getSetting('legal_name', '') || brand, url: base + '/' };
+  const logo = getSetting('logo_path', '');
+  if (logo) org.logo = abs(logo);
+  const email = getSetting('customer_care_email', '') || getSetting('footer_email', '');
+  if (email) org.email = email;
+  const phone = getSetting('customer_care_phone', '') || getSetting('social_phone', '');
+  if (phone) org.telephone = phone;
+  const addr = getSetting('registered_address', '');
+  if (addr) org.address = { '@type': 'PostalAddress', streetAddress: addr, addressCountry: 'IN' };
+  const same = ['social_instagram', 'social_facebook', 'social_linkedin'].map((k) => getSetting(k, '')).filter(Boolean);
+  if (same.length) org.sameAs = same;
+  if (getSetting('reviews_enabled', '0') === '1') {
+    let rating = parseFloat(getSetting('google_rating', ''));
+    let count = parseInt(getSetting('google_review_count', ''), 10);
+    if (googleLiveEnabled() && gCache.rating != null) { rating = gCache.rating; count = gCache.count || 0; }
+    if (rating > 0 && count > 0) org.aggregateRating = { '@type': 'AggregateRating', ratingValue: rating, reviewCount: count };
+  }
+
+  const graph = [org];
+  const models = db.prepare('SELECT * FROM macbook_models WHERE active = 1 ORDER BY sort_order ASC, id ASC').all();
+  for (const m of models) {
+    const product = {
+      '@type': 'Product', name: m.name, description: m.description || m.specs || m.name,
+      brand: { '@type': 'Brand', name: 'Apple' }, category: 'Refurbished Laptop',
+      itemCondition: 'https://schema.org/RefurbishedCondition',
+    };
+    if (m.image) product.image = abs(m.image);
+    const priceNum = String(m.price || '').replace(/[^\d.]/g, '');
+    if (priceNum) {
+      product.offers = {
+        '@type': 'Offer', price: priceNum, priceCurrency: 'INR',
+        availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        url: base + '/#lead-form', seller: { '@id': base + '/#org' },
+      };
+    }
+    graph.push(product);
+  }
+  const json = JSON.stringify(graph).replace(/</g, '\\u003c');
+  return `<script type="application/ld+json">${json}</script>\n`;
 }
 app.get('/', (req, res) => res.type('html').send(renderIndex(req)));
 
@@ -295,9 +370,15 @@ app.get('/api/site', (req, res) => {
     .prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC, title ASC')
     .all();
   const reviewsEnabled = getSetting('reviews_enabled', '0') === '1';
-  const reviews = reviewsEnabled
+  let reviews = reviewsEnabled
     ? db.prepare('SELECT id, author, rating, text, date_label FROM reviews WHERE active = 1 ORDER BY sort_order ASC, id ASC').all()
     : [];
+  // Live Google rating (overrides the manual rating/count, and reviews if available)
+  if (googleLiveEnabled()) {
+    if (Date.now() - gCache.at > G_TTL) refreshGoogleRating(); // async refresh; serve cached meanwhile
+    if (gCache.rating != null) { s.google_rating = String(gCache.rating); s.google_review_count = String(gCache.count || 0); }
+    if (reviewsEnabled && gCache.reviews && gCache.reviews.length) reviews = gCache.reviews;
+  }
   res.json({
     ok: true,
     settings: {
@@ -709,6 +790,13 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
 app.delete('/api/admin/models/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM macbook_models WHERE id = ?').run(parseInt(req.params.id, 10));
   res.json({ ok: true });
+});
+
+// Fetch the live Google rating now (admin "Fetch now" button)
+app.post('/api/admin/google/refresh', requireAdmin, async (req, res) => {
+  const c = await refreshGoogleRating();
+  if (c.error) return res.status(502).json({ ok: false, error: c.error });
+  res.json({ ok: true, rating: c.rating, count: c.count, reviews: c.reviews.length });
 });
 
 // Reviews CRUD (Google Reviews integration — curated entries)

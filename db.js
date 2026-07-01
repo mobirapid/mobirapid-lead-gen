@@ -203,6 +203,10 @@ const DEFAULT_SETTINGS = {
   google_reviews_url: '',
   google_rating: '4.9',
   google_review_count: '0',
+  // Live Google rating (Google Places API)
+  google_reviews_live: '0',
+  google_place_id: '',
+  google_places_api_key: '',
   // --- Integrations: SMS (OTP) + Email. Seeded once from .env if present, then
   //     managed from the admin panel. These are NOT exposed in the public API. ---
   otp_provider: process.env.OTP_PROVIDER || 'mock',

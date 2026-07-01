@@ -415,6 +415,19 @@
   $('saveReviewSettings').addEventListener('click', () => {
     saveSettings(collectSettings(['reviews_enabled', 'reviews_title', 'google_reviews_url', 'google_rating', 'google_review_count']), $('reviewSettingsSaved'));
   });
+  on('saveGoogleLive', 'click', () => {
+    saveSettings(collectSettings(['google_reviews_live', 'google_place_id', 'google_places_api_key']), $('googleLiveMsg'));
+    const m = $('googleLiveMsg'); m.style.display = 'inline'; m.style.color = 'var(--ok)'; m.textContent = 'Saved ✓';
+  });
+  on('fetchGoogleBtn', 'click', async () => {
+    const m = $('googleLiveMsg'); m.style.display = 'inline'; m.style.color = 'var(--muted)'; m.textContent = 'Fetching… (save your key & Place ID first)';
+    try {
+      const r = await api('/api/admin/google/refresh', { method: 'POST' });
+      const d = await r.json();
+      if (d.ok) { m.style.color = 'var(--ok)'; m.textContent = `✓ ${d.rating} ★ · ${d.count} reviews · ${d.reviews} shown`; }
+      else { m.style.color = 'var(--err)'; m.textContent = d.error || 'Failed'; }
+    } catch (e) { m.style.color = 'var(--err)'; m.textContent = 'Failed'; }
+  });
 
   let reviews = [];
   async function loadReviews() {

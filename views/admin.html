@@ -402,6 +402,25 @@
       </div>
 
       <div class="card">
+        <h3>Live Google rating (auto-fetch)</h3>
+        <p class="muted">Pull the rating, review count and latest reviews automatically from Google. Needs a Google Places API key (Google Cloud, billing enabled) and your Place ID. When on, this overrides the manual rating/count above.</p>
+        <div class="grid2">
+          <div><label class="fld">Use live Google rating?</label>
+            <select id="set-google_reviews_live"><option value="0">Off (use manual values)</option><option value="1">On (fetch from Google)</option></select>
+          </div>
+          <div><label class="fld">Place ID</label><input type="text" id="set-google_place_id" placeholder="ChIJ…" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Google Places API key</label>
+        <input type="password" id="set-google_places_api_key" autocomplete="off" />
+        <div class="save-row">
+          <button class="btn primary" id="saveGoogleLive">Save</button>
+          <button class="btn" id="fetchGoogleBtn" type="button">Fetch now</button>
+          <span class="saved-msg" id="googleLiveMsg" style="display:none;"></span>
+        </div>
+        <p class="muted" style="margin:8px 0 0;">Find your Place ID at <b>developers.google.com/maps/documentation/places/web-service/place-id</b>. The rating refreshes automatically every few hours.</p>
+      </div>
+
+      <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div><h3>Curated reviews</h3><p class="muted">These display as cards in the reviews section.</p></div>
           <button class="btn primary" id="addReviewBtn">+ Add review</button>
