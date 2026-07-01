@@ -420,8 +420,11 @@ app.use('/api/admin', (req, res, next) => {
   const data = authOf(req);
   if (!data) return res.status(401).json({ ok: false, error: 'Not authenticated.' });
   req.authUser = data;
+  // Tokens issued before roles existed have no role — treat them as full admin
+  // (only the .env admin could have logged in back then).
+  const role = data.role || 'admin';
   const leadsOk = req.path === '/me' || req.path.startsWith('/leads');
-  if (leadsOk || data.role === 'admin') return next();
+  if (leadsOk || role === 'admin') return next();
   return res.status(403).json({ ok: false, error: 'You do not have access to this section.' });
 });
 

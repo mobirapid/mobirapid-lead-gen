@@ -134,16 +134,18 @@
     allLeads = data.leads || [];
     updateStats(); renderLeads();
   }
-  $('search').addEventListener('input', renderLeads);
-  $('filterReq').addEventListener('change', renderLeads);
-  $('filterType').addEventListener('change', renderLeads);
-  $('filterStatus').addEventListener('change', renderLeads);
-  $('refreshLeads').addEventListener('click', loadLeads);
-  $('selectAll').addEventListener('change', () => {
+  // Safe listener helper — never crashes the script if an element is missing.
+  const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+  on('search', 'input', renderLeads);
+  on('filterReq', 'change', renderLeads);
+  on('filterType', 'change', renderLeads);
+  on('filterStatus', 'change', renderLeads);
+  on('refreshLeads', 'click', loadLeads);
+  on('selectAll', 'change', () => {
     $('rows').querySelectorAll('.rowchk').forEach((c) => { c.checked = $('selectAll').checked; });
     updateSelection();
   });
-  $('bulkDeleteBtn').addEventListener('click', async () => {
+  on('bulkDeleteBtn', 'click', async () => {
     const ids = selectedIds();
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} selected lead(s) permanently?`)) return;
@@ -507,7 +509,7 @@
       : '<p class="muted" style="padding:12px 0;">No additional users yet.</p>';
     $('usersList').querySelectorAll('[data-udel]').forEach((b) => b.addEventListener('click', () => delUser(b.dataset.udel)));
   }
-  $('addUserBtn').addEventListener('click', async () => {
+  on('addUserBtn', 'click', async () => {
     const username = $('u-username').value.trim();
     const password = $('u-password').value;
     const r = await api('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
@@ -538,8 +540,9 @@
       loadLeads();
       return;
     }
-    // Full admin
-    loadSettings().then(loadLeads);
+    // Full admin — each loads independently so one failure can't blank the others.
+    loadLeads();
+    loadSettings();
     loadModels();
     loadReviews();
     loadPages();
