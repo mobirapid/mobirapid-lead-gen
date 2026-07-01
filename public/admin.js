@@ -38,16 +38,22 @@
   function fmtDate(s) { if (!s) return ''; const d = new Date(s.replace(' ', 'T') + 'Z'); return isNaN(d) ? s : d.toLocaleString(); }
   function renderLeads() {
     const q = $('search').value.toLowerCase();
-    const fr = $('filterReq').value, ft = $('filterType').value;
+    const fr = $('filterReq').value, ft = $('filterType').value, fs = $('filterStatus').value;
     const rows = allLeads.filter((l) => {
       if (fr && l.requirement !== fr) return false;
       if (ft && l.client_type !== ft) return false;
+      if (fs && (l.status || 'New') !== fs) return false;
       if (q && !(`${l.name} ${l.phone} ${l.company_name} ${l.company_email} ${l.message} ${l.budget}`.toLowerCase().includes(q))) return false;
       return true;
     });
     $('emptyState').hidden = rows.length > 0;
-    $('rows').innerHTML = rows.map((l) => `
+    const statuses = ['New', 'Contacted', 'Converted', 'Lost'];
+    $('rows').innerHTML = rows.map((l) => {
+      const st = l.status || 'New';
+      const opts = statuses.map((s) => `<option ${s === st ? 'selected' : ''}>${s}</option>`).join('');
+      return `
       <tr>
+        <td><input type="checkbox" class="rowchk" data-id="${l.id}" /></td>
         <td>${l.id}</td>
         <td><strong>${esc(l.name)}</strong></td>
         <td>${esc(l.phone)} ${l.phone_verified ? '<span class="verified" title="Verified">✓</span>' : ''}</td>
@@ -56,15 +62,35 @@
         <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}</td>
         <td>${esc(l.budget) || '—'}</td>
         <td>${esc(l.best_time) || '—'}</td>
+        <td><select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select></td>
         <td class="msg">${esc(l.message) || '—'}</td>
         <td>${fmtDate(l.created_at)}</td>
         <td style="white-space:nowrap;">
           <button class="btn small" data-ledit="${l.id}">Edit</button>
           <button class="btn small danger" data-ldel="${l.id}">Delete</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
     $('rows').querySelectorAll('[data-ledit]').forEach((b) => b.addEventListener('click', () => openLead(b.dataset.ledit)));
     $('rows').querySelectorAll('[data-ldel]').forEach((b) => b.addEventListener('click', () => delLead(b.dataset.ldel)));
+    $('rows').querySelectorAll('[data-lstatus]').forEach((sel) => sel.addEventListener('change', () => changeStatus(sel.dataset.lstatus, sel.value, sel)));
+    $('rows').querySelectorAll('.rowchk').forEach((c) => c.addEventListener('change', updateSelection));
+    if ($('selectAll')) $('selectAll').checked = false;
+    updateSelection();
+  }
+
+  async function changeStatus(id, status, sel) {
+    if (sel) sel.className = 'status-sel st-' + status.toLowerCase();
+    const r = await api('/api/admin/leads/' + id + '/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    const d = await r.json();
+    if (d.ok) { const lead = allLeads.find((x) => String(x.id) === String(id)); if (lead) lead.status = status; }
+  }
+
+  function selectedIds() { return Array.from($('rows').querySelectorAll('.rowchk:checked')).map((c) => c.dataset.id); }
+  function updateSelection() {
+    const n = selectedIds().length;
+    const btn = $('bulkDeleteBtn');
+    if (btn) { btn.hidden = n === 0; $('selCount').textContent = n; }
   }
 
   // ---- Lead edit / delete ----
@@ -75,6 +101,7 @@
     $('l-id').value = l.id;
     ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { $('l-' + f).value = l[f] ?? ''; });
     $('l-client_type').value = l.client_type || '';
+    $('l-status').value = l.status || 'New';
     leadDlg.showModal();
   }
   $('leadCancel').addEventListener('click', () => leadDlg.close());
@@ -82,6 +109,7 @@
     const id = $('l-id').value;
     const payload = {};
     ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { payload[f] = $('l-' + f).value.trim(); });
+    payload.status = $('l-status').value;
     if (!payload.name) { alert('Name is required.'); return; }
     const r = await api('/api/admin/leads/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await r.json();
@@ -109,7 +137,21 @@
   $('search').addEventListener('input', renderLeads);
   $('filterReq').addEventListener('change', renderLeads);
   $('filterType').addEventListener('change', renderLeads);
+  $('filterStatus').addEventListener('change', renderLeads);
   $('refreshLeads').addEventListener('click', loadLeads);
+  $('selectAll').addEventListener('change', () => {
+    $('rows').querySelectorAll('.rowchk').forEach((c) => { c.checked = $('selectAll').checked; });
+    updateSelection();
+  });
+  $('bulkDeleteBtn').addEventListener('click', async () => {
+    const ids = selectedIds();
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected lead(s) permanently?`)) return;
+    const r = await api('/api/admin/leads/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+    const d = await r.json();
+    if (!d.ok) { alert(d.error || 'Delete failed.'); return; }
+    loadLeads();
+  });
 
   // ========================================================================
   // SETTINGS (branding + options)
@@ -449,9 +491,59 @@
     } else alert(data.error || 'Save failed.');
   });
 
-  // ---------- Init ----------
-  loadSettings().then(loadLeads);
-  loadModels();
-  loadReviews();
-  loadPages();
+  // ========================================================================
+  // USERS (lead-only staff accounts)
+  // ========================================================================
+  async function loadUsers() {
+    const r = await api('/api/admin/users');
+    const d = await r.json();
+    const list = d.users || [];
+    $('usersList').innerHTML = list.length
+      ? list.map((u) => `
+        <div class="model-row">
+          <div class="info"><b>${esc(u.username)}</b><small>lead access · added ${(u.created_at || '').slice(0, 10)}</small></div>
+          <div><button class="btn small danger" data-udel="${u.id}">Remove</button></div>
+        </div>`).join('')
+      : '<p class="muted" style="padding:12px 0;">No additional users yet.</p>';
+    $('usersList').querySelectorAll('[data-udel]').forEach((b) => b.addEventListener('click', () => delUser(b.dataset.udel)));
+  }
+  $('addUserBtn').addEventListener('click', async () => {
+    const username = $('u-username').value.trim();
+    const password = $('u-password').value;
+    const r = await api('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const d = await r.json();
+    if (!d.ok) { showTestMsg($('userMsg'), d.error || 'Failed', false); return; }
+    showTestMsg($('userMsg'), 'User created ✓', true);
+    $('u-username').value = ''; $('u-password').value = '';
+    loadUsers();
+  });
+  async function delUser(id) {
+    if (!confirm('Remove this user? They will no longer be able to log in.')) return;
+    await api('/api/admin/users/' + id, { method: 'DELETE' });
+    loadUsers();
+  }
+
+  // ---------- Init (role-aware) ----------
+  async function init() {
+    let role = 'admin';
+    try { const r = await api('/api/admin/me'); const d = await r.json(); role = d.role || 'admin'; } catch (e) {}
+
+    if (role !== 'admin') {
+      // Lead-only staff: show just the Leads tab.
+      document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab !== 'leads') t.style.display = 'none'; });
+      document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
+      const lt = document.querySelector('.tab[data-tab="leads"]'); if (lt) lt.classList.add('active');
+      $('panel-leads').classList.add('active');
+      loadLeads();
+      return;
+    }
+    // Full admin
+    loadSettings().then(loadLeads);
+    loadModels();
+    loadReviews();
+    loadPages();
+    loadUsers();
+  }
+  init();
 })();

@@ -107,6 +107,18 @@ function ensureColumn(table, column, type) {
 ensureColumn('leads', 'company_name', 'TEXT');
 ensureColumn('leads', 'company_email', 'TEXT');
 ensureColumn('macbook_models', 'description', 'TEXT');
+ensureColumn('leads', 'status', "TEXT DEFAULT 'New'");
+
+// Users table for additional logins (e.g. lead-only staff accounts).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    username   TEXT UNIQUE NOT NULL,
+    pass_hash  TEXT NOT NULL,
+    role       TEXT NOT NULL DEFAULT 'leads',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
 
 // --- Seed default settings (only inserts missing keys) ---
 const DEFAULT_SETTINGS = {

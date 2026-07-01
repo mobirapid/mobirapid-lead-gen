@@ -48,6 +48,12 @@
     .pill.req { background: rgba(37,99,235,0.1); color: var(--brand); }
     .pill.type { background: #eef2f7; color: var(--ink); }
     .verified { color: var(--ok); font-weight: 700; }
+    .status-sel { padding: 5px 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--line); width: auto; cursor: pointer; }
+    .status-sel.st-new { color: #185fa5; background: #e6f1fb; }
+    .status-sel.st-contacted { color: #854f0b; background: #faeeda; }
+    .status-sel.st-converted { color: #0f6e56; background: #e1f5ee; }
+    .status-sel.st-lost { color: #5f5e5a; background: #f1efe8; }
+    .rowchk { width: 16px; height: 16px; cursor: pointer; }
     .empty { text-align: center; color: var(--muted); padding: 44px 20px; }
     /* model editor */
     .model-row { display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -85,6 +91,7 @@
       <button class="tab" data-tab="reviews">Google Reviews</button>
       <button class="tab" data-tab="integrations">SMS &amp; Email</button>
       <button class="tab" data-tab="pages">Compliance Pages</button>
+      <button class="tab" data-tab="users">Users</button>
     </nav>
 
     <!-- ===================== LEADS ===================== -->
@@ -99,14 +106,17 @@
         <input type="text" id="search" placeholder="Search name, phone, company, message…" />
         <select id="filterReq"><option value="">All requirements</option></select>
         <select id="filterType"><option value="">All types</option><option>Individual</option><option>Company</option></select>
+        <select id="filterStatus"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Converted</option><option>Lost</option></select>
         <a class="btn" href="/api/admin/leads.csv">Export CSV</a>
         <button class="btn" id="refreshLeads">Refresh</button>
+        <button class="btn danger" id="bulkDeleteBtn" hidden>Delete selected (<span id="selCount">0</span>)</button>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
+            <th><input type="checkbox" id="selectAll" title="Select all" /></th>
             <th>#</th><th>Name</th><th>Phone</th><th>Type</th><th>Company</th><th>Requirement</th>
-            <th>Budget</th><th>Best time</th><th>Message</th><th>Received</th><th>Actions</th>
+            <th>Budget</th><th>Best time</th><th>Status</th><th>Message</th><th>Received</th><th>Actions</th>
           </tr></thead>
           <tbody id="rows"></tbody>
         </table>
@@ -463,6 +473,27 @@
     </form>
   </dialog>
 
+    <!-- ===================== USERS ===================== -->
+    <section class="panel" id="panel-users">
+      <div class="card">
+        <h3>Add a lead-only user</h3>
+        <p class="muted">These users can log in and see <b>only the Leads section</b> — not branding, settings, models or integrations. Useful for sales staff.</p>
+        <div class="grid2">
+          <div><label class="fld">Username</label><input type="text" id="u-username" autocomplete="off" placeholder="e.g. sales1" /></div>
+          <div><label class="fld">Password</label><input type="password" id="u-password" autocomplete="new-password" placeholder="min 6 characters" /></div>
+        </div>
+        <div class="save-row">
+          <button class="btn primary" id="addUserBtn">Create user</button>
+          <span class="saved-msg" id="userMsg" style="display:none;"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Existing users</h3>
+        <p class="muted">The main admin (from your server settings) is always available and isn't listed here.</p>
+        <div id="usersList"></div>
+      </div>
+    </section>
+
   <!-- Lead editor dialog -->
   <dialog id="leadDialog">
     <form method="dialog">
@@ -481,6 +512,9 @@
           <div><label class="fld">Requirement</label><input type="text" id="l-requirement" /></div>
           <div><label class="fld">Budget</label><input type="text" id="l-budget" /></div>
           <div><label class="fld">Best time</label><input type="text" id="l-best_time" /></div>
+          <div><label class="fld">Status</label>
+            <select id="l-status"><option>New</option><option>Contacted</option><option>Converted</option><option>Lost</option></select>
+          </div>
         </div>
         <label class="fld" style="margin-top:12px;">Message</label>
         <textarea id="l-message" rows="3"></textarea>

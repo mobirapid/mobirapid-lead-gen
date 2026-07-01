@@ -376,10 +376,10 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
 });
 
 // ===========================================================================
-// ADMIN AUTH
+// ADMIN AUTH  (roles: "admin" = full access, "leads" = leads only)
 // ===========================================================================
-function signToken(user) {
-  const payload = Buffer.from(JSON.stringify({ user, t: Date.now() })).toString('base64url');
+function signToken(user, role) {
+  const payload = Buffer.from(JSON.stringify({ user, role, t: Date.now() })).toString('base64url');
   const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -390,22 +390,55 @@ function verifyToken(token) {
   if (sig !== expected) return null;
   try { return JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return null; }
 }
+function hashPassword(pw) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return salt + ':' + crypto.scryptSync(String(pw), salt, 64).toString('hex');
+}
+function verifyPassword(pw, stored) {
+  try {
+    const [salt, h] = String(stored).split(':');
+    const test = crypto.scryptSync(String(pw), salt, 64).toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(h, 'hex'), Buffer.from(test, 'hex'));
+  } catch { return false; }
+}
+// Authenticate the request and return the token payload, or null.
+function authOf(req) { return verifyToken(req.cookies.admin_session); }
+
 function requireAdmin(req, res, next) {
-  const data = verifyToken(req.cookies.admin_session);
+  const data = authOf(req);
   if (!data) {
     if (req.path.startsWith('/api/')) return res.status(401).json({ ok: false, error: 'Not authenticated.' });
     return res.redirect('/manage/login');
   }
+  req.authUser = data;
   next();
 }
+
+// Gate for all /api/admin/* routes: any logged-in user may use the leads (and /me)
+// endpoints; everything else requires the full "admin" role.
+app.use('/api/admin', (req, res, next) => {
+  const data = authOf(req);
+  if (!data) return res.status(401).json({ ok: false, error: 'Not authenticated.' });
+  req.authUser = data;
+  const leadsOk = req.path === '/me' || req.path.startsWith('/leads');
+  if (leadsOk || data.role === 'admin') return next();
+  return res.status(403).json({ ok: false, error: 'You do not have access to this section.' });
+});
 
 // Admin UI lives at /manage (not /admin) to avoid clashing with a /admin path
 // that some hosts/other apps occupy. The /api/admin/* API paths are unaffected.
 app.get(['/manage/login', '/admin/login'], (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
 app.post(['/manage/login', '/admin/login'], (req, res) => {
   const { username, password } = req.body;
+  let role = null;
   if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
-    res.cookie('admin_session', signToken(username), { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
+    role = 'admin';
+  } else {
+    const u = db.prepare('SELECT * FROM users WHERE username = ?').get(String(username || '').trim());
+    if (u && verifyPassword(password, u.pass_hash)) role = u.role || 'leads';
+  }
+  if (role) {
+    res.cookie('admin_session', signToken(username, role), { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
     return res.redirect('/manage');
   }
   res.redirect('/manage/login?error=1');
@@ -417,10 +450,34 @@ app.get(['/manage', '/admin'], requireAdmin, (req, res) => res.sendFile(path.joi
 // ADMIN API
 // ===========================================================================
 
+// Who am I (used by the admin UI to show/hide tabs by role)
+app.get('/api/admin/me', (req, res) => res.json({ ok: true, user: req.authUser.user, role: req.authUser.role || 'admin' }));
+
+// User management (full admin only — enforced by the gate above)
+app.get('/api/admin/users', (req, res) => {
+  res.json({ ok: true, users: db.prepare('SELECT id, username, role, created_at FROM users ORDER BY id DESC').all() });
+});
+app.post('/api/admin/users', (req, res) => {
+  const username = String(req.body.username || '').trim();
+  const password = String(req.body.password || '');
+  if (!/^[a-zA-Z0-9._-]{3,40}$/.test(username)) return res.status(400).json({ ok: false, error: 'Username must be 3-40 chars (letters, numbers, . _ -).' });
+  if (password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters.' });
+  if (username === ADMIN_USER) return res.status(400).json({ ok: false, error: 'That username is reserved.' });
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (exists) return res.status(400).json({ ok: false, error: 'That username already exists.' });
+  db.prepare('INSERT INTO users (username, pass_hash, role) VALUES (?, ?, ?)').run(username, hashPassword(password), 'leads');
+  res.json({ ok: true });
+});
+app.delete('/api/admin/users/:id', (req, res) => {
+  db.prepare('DELETE FROM users WHERE id = ?').run(parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+
 // Leads
 app.get('/api/admin/leads', requireAdmin, (req, res) => {
   res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all() });
 });
+const LEAD_STATUSES = ['New', 'Contacted', 'Converted', 'Lost'];
 app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
   const b = req.body || {};
   const lead = {
@@ -434,22 +491,40 @@ app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
     budget: String(b.budget || '').trim(),
     best_time: String(b.best_time || '').trim(),
     message: String(b.message || '').trim().slice(0, 2000),
+    status: LEAD_STATUSES.includes(b.status) ? b.status : 'New',
   };
   if (!lead.name) return res.status(400).json({ ok: false, error: 'Name is required.' });
   db.prepare(
     `UPDATE leads SET name=@name, phone=@phone, client_type=@client_type, company_name=@company_name,
-     company_email=@company_email, requirement=@requirement, budget=@budget, best_time=@best_time, message=@message
-     WHERE id=@id`
+     company_email=@company_email, requirement=@requirement, budget=@budget, best_time=@best_time,
+     message=@message, status=@status WHERE id=@id`
   ).run(lead);
+  res.json({ ok: true });
+});
+// Quick status change (inline dropdown)
+app.post('/api/admin/leads/:id/status', requireAdmin, (req, res) => {
+  const status = req.body.status;
+  if (!LEAD_STATUSES.includes(status)) return res.status(400).json({ ok: false, error: 'Invalid status.' });
+  db.prepare('UPDATE leads SET status = ? WHERE id = ?').run(status, parseInt(req.params.id, 10));
   res.json({ ok: true });
 });
 app.delete('/api/admin/leads/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM leads WHERE id = ?').run(parseInt(req.params.id, 10));
   res.json({ ok: true });
 });
+// Bulk delete
+app.post('/api/admin/leads/bulk-delete', requireAdmin, (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map((n) => parseInt(n, 10)).filter((n) => !isNaN(n)) : [];
+  if (!ids.length) return res.status(400).json({ ok: false, error: 'No leads selected.' });
+  const del = db.prepare('DELETE FROM leads WHERE id = ?');
+  db.exec('BEGIN');
+  try { for (const id of ids) del.run(id); db.exec('COMMIT'); }
+  catch (e) { db.exec('ROLLBACK'); return res.status(500).json({ ok: false, error: 'Delete failed.' }); }
+  res.json({ ok: true, deleted: ids.length });
+});
 app.get('/api/admin/leads.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM leads ORDER BY id DESC').all();
-  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message', 'created_at'];
+  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'status', 'message', 'created_at'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv');
