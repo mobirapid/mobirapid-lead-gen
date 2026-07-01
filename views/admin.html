@@ -90,6 +90,7 @@
       <button class="tab" data-tab="options">Form Options</button>
       <button class="tab" data-tab="reviews">Google Reviews</button>
       <button class="tab" data-tab="integrations">SMS &amp; Email</button>
+      <button class="tab" data-tab="seo">SEO &amp; Analytics</button>
       <button class="tab" data-tab="pages">Compliance Pages</button>
       <button class="tab" data-tab="users">Users</button>
     </nav>
@@ -472,6 +473,48 @@
       </div>
     </form>
   </dialog>
+
+    <!-- ===================== SEO & ANALYTICS ===================== -->
+    <section class="panel" id="panel-seo">
+      <div class="card">
+        <h3>Search engine (SEO) meta</h3>
+        <p class="muted">These control how your site appears on Google and when shared on social media.</p>
+        <label class="fld">Page title (Google tab title)</label>
+        <input type="text" id="set-meta_title" maxlength="70" placeholder="Mobirapid — Refurbished MacBooks with Warranty & GST Invoice" />
+        <label class="fld" style="margin-top:12px;">Meta description (search snippet, ~155 chars)</label>
+        <textarea id="set-meta_description" rows="2" maxlength="200"></textarea>
+        <label class="fld" style="margin-top:12px;">Keywords (comma separated)</label>
+        <input type="text" id="set-meta_keywords" />
+        <label class="fld" style="margin-top:12px;">Social share image (Open Graph)</label>
+        <div class="upload-row">
+          <input type="text" id="set-og_image" placeholder="/uploads/…  or paste a URL" style="flex:1;min-width:220px;" />
+          <input type="file" id="ogFile" accept="image/*" />
+          <button class="btn small" id="ogUploadBtn" type="button">Upload</button>
+        </div>
+        <p class="muted" style="margin:6px 0 0;">Recommended 1200×630 px. Leave blank to use your banner image.</p>
+      </div>
+
+      <div class="card">
+        <h3>Google Analytics</h3>
+        <p class="muted">Paste your GA4 Measurement ID — the tracking script is added automatically to every page.</p>
+        <label class="fld">GA4 Measurement ID</label>
+        <input type="text" id="set-ga_measurement_id" placeholder="G-XXXXXXXXXX" />
+      </div>
+
+      <div class="card">
+        <h3>Custom code</h3>
+        <p class="muted">Paste any tracking / verification code. <b>Head code</b> goes inside &lt;head&gt; (Google Tag Manager, Meta Pixel, Search Console verification, etc.). <b>Body code</b> goes before &lt;/body&gt; (chat widgets, GTM noscript). Applies to all pages.</p>
+        <label class="fld">Head code</label>
+        <textarea id="set-head_code" class="code" rows="5" placeholder="<!-- e.g. Google Tag Manager, Meta Pixel, verification meta tags -->"></textarea>
+        <label class="fld" style="margin-top:12px;">Body code</label>
+        <textarea id="set-body_code" class="code" rows="4" placeholder="<!-- e.g. chat widget script -->"></textarea>
+      </div>
+
+      <div class="save-row">
+        <button class="btn primary" id="saveSeo">Save SEO &amp; Analytics</button>
+        <span class="saved-msg" id="seoSaved" hidden>Saved ✓</span>
+      </div>
+    </section>
 
     <!-- ===================== USERS ===================== -->
     <section class="panel" id="panel-users">

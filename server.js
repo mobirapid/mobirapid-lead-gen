@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // ---------------------------------------------------------------------------
 // Config
@@ -54,6 +54,7 @@ const PRIVATE_KEYS = new Set([
   'twilio_account_sid', 'twilio_auth_token', 'twilio_messaging_service_sid', 'twilio_from_number',
   'twofactor_api_key', 'twofactor_template_name',
   'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'lead_notify_to',
+  'ga_measurement_id', 'head_code', 'body_code',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -222,6 +223,63 @@ const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders
 const submitLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
 
 // ===========================================================================
+// PUBLIC PAGES (SEO meta + analytics injected server-side)
+// ===========================================================================
+const INDEX_PATH = path.join(__dirname, 'public', 'index.html');
+let indexTemplate = null;
+function baseUrl(req) {
+  const proto = req.headers['x-forwarded-proto'] === 'https' || req.secure ? 'https' : 'http';
+  return `${proto}://${req.headers.host || 'mobirapid.in'}`;
+}
+function renderIndex(req) {
+  if (indexTemplate == null) indexTemplate = fs.readFileSync(INDEX_PATH, 'utf8');
+  const base = baseUrl(req);
+  const canonical = base + '/';
+  const title = getSetting('meta_title', '') || getSetting('brand_name', 'Mobirapid');
+  const desc = getSetting('meta_description', '');
+  const kw = getSetting('meta_keywords', '');
+  let ogImg = getSetting('og_image', '') || getSetting('banner_image', '');
+  if (ogImg && ogImg.startsWith('/')) ogImg = base + ogImg;
+  const seo =
+    `<title>${esc(title)}</title>\n` +
+    `<meta name="description" content="${esc(desc)}">\n` +
+    (kw ? `<meta name="keywords" content="${esc(kw)}">\n` : '') +
+    `<link rel="canonical" href="${canonical}">\n` +
+    `<meta property="og:title" content="${esc(title)}">\n` +
+    `<meta property="og:description" content="${esc(desc)}">\n` +
+    `<meta property="og:type" content="website">\n` +
+    `<meta property="og:url" content="${canonical}">\n` +
+    (ogImg ? `<meta property="og:image" content="${esc(ogImg)}">\n` : '') +
+    `<meta name="twitter:card" content="summary_large_image">`;
+  const ga = getSetting('ga_measurement_id', '').replace(/[^A-Za-z0-9-]/g, '');
+  let head = ga
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>\n` +
+      `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga}');</script>\n`
+    : '';
+  head += getSetting('head_code', ''); // raw admin-provided code (GTM, pixel, verification…)
+  const body = getSetting('body_code', '');
+  return indexTemplate
+    .replace('<!--SEO_META-->', seo)
+    .replace('<!--HEAD_CODE-->', head)
+    .replace('<!--BODY_CODE-->', body);
+}
+app.get('/', (req, res) => res.type('html').send(renderIndex(req)));
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /manage\nDisallow: /api/\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
+});
+app.get('/sitemap.xml', (req, res) => {
+  const base = baseUrl(req);
+  const pages = db.prepare('SELECT slug FROM content_pages ORDER BY sort_order').all();
+  const urls = ['/'].concat(pages.map((p) => '/p/' + p.slug));
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls.map((u) => `  <url><loc>${base}${u}</loc></url>`).join('\n') +
+    `\n</urlset>`;
+  res.type('application/xml').send(xml);
+});
+
+// ===========================================================================
 // PUBLIC API
 // ===========================================================================
 
@@ -283,10 +341,17 @@ app.get('/p/:slug', (req, res) => {
   const footerLinks = pages
     .map((p) => `<a href="/p/${esc(p.slug)}">${esc(p.title)}</a>`)
     .join(' · ');
+  const headCode = getSetting('ga_measurement_id', '').replace(/[^A-Za-z0-9-]/g, '')
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${getSetting('ga_measurement_id', '').replace(/[^A-Za-z0-9-]/g, '')}"></script>` +
+      `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${getSetting('ga_measurement_id', '').replace(/[^A-Za-z0-9-]/g, '')}');</script>`
+    : '';
   res.send(`<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(page.title)} — ${brand}</title>
+<meta name="description" content="${esc(page.title)} — ${brand}">
+<link rel="canonical" href="${baseUrl(req)}/p/${esc(req.params.slug)}">
 <link rel="stylesheet" href="/styles.css">
+${headCode}${getSetting('head_code', '')}
 </head><body>
 <header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
