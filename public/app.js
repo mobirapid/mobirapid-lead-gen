@@ -44,6 +44,12 @@
   }
 
   function applySettings(s) {
+    const ann = $('announceBar');
+    if (ann) {
+      if (String(s.announce_enabled) === '1' && (s.announce_text || '').trim()) {
+        ann.hidden = false; ann.textContent = s.announce_text;
+      } else { ann.hidden = true; }
+    }
     if (s.brand_name) { $('brandName').textContent = s.brand_name; document.title = s.brand_name + ' — Book a Free Consultation'; }
     if (s.logo_path) {
       // When a logo is uploaded, show only the logo — most logos already include

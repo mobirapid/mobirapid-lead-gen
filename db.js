@@ -126,6 +126,8 @@ const DEFAULT_SETTINGS = {
   logo_path: '',
   header_cta_text: 'Book Consultation',
   cta_text: 'Schedule call now',
+  announce_enabled: '1',
+  announce_text: 'We are an official Apple DPP Partner · New & Refurbished MacBooks · We also buy your old Mac',
   banner_image: '/uploads/banner-hero.jpg',
   banner_eyebrow: 'Refurbished MacBooks · Expert-matched',
   banner_heading: 'Find the right MacBook for the work you actually do.',
