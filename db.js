@@ -169,6 +169,30 @@ const DEFAULT_SETTINGS = {
   contact_address: '',
   google_maps_url: '',
   google_maps_embed: '',
+  // "How we test" (QC) section
+  qc_enabled: '1',
+  qc_title: 'How we test — 35-point quality check',
+  qc_subtitle: 'Every MacBook passes a rigorous inspection before it reaches you.',
+  qc_items: JSON.stringify([
+    { icon: 'battery', title: 'Battery', note: 'Health & charge cycles' },
+    { icon: 'display', title: 'Display', note: 'Pixels & brightness' },
+    { icon: 'keyboard', title: 'Keyboard & trackpad', note: 'Every key & gesture' },
+    { icon: 'plug', title: 'Ports & Wi-Fi', note: 'All connectivity' },
+    { icon: 'camera', title: 'Camera & mic', note: 'Audio & video' },
+    { icon: 'storage', title: 'Storage & speed', note: 'SSD & performance' },
+  ]),
+  qc_video_enabled: '1',
+  qc_video_text: 'Prefer to see it yourself? Book a free video-call verification and inspect your exact device — serial number, condition and performance — live before you pay.',
+  // FAQ section
+  faq_enabled: '1',
+  faq_title: 'Frequently asked questions',
+  faq_items: JSON.stringify([
+    { q: 'Are these genuine Apple MacBooks?', a: 'Yes — every device is an original Apple MacBook, verified by serial number and supplied with a GST invoice.' },
+    { q: 'Can I verify the device before buying?', a: 'Absolutely. We offer a free video-call verification where we show you your exact device live — serial number, condition and performance — before you pay.' },
+    { q: 'What warranty do I get?', a: 'Every refurbished MacBook comes with a 6-month warranty, in addition to your rights under the Consumer Protection Act.' },
+    { q: 'What if the device has a problem?', a: 'You are covered by our warranty and return policy. Contact us and we will repair, replace or refund as per the policy.' },
+    { q: 'Do you provide a GST invoice?', a: 'Yes, every purchase includes a GST invoice with the device serial number.' },
+  ]),
   // USP / "Why buy from us" strip
   usps_enabled: '1',
   usps_title: 'Why buy from Mobirapid',

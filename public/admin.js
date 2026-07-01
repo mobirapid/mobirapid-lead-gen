@@ -178,6 +178,10 @@
     // USP rows
     try { uspItems = JSON.parse(settings.usps || '[]'); } catch { uspItems = []; }
     renderUspRows();
+    try { qcItems = JSON.parse(settings.qc_items || '[]'); } catch { qcItems = []; }
+    renderQcRows();
+    try { faqItems = JSON.parse(settings.faq_items || '[]'); } catch { faqItems = []; }
+    renderFaqRows();
   }
 
   // ---- USP strip editor ----
@@ -215,6 +219,46 @@
     wrap.querySelectorAll('[data-urem]').forEach((el) => el.addEventListener('click', () => { uspItems.splice(+el.dataset.urem, 1); renderUspRows(); }));
   }
   $('addUspBtn').addEventListener('click', () => { uspItems.push({ icon: 'star', title: '', note: '', image: '' }); renderUspRows(); });
+
+  // ---- QC ("How we test") editor ----
+  let qcItems = [];
+  function renderQcRows() {
+    const wrap = $('qcRows'); if (!wrap) return;
+    const icons = window.MOBI_ICONS || {};
+    const list = window.MOBI_ICON_LIST || [];
+    wrap.innerHTML = qcItems.map((u, i) => `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);">
+        <span style="flex:0 0 auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,0.1);color:var(--brand);">${icons[u.icon] || ''}</span>
+        <select data-qcicon="${i}" style="width:150px;">${list.map(([k, l]) => `<option value="${k}" ${k === u.icon ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <input type="text" data-qctitle="${i}" value="${esc(u.title || '')}" placeholder="Check name" style="flex:1;min-width:150px;" />
+        <input type="text" data-qcnote="${i}" value="${esc(u.note || '')}" placeholder="short note" style="width:150px;" />
+        <button class="btn small danger" data-qcrem="${i}" type="button">Remove</button>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-qcicon]').forEach((el) => el.addEventListener('change', () => { qcItems[+el.dataset.qcicon].icon = el.value; renderQcRows(); }));
+    wrap.querySelectorAll('[data-qctitle]').forEach((el) => el.addEventListener('input', () => { qcItems[+el.dataset.qctitle].title = el.value; }));
+    wrap.querySelectorAll('[data-qcnote]').forEach((el) => el.addEventListener('input', () => { qcItems[+el.dataset.qcnote].note = el.value; }));
+    wrap.querySelectorAll('[data-qcrem]').forEach((el) => el.addEventListener('click', () => { qcItems.splice(+el.dataset.qcrem, 1); renderQcRows(); }));
+  }
+  on('addQcBtn', 'click', () => { qcItems.push({ icon: 'qc', title: '', note: '' }); renderQcRows(); });
+
+  // ---- FAQ editor ----
+  let faqItems = [];
+  function renderFaqRows() {
+    const wrap = $('faqRows'); if (!wrap) return;
+    wrap.innerHTML = faqItems.map((f, i) => `
+      <div style="padding:12px 0;border-bottom:1px solid var(--line);">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" data-faqq="${i}" value="${esc(f.q || '')}" placeholder="Question" style="flex:1;" />
+          <button class="btn small danger" data-faqrem="${i}" type="button">Remove</button>
+        </div>
+        <textarea data-faqa="${i}" rows="2" placeholder="Answer" style="margin-top:8px;">${esc(f.a || '')}</textarea>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-faqq]').forEach((el) => el.addEventListener('input', () => { faqItems[+el.dataset.faqq].q = el.value; }));
+    wrap.querySelectorAll('[data-faqa]').forEach((el) => el.addEventListener('input', () => { faqItems[+el.dataset.faqa].a = el.value; }));
+    wrap.querySelectorAll('[data-faqrem]').forEach((el) => el.addEventListener('click', () => { faqItems.splice(+el.dataset.faqrem, 1); renderFaqRows(); }));
+  }
+  on('addFaqBtn', 'click', () => { faqItems.push({ q: '', a: '' }); renderFaqRows(); });
+
   function showPrev(img, src) { img.src = src; img.style.display = 'block'; }
 
   function collectSettings(keys) {
@@ -247,7 +291,7 @@
 
   // Branding save (all branding keys + uploaded image paths)
   $('saveBranding').addEventListener('click', () => {
-    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'announce_enabled', 'announce_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
+    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'announce_enabled', 'announce_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'qc_enabled', 'qc_title', 'qc_subtitle', 'qc_video_enabled', 'qc_video_text', 'faq_enabled', 'faq_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
     const payload = collectSettings(keys);
     payload.logo_path = settings.logo_path || '';
     payload.banner_image = settings.banner_image || '';
@@ -256,6 +300,12 @@
       uspItems
         .filter((u) => (u.title || '').trim())
         .map((u) => ({ icon: u.icon || 'star', title: u.title.trim(), note: (u.note || '').trim(), image: u.image || '' }))
+    );
+    payload.qc_items = JSON.stringify(
+      qcItems.filter((u) => (u.title || '').trim()).map((u) => ({ icon: u.icon || 'qc', title: u.title.trim(), note: (u.note || '').trim() }))
+    );
+    payload.faq_items = JSON.stringify(
+      faqItems.filter((f) => (f.q || '').trim()).map((f) => ({ q: f.q.trim(), a: (f.a || '').trim() }))
     );
     saveSettings(payload, $('brandingSaved'));
   });

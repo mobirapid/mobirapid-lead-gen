@@ -34,6 +34,8 @@
       renderUsps(data.settings);
       renderModels(data.models, data.settings);
       renderReviews(data.reviews, data.settings);
+      renderQc(data.settings);
+      renderFaq(data.settings);
       renderAbout(data.settings);
       renderContact(data.settings);
       renderSocial(data.settings);
@@ -189,6 +191,40 @@
         </div>
       </article>`).join('');
     setupCarousel('reviewsGrid');
+  }
+
+  function renderQc(s) {
+    const section = $('qcSection');
+    const items = Array.isArray(s.qc_items) ? s.qc_items : [];
+    if (!s.qc_enabled || (!items.length && !s.qc_video_enabled)) { section.hidden = true; return; }
+    section.hidden = false;
+    if (s.qc_title) $('qcTitle').textContent = s.qc_title;
+    $('qcSubtitle').textContent = s.qc_subtitle || '';
+    const icons = window.MOBI_ICONS || {};
+    $('qcGrid').innerHTML = items.map((q) => `
+      <div class="qc-card">
+        <span class="qc-icon">${icons[q.icon] || icons.qc || ''}</span>
+        <div class="qc-text"><span class="qc-name">${esc(q.title)}</span>${q.note ? `<span class="qc-note">${esc(q.note)}</span>` : ''}</div>
+      </div>`).join('');
+    const v = $('qcVideo');
+    if (s.qc_video_enabled && (s.qc_video_text || '').trim()) {
+      v.hidden = false;
+      $('qcVideoIcon').innerHTML = icons.videocall || '';
+      $('qcVideoText').textContent = s.qc_video_text;
+    } else { v.hidden = true; }
+  }
+
+  function renderFaq(s) {
+    const section = $('faqSection');
+    const items = Array.isArray(s.faq_items) ? s.faq_items : [];
+    if (!s.faq_enabled || !items.length) { section.hidden = true; return; }
+    section.hidden = false;
+    if (s.faq_title) $('faqTitle').textContent = s.faq_title;
+    $('faqList').innerHTML = items.map((f) => `
+      <details class="faq-item">
+        <summary>${esc(f.q)}<span class="faq-plus">+</span></summary>
+        <div class="faq-answer">${esc(f.a)}</div>
+      </details>`).join('');
   }
 
   function renderAbout(s) {
@@ -477,7 +513,7 @@
   // ---- Scroll reveal animations ----
   function initReveal() {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const sel = '.usp-card, .step, .reviews-head, .section-sub, .usps h2, .models h2, .how h2, .about-inner, .contact-grid > *';
+    const sel = '.usp-card, .step, .reviews-head, .section-sub, .usps h2, .models h2, .how h2, .about-inner, .contact-grid > *, .qc-card, .qc-video, .faq-item, .qc h2, .faq h2';
     const els = Array.from(document.querySelectorAll(sel)).filter((e) => !e.classList.contains('reveal'));
     if (!els.length) return;
     if (!('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('reveal', 'in')); return; }
