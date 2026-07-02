@@ -123,6 +123,7 @@ ensureColumn('leads', 'company_email', 'TEXT');
 ensureColumn('macbook_models', 'description', 'TEXT');
 ensureColumn('leads', 'status', "TEXT DEFAULT 'New'");
 ensureColumn('blog_posts', 'tags', 'TEXT');
+ensureColumn('leads', 'call_type', 'TEXT');
 
 // Users table for additional logins (e.g. lead-only staff accounts).
 db.exec(`

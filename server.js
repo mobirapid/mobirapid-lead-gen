@@ -145,6 +145,7 @@ Company:       ${lead.company_name || '-'}
 Company email: ${lead.company_email || '-'}
 Requirement:   ${lead.requirement || '-'}
 Budget:        ${lead.budget || '-'}
+Call type:     ${lead.call_type || '-'}
 Best time:     ${lead.best_time || '-'}
 Message:       ${lead.message || '-'}
 Submitted at:  ${lead.created_at} UTC
@@ -721,6 +722,7 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
   const requirement = String(b.requirement || '').trim();
   const budget = String(b.budget || '').trim();
   const bestTime = String(b.best_time || '').trim();
+  const callType = String(b.call_type || '').trim();
   const message = String(b.message || '').trim().slice(0, 2000);
 
   if (!name) return res.status(400).json({ ok: false, error: 'Name is required.' });
@@ -735,9 +737,9 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
   if (!otp || otp.verified !== 1) return res.status(400).json({ ok: false, error: 'Please verify your phone number first.' });
 
   const info = db.prepare(
-    `INSERT INTO leads (name, phone, phone_verified, client_type, company_name, company_email, requirement, budget, best_time, message)
-     VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(name, phone, clientType, companyName, companyEmail, requirement, budget, bestTime, message);
+    `INSERT INTO leads (name, phone, phone_verified, client_type, company_name, company_email, requirement, budget, best_time, call_type, message)
+     VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(name, phone, clientType, companyName, companyEmail, requirement, budget, bestTime, callType, message);
 
   const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(Number(info.lastInsertRowid));
   db.prepare('DELETE FROM otps WHERE phone = ?').run(phone);
@@ -868,6 +870,7 @@ app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
     requirement: String(b.requirement || '').trim(),
     budget: String(b.budget || '').trim(),
     best_time: String(b.best_time || '').trim(),
+    call_type: String(b.call_type || '').trim(),
     message: String(b.message || '').trim().slice(0, 2000),
     status: LEAD_STATUSES.includes(b.status) ? b.status : 'New',
   };
@@ -875,7 +878,7 @@ app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
   db.prepare(
     `UPDATE leads SET name=@name, phone=@phone, client_type=@client_type, company_name=@company_name,
      company_email=@company_email, requirement=@requirement, budget=@budget, best_time=@best_time,
-     message=@message, status=@status WHERE id=@id`
+     call_type=@call_type, message=@message, status=@status WHERE id=@id`
   ).run(lead);
   res.json({ ok: true });
 });
@@ -902,7 +905,7 @@ app.post('/api/admin/leads/bulk-delete', requireAdmin, (req, res) => {
 });
 app.get('/api/admin/leads.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM leads ORDER BY id DESC').all();
-  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'status', 'message', 'created_at'];
+  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'call_type', 'best_time', 'status', 'message', 'created_at'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv');

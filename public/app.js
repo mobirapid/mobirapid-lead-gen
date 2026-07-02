@@ -467,6 +467,7 @@
       requirement: $('requirement').value,
       budget: $('budget').value,
       best_time,
+      call_type: (document.querySelector('input[name="call_type"]:checked') || {}).value || '',
       message: $('message').value.trim(),
       event_id: eventId,
       fbp: getCookie('_fbp'),
@@ -551,6 +552,11 @@
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     els.forEach((e, i) => { e.classList.add('reveal'); e.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(e); });
   }
+
+  // Call-type selector icons
+  const _ci = window.MOBI_ICONS || {};
+  if ($('ctPhoneIc')) $('ctPhoneIc').innerHTML = _ci.phone || '';
+  if ($('ctVideoIc')) $('ctVideoIc').innerHTML = _ci.videocall || '';
 
   lockSubmit();
   loadSite().then(initReveal);

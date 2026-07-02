@@ -61,7 +61,7 @@
         <td>${l.company_name ? `${esc(l.company_name)}<br><small>${esc(l.company_email || '')}</small>` : '—'}</td>
         <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}</td>
         <td>${esc(l.budget) || '—'}</td>
-        <td>${esc(l.best_time) || '—'}</td>
+        <td>${esc(l.best_time) || '—'}${l.call_type ? `<br><span class="pill ${/video/i.test(l.call_type) ? 'req' : 'type'}">${esc(l.call_type)}</span>` : ''}</td>
         <td><select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select></td>
         <td class="msg">${esc(l.message) || '—'}</td>
         <td>${fmtDate(l.created_at)}</td>
@@ -101,6 +101,7 @@
     $('l-id').value = l.id;
     ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { $('l-' + f).value = l[f] ?? ''; });
     $('l-client_type').value = l.client_type || '';
+    $('l-call_type').value = l.call_type || '';
     $('l-status').value = l.status || 'New';
     leadDlg.showModal();
   }
@@ -109,6 +110,7 @@
     const id = $('l-id').value;
     const payload = {};
     ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { payload[f] = $('l-' + f).value.trim(); });
+    payload.call_type = $('l-call_type').value;
     payload.status = $('l-status').value;
     if (!payload.name) { alert('Name is required.'); return; }
     const r = await api('/api/admin/leads/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
