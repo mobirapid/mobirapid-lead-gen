@@ -517,4 +517,46 @@ const starterCovers = {
 const updCover = db.prepare("UPDATE blog_posts SET cover_image = ? WHERE slug = ? AND (cover_image IS NULL OR cover_image = '')");
 for (const [slug, img] of Object.entries(starterCovers)) updCover.run(img, slug);
 
+// Add specific articles on deploy if they don't already exist (by slug).
+const extraPosts = [
+  {
+    slug: 'how-to-qc-a-macbook',
+    title: 'How to QC a MacBook before you buy: a practical checklist',
+    excerpt: 'Buying a used or refurbished MacBook? Run these checks in 10 minutes to make sure it is genuine, healthy and worth the price.',
+    meta_description: 'A practical checklist to quality-check (QC) a used or refurbished MacBook — serial number, battery health, display, keyboard, Activation Lock and more.',
+    author: 'Mobirapid Team',
+    cover_image: '/uploads/blog-qc.jpg',
+    tags: 'Buying guide, Tips, Refurbished',
+    published: 1,
+    content: `<p>A MacBook is a big purchase, and a few minutes of checking can save you from an expensive mistake. Whether you buy from us or anywhere else, here is the exact quality-check (QC) routine our team runs on every device — do the same and you will buy with confidence.</p>
+<h3>1. Verify it is a genuine Apple device</h3>
+<p>Check the serial number under <em>Apple menu → About This Mac</em> and confirm it on Apple's "Check Coverage" page. The serial there should match the one printed on the underside of the MacBook. This confirms the model, year and that it is a real Apple unit.</p>
+<h3>2. Check Activation Lock and Find My</h3>
+<p>Make sure the previous owner has signed out of iCloud and removed the device from Find My. Go to <em>System Settings → your name → Find My</em>. A locked device is unusable — never pay before this is cleared.</p>
+<h3>3. Battery health and cycle count</h3>
+<p>Open <em>System Settings → Battery → Battery Health</em> for the maximum capacity, and <em>About This Mac → System Report → Power</em> for the cycle count. Apple rates modern batteries for about 1000 cycles; a low cycle count with 85%+ capacity is healthy.</p>
+<h3>4. Display</h3>
+<p>Look for dead or stuck pixels, backlight bleed and scratches. Show a full-white and a full-black image and inspect closely. Check that brightness ramps smoothly from low to high.</p>
+<h3>5. Keyboard and trackpad</h3>
+<p>Type in a text field and press every key. On the trackpad, test click, right-click and multi-finger gestures. Force Touch should feel consistent across the whole surface.</p>
+<h3>6. Ports, Wi-Fi and Bluetooth</h3>
+<p>Test each USB-C/Thunderbolt port with a charger and a device. Connect to Wi-Fi and pair a Bluetooth accessory to confirm the wireless card works.</p>
+<h3>7. Camera, microphone and speakers</h3>
+<p>Open Photo Booth to check the camera and mic, and play audio to confirm both speakers work without distortion.</p>
+<h3>8. Storage and performance</h3>
+<p>Confirm the advertised storage in <em>About This Mac → Storage</em>, and run a quick task to make sure the machine feels responsive and does not overheat or throttle under light load.</p>
+<h3>9. Physical condition and paperwork</h3>
+<p>Inspect the chassis, hinge and screen bezel for dents or cracks. Insist on a GST invoice with the serial number and a written warranty — this is your proof of purchase and protection.</p>
+<h3>The easy way</h3>
+<p>At Mobirapid, every MacBook passes a 35-point quality check covering all of the above, ships with a GST invoice and a 6-month warranty, and you can even inspect your exact device on a free video call before you pay. <a href="/#lead-form">Book a free consultation</a> and we will help you buy the right MacBook with total confidence.</p>`,
+  },
+];
+const insExtra = db.prepare(
+  `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, tags, published)
+   VALUES (@slug, @title, @excerpt, @content, @cover_image, @author, @meta_description, @tags, @published)`
+);
+for (const p of extraPosts) {
+  if (!db.prepare('SELECT id FROM blog_posts WHERE slug = ?').get(p.slug)) insExtra.run(p);
+}
+
 module.exports = db;
