@@ -550,6 +550,48 @@ const extraPosts = [
 <h3>The easy way</h3>
 <p>At Mobirapid, every MacBook passes a 35-point quality check covering all of the above, ships with a GST invoice and a 6-month warranty, and you can even inspect your exact device on a free video call before you pay. <a href="/#lead-form">Book a free consultation</a> and we will help you buy the right MacBook with total confidence.</p>`,
   },
+  {
+    slug: 'macbook-serial-number-check',
+    title: 'MacBook serial number check: how to verify authenticity',
+    excerpt: 'The serial number is the fastest way to confirm a MacBook is genuine and see its exact model and warranty. Here is how to check it.',
+    meta_description: 'How to find and verify a MacBook serial number to confirm it is a genuine Apple device, check its model, and see warranty coverage.',
+    author: 'Mobirapid Team',
+    cover_image: '/uploads/blog-serial.jpg',
+    tags: 'Tips, Buying guide',
+    published: 1,
+    content: `<p>Before buying any MacBook, the single most useful thing you can do is check its serial number. It tells you the exact model, the year, and whether the device is genuine and still under warranty. Here is how.</p>
+<h3>Where to find the serial number</h3>
+<p>There are three places, and they should all match: under <em>Apple menu → About This Mac</em>; printed in small text on the underside of the MacBook; and on the original box. If the numbers do not match, walk away.</p>
+<h3>Verify it with Apple</h3>
+<p>Go to Apple's official "Check Coverage" page and enter the serial number. Apple will confirm the model, the purchase/coverage status and whether it is eligible for support. A valid serial that returns the correct model is a strong sign the device is genuine.</p>
+<h3>What the result tells you</h3>
+<p>You will see the exact model (helpful because sellers sometimes mislabel year or chip), warranty and AppleCare status, and whether the serial is recognised at all. An unrecognised or "invalid" serial is a major red flag.</p>
+<h3>Also check Activation Lock</h3>
+<p>A genuine device can still be unusable if it is locked to someone else's iCloud. Make sure the seller has signed out of iCloud and removed the MacBook from Find My before you pay.</p>
+<h3>Buy with the serial on your invoice</h3>
+<p>Always get a GST invoice that lists the device serial number — it is your proof of exactly what you bought. Every Mobirapid device ships with a serial-matched GST invoice and a 6-month warranty, and we will happily verify the serial with you on a video call. <a href="/#lead-form">Talk to us</a> before you buy.</p>`,
+  },
+  {
+    slug: 'is-refurbished-macbook-worth-it-india',
+    title: 'Is a refurbished MacBook worth it in India?',
+    excerpt: 'Refurbished MacBooks can be one of the best value buys in tech — if you buy from the right seller. Here is the honest answer.',
+    meta_description: 'Is a refurbished MacBook worth it in India? We break down the savings, risks, warranty and how to buy safely.',
+    author: 'Mobirapid Team',
+    cover_image: '/uploads/blog-worth.jpg',
+    tags: 'Buying guide, Refurbished',
+    published: 1,
+    content: `<p>Short answer: yes — a quality-checked refurbished MacBook is one of the best value purchases you can make in India, as long as you buy from a seller who tests, warranties and invoices properly. Here is the honest breakdown.</p>
+<h3>The savings are real</h3>
+<p>A good refurbished MacBook typically costs 30–60% less than new. Because Apple hardware lasts for years, a one- or two-generation-old MacBook (M1 or M2) still handles modern work beautifully — often for the price of a mid-range Windows laptop.</p>
+<h3>What you might give up</h3>
+<p>You will not get the very latest chip on day one, and the battery has some usage on it (which is why battery health matters — always ask for it). Cosmetic condition can vary, so look for honest condition grades like "Excellent" or "Very Good".</p>
+<h3>The risks — and how to remove them</h3>
+<p>The real risk with refurbished is buying from a seller who does not test devices or stand behind them. Remove that risk by insisting on: a 35-point quality check, stated battery health, a GST invoice with the serial number, and a written warranty. If a seller cannot provide these, keep looking.</p>
+<h3>Who should buy refurbished?</h3>
+<p>Students, professionals, startups buying in bulk, and anyone who wants Apple quality without paying full price. If you need absolute latest-gen hardware or a specific custom configuration, new may suit you better.</p>
+<h3>The Mobirapid promise</h3>
+<p>Every device is quality-checked across 35 points, comes with a GST invoice and a 6-month warranty, and you can verify your exact unit on a free video call before paying. We even buy back and exchange your old Mac. <a href="/#lead-form">Book a free consultation</a> and we will match you to the right MacBook and budget.</p>`,
+  },
 ];
 const insExtra = db.prepare(
   `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, tags, published)
