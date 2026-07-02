@@ -258,9 +258,19 @@ const submitLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, standardHea
 const INDEX_PATH = path.join(__dirname, 'public', 'index.html');
 let indexTemplate = null;
 function baseUrl(req) {
+  // Prefer the configured canonical site URL so canonical/OG/sitemap are consistent
+  // across domains (e.g. .in and .com) — avoids duplicate-content issues.
+  const configured = getSetting('site_url', '').trim().replace(/\/+$/, '');
+  if (configured) return configured;
   const proto = req.headers['x-forwarded-proto'] === 'https' || req.secure ? 'https' : 'http';
   return `${proto}://${req.headers.host || 'mobirapid.in'}`;
 }
+const HEAD_COMMON =
+  '<link rel="preconnect" href="https://fonts.googleapis.com">' +
+  '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+  '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' +
+  '<link rel="icon" href="/favicon.ico" sizes="any">' +
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png">';
 function renderIndex(req) {
   if (indexTemplate == null) indexTemplate = fs.readFileSync(INDEX_PATH, 'utf8');
   const base = baseUrl(req);
@@ -275,12 +285,17 @@ function renderIndex(req) {
     `<meta name="description" content="${esc(desc)}">\n` +
     (kw ? `<meta name="keywords" content="${esc(kw)}">\n` : '') +
     `<link rel="canonical" href="${canonical}">\n` +
+    HEAD_COMMON + '\n' +
+    `<meta property="og:site_name" content="${esc(getSetting('brand_name', 'Mobirapid'))}">\n` +
     `<meta property="og:title" content="${esc(title)}">\n` +
     `<meta property="og:description" content="${esc(desc)}">\n` +
     `<meta property="og:type" content="website">\n` +
     `<meta property="og:url" content="${canonical}">\n` +
     (ogImg ? `<meta property="og:image" content="${esc(ogImg)}">\n` : '') +
-    `<meta name="twitter:card" content="summary_large_image">`;
+    `<meta name="twitter:card" content="summary_large_image">\n` +
+    `<meta name="twitter:title" content="${esc(title)}">\n` +
+    `<meta name="twitter:description" content="${esc(desc)}">\n` +
+    (ogImg ? `<meta name="twitter:image" content="${esc(ogImg)}">` : '');
   const ga = getSetting('ga_measurement_id', '').replace(/[^A-Za-z0-9-]/g, '');
   let head = ga
     ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>\n` +
@@ -289,10 +304,18 @@ function renderIndex(req) {
   head += buildJsonLd(base);
   head += getSetting('head_code', ''); // raw admin-provided code (GTM, pixel, verification…)
   const body = getSetting('body_code', '');
-  return indexTemplate
+  let html = indexTemplate
     .replace('<!--SEO_META-->', seo)
     .replace('<!--HEAD_CODE-->', head)
     .replace('<!--BODY_CODE-->', body);
+  // Server-render the above-the-fold hero text so crawlers see it without running JS.
+  const eyebrow = getSetting('banner_eyebrow', '');
+  const heading = getSetting('banner_heading', '');
+  const sub = getSetting('banner_subtext', '');
+  if (eyebrow) html = html.replace(/(<p class="eyebrow" id="eyebrow">)[\s\S]*?(<\/p>)/, `$1${esc(eyebrow)}$2`);
+  if (heading) html = html.replace(/(<h1 id="heroHeading">)[\s\S]*?(<\/h1>)/, `$1${esc(heading)}$2`);
+  if (sub) html = html.replace(/(<p class="lead" id="heroSub">)[\s\S]*?(<\/p>)/, `$1${esc(sub)}$2`);
+  return html;
 }
 // Structured data (schema.org) for rich results.
 function buildJsonLd(base) {
@@ -345,12 +368,18 @@ app.get('/robots.txt', (req, res) => {
 });
 app.get('/sitemap.xml', (req, res) => {
   const base = baseUrl(req);
+  const today = new Date().toISOString().slice(0, 10);
   const pages = db.prepare('SELECT slug FROM content_pages ORDER BY sort_order').all();
-  const posts = db.prepare('SELECT slug FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
-  const urls = ['/', '/blog'].concat(pages.map((p) => '/p/' + p.slug)).concat(posts.map((p) => '/blog/' + p.slug));
+  const posts = db.prepare('SELECT slug, updated_at, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
+  const entries = [
+    { loc: '/', lastmod: today, priority: '1.0' },
+    { loc: '/blog', lastmod: today, priority: '0.8' },
+    ...pages.map((p) => ({ loc: '/p/' + p.slug, lastmod: today, priority: '0.4' })),
+    ...posts.map((p) => ({ loc: '/blog/' + p.slug, lastmod: String(p.updated_at || p.created_at || today).slice(0, 10), priority: '0.6' })),
+  ];
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    urls.map((u) => `  <url><loc>${base}${u}</loc></url>`).join('\n') +
+    entries.map((e) => `  <url><loc>${base}${e.loc}</loc><lastmod>${e.lastmod}</lastmod><priority>${e.priority}</priority></url>`).join('\n') +
     `\n</urlset>`;
   res.type('application/xml').send(xml);
 });
@@ -385,7 +414,9 @@ function pageHead(req, title, desc, canonical, extra) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${canonical}">
-<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:type" content="article">
+${HEAD_COMMON}
+<meta property="og:site_name" content="${esc(getSetting('brand_name', 'Mobirapid'))}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}">
 <link rel="stylesheet" href="/styles.css">
 ${gaTag}${getSetting('head_code', '')}${extra || ''}
 </head><body>`;
@@ -1056,6 +1087,22 @@ app.put('/api/admin/pages/:slug', requireAdmin, (req, res) => {
   db.prepare("UPDATE content_pages SET title=?, content=?, updated_at=datetime('now') WHERE slug=?")
     .run(title || exists.title, content, slug);
   res.json({ ok: true });
+});
+
+// Branded 404 (noindex) — catch-all for anything not matched above.
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ ok: false, error: 'Not found.' });
+  const brand = getSetting('brand_name', 'Mobirapid');
+  res.status(404).send(
+    pageHead(req, 'Page not found — ' + brand, 'The page you are looking for could not be found.', baseUrl(req) + req.originalUrl, '<meta name="robots" content="noindex">') +
+    siteHeaderHtml() +
+    `<main class="container page-body" style="text-align:center;padding:80px 20px;">
+      <h1 style="font-size:3rem;">404</h1>
+      <p style="color:var(--muted);font-size:1.1rem;">Sorry, that page could not be found.</p>
+      <p style="margin-top:24px;"><a class="hero-button" href="/" style="background:var(--brand);color:#fff;">← Back to home</a> &nbsp; <a class="hero-button" href="/blog" style="background:#fff;border:1px solid var(--line);">Read the blog</a></p>
+    </main>` +
+    pageTail()
+  );
 });
 
 app.listen(PORT, () => {

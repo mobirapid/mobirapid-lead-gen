@@ -416,7 +416,7 @@
   // SEO & ANALYTICS
   // ========================================================================
   on('saveSeo', 'click', () => {
-    saveSettings(collectSettings(['meta_title', 'meta_description', 'meta_keywords', 'og_image', 'ga_measurement_id', 'head_code', 'body_code']), $('seoSaved'));
+    saveSettings(collectSettings(['site_url', 'meta_title', 'meta_description', 'meta_keywords', 'og_image', 'ga_measurement_id', 'head_code', 'body_code']), $('seoSaved'));
   });
   on('ogUploadBtn', 'click', async () => {
     const p = await uploadImage($('ogFile'));

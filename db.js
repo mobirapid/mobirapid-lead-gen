@@ -165,6 +165,7 @@ const DEFAULT_SETTINGS = {
   models_subtitle: 'Hand-picked, quality-checked devices ready to ship.',
   price_note: '+ 18% GST',
   // SEO + Analytics (injected into the page <head>/<body> from the server)
+  site_url: '',
   meta_title: 'Mobirapid — Refurbished MacBooks with Warranty & GST Invoice',
   meta_description: 'Buy quality-checked refurbished Apple MacBooks in India — 35-point tested, 6-month warranty and GST invoice. Book a free consultation with Mobirapid.',
   meta_keywords: 'refurbished macbook, used macbook, buy refurbished macbook india, macbook pro, macbook air, second hand macbook',
