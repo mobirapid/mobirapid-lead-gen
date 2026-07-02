@@ -475,6 +475,10 @@
       if (!r.ok || !data.ok) throw new Error(data.error || 'Something went wrong.');
       form.reset(); otpField.hidden = true; companyFields.hidden = true; phoneVerified = false;
       setStatus(data.message, 'ok'); submitBtn.textContent = 'Request received ✓';
+      // Fire conversion events (only if the respective tag is installed)
+      try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Consultation request' }); } catch (e) {}
+      try { if (window.gtag) window.gtag('event', 'generate_lead', { event_category: 'lead' }); } catch (e) {}
+      try { (window.dataLayer = window.dataLayer || []).push({ event: 'lead_submitted' }); } catch (e) {}
     } catch (err) {
       setStatus(err.message, 'err'); submitBtn.disabled = false; submitBtn.textContent = ctaText;
     }
