@@ -63,7 +63,7 @@
       $('brandName').hidden = true;
     }
     if (s.header_cta_text) $('headerCta').textContent = s.header_cta_text;
-    if (s.cta_text) { ctaText = s.cta_text; if (phoneVerified) submitBtn.textContent = ctaText; }
+    if (s.cta_text) { ctaText = s.cta_text; submitBtn.textContent = ctaText; }
     if (s.banner_eyebrow) $('eyebrow').textContent = s.banner_eyebrow;
     if (s.banner_heading) $('heroHeading').textContent = s.banner_heading;
     if (s.banner_subtext) $('heroSub').textContent = s.banner_subtext;
@@ -402,8 +402,8 @@
     status.className = 'form-status' + (type ? ' ' + type : '');
   }
   function lockSubmit() {
-    if (phoneVerified) { submitBtn.disabled = false; submitBtn.textContent = ctaText; }
-    else { submitBtn.disabled = true; submitBtn.textContent = 'Verify phone to continue'; }
+    submitBtn.disabled = !phoneVerified;
+    submitBtn.textContent = ctaText;
   }
   phone.addEventListener('input', () => {
     if (phoneVerified) { phoneVerified = false; otpField.classList.remove('verified'); lockSubmit(); }

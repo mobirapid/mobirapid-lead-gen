@@ -790,6 +790,12 @@ function requireAdmin(req, res, next) {
   req.authUser = data;
   next();
 }
+// Lead-only staff can view leads but not modify/delete them.
+function requireFullRole(req, res, next) {
+  const role = (req.authUser && req.authUser.role) || 'admin';
+  if (role !== 'admin') return res.status(403).json({ ok: false, error: 'You can view leads but not modify them.' });
+  next();
+}
 
 // Gate for all /api/admin/* routes: any logged-in user may use the leads (and /me)
 // endpoints; everything else requires the full "admin" role.
@@ -858,7 +864,7 @@ app.get('/api/admin/leads', requireAdmin, (req, res) => {
   res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all() });
 });
 const LEAD_STATUSES = ['New', 'Contacted', 'Converted', 'Lost'];
-app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
+app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
   const b = req.body || {};
   const lead = {
     id: parseInt(req.params.id, 10),
@@ -883,18 +889,18 @@ app.put('/api/admin/leads/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 // Quick status change (inline dropdown)
-app.post('/api/admin/leads/:id/status', requireAdmin, (req, res) => {
+app.post('/api/admin/leads/:id/status', requireAdmin, requireFullRole, (req, res) => {
   const status = req.body.status;
   if (!LEAD_STATUSES.includes(status)) return res.status(400).json({ ok: false, error: 'Invalid status.' });
   db.prepare('UPDATE leads SET status = ? WHERE id = ?').run(status, parseInt(req.params.id, 10));
   res.json({ ok: true });
 });
-app.delete('/api/admin/leads/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
   db.prepare('DELETE FROM leads WHERE id = ?').run(parseInt(req.params.id, 10));
   res.json({ ok: true });
 });
 // Bulk delete
-app.post('/api/admin/leads/bulk-delete', requireAdmin, (req, res) => {
+app.post('/api/admin/leads/bulk-delete', requireAdmin, requireFullRole, (req, res) => {
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map((n) => parseInt(n, 10)).filter((n) => !isNaN(n)) : [];
   if (!ids.length) return res.status(400).json({ ok: false, error: 'No leads selected.' });
   const del = db.prepare('DELETE FROM leads WHERE id = ?');

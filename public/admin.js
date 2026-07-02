@@ -2,6 +2,8 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const ARRAY_KEYS = ['trust_points', 'requirement_options', 'budget_options'];
+  let userRole = 'admin';
+  const canEditLeads = () => userRole === 'admin';
 
   // ---------- Tabs ----------
   document.querySelectorAll('.tab').forEach((t) => {
@@ -48,12 +50,20 @@
     });
     $('emptyState').hidden = rows.length > 0;
     const statuses = ['New', 'Contacted', 'Converted', 'Lost'];
+    const edit = canEditLeads();
     $('rows').innerHTML = rows.map((l) => {
       const st = l.status || 'New';
       const opts = statuses.map((s) => `<option ${s === st ? 'selected' : ''}>${s}</option>`).join('');
+      const statusCell = edit
+        ? `<select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select>`
+        : `<span class="pill st-${esc(st.toLowerCase())}" style="padding:4px 10px;border-radius:999px;">${esc(st)}</span>`;
+      const actionsCell = edit
+        ? `<td style="white-space:nowrap;"><button class="btn small" data-ledit="${l.id}">Edit</button> <button class="btn small danger" data-ldel="${l.id}">Delete</button></td>`
+        : '<td>—</td>';
+      const checkCell = edit ? `<td><input type="checkbox" class="rowchk" data-id="${l.id}" /></td>` : '<td></td>';
       return `
       <tr>
-        <td><input type="checkbox" class="rowchk" data-id="${l.id}" /></td>
+        ${checkCell}
         <td>${l.id}</td>
         <td><strong>${esc(l.name)}</strong></td>
         <td>${esc(l.phone)} ${l.phone_verified ? '<span class="verified" title="Verified">✓</span>' : ''}</td>
@@ -62,21 +72,20 @@
         <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}</td>
         <td>${esc(l.budget) || '—'}</td>
         <td>${esc(l.best_time) || '—'}${l.call_type ? `<br><span class="pill ${/video/i.test(l.call_type) ? 'req' : 'type'}">${esc(l.call_type)}</span>` : ''}</td>
-        <td><select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select></td>
+        <td>${statusCell}</td>
         <td class="msg">${esc(l.message) || '—'}</td>
         <td>${fmtDate(l.created_at)}</td>
-        <td style="white-space:nowrap;">
-          <button class="btn small" data-ledit="${l.id}">Edit</button>
-          <button class="btn small danger" data-ldel="${l.id}">Delete</button>
-        </td>
+        ${actionsCell}
       </tr>`;
     }).join('');
-    $('rows').querySelectorAll('[data-ledit]').forEach((b) => b.addEventListener('click', () => openLead(b.dataset.ledit)));
-    $('rows').querySelectorAll('[data-ldel]').forEach((b) => b.addEventListener('click', () => delLead(b.dataset.ldel)));
-    $('rows').querySelectorAll('[data-lstatus]').forEach((sel) => sel.addEventListener('change', () => changeStatus(sel.dataset.lstatus, sel.value, sel)));
-    $('rows').querySelectorAll('.rowchk').forEach((c) => c.addEventListener('change', updateSelection));
-    if ($('selectAll')) $('selectAll').checked = false;
-    updateSelection();
+    if (edit) {
+      $('rows').querySelectorAll('[data-ledit]').forEach((b) => b.addEventListener('click', () => openLead(b.dataset.ledit)));
+      $('rows').querySelectorAll('[data-ldel]').forEach((b) => b.addEventListener('click', () => delLead(b.dataset.ldel)));
+      $('rows').querySelectorAll('[data-lstatus]').forEach((sel) => sel.addEventListener('change', () => changeStatus(sel.dataset.lstatus, sel.value, sel)));
+      $('rows').querySelectorAll('.rowchk').forEach((c) => c.addEventListener('change', updateSelection));
+      if ($('selectAll')) $('selectAll').checked = false;
+      updateSelection();
+    }
   }
 
   async function changeStatus(id, status, sel) {
@@ -678,14 +687,16 @@
   async function init() {
     let role = 'admin';
     try { const r = await api('/api/admin/me'); const d = await r.json(); role = d.role || 'admin'; } catch (e) {}
+    userRole = role;
 
     if (role !== 'admin') {
-      // Lead-only staff: show just the Leads tab.
+      // Lead-only staff: show just the Leads tab, view-only (no edit/delete/bulk).
       document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab !== 'leads') t.style.display = 'none'; });
       document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
       document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
       const lt = document.querySelector('.tab[data-tab="leads"]'); if (lt) lt.classList.add('active');
       $('panel-leads').classList.add('active');
+      ['selectAll', 'bulkDeleteBtn'].forEach((id) => { const el = $(id); if (el) el.style.display = 'none'; });
       loadLeads();
       return;
     }
