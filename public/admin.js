@@ -536,6 +536,66 @@
   }
 
   // ========================================================================
+  // BLOG
+  // ========================================================================
+  on('saveBlogSettings', 'click', () => {
+    saveSettings(collectSettings(['blog_enabled', 'blog_title', 'blog_subtitle']), $('blogSettingsSaved'));
+  });
+  let blogPosts = [];
+  async function loadBlog() {
+    const r = await api('/api/admin/blog');
+    const d = await r.json();
+    blogPosts = d.posts || [];
+    renderBlogList();
+  }
+  function renderBlogList() {
+    if (!blogPosts.length) { $('blogList').innerHTML = '<p class="muted" style="padding:12px 0;">No posts yet. Click “New post”.</p>'; return; }
+    $('blogList').innerHTML = blogPosts.map((p) => `
+      <div class="model-row">
+        <div class="model-thumb" style="${p.cover_image ? `background-image:url('${esc(p.cover_image)}')` : ''}"></div>
+        <div class="info"><b>${esc(p.title)} ${p.published ? '' : '<span class="inactive-tag">(draft)</span>'}</b><small>/blog/${esc(p.slug)} · ${(p.created_at || '').slice(0, 10)}</small></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn small" data-bedit="${p.id}">Edit</button>
+          <button class="btn small danger" data-bdel="${p.id}">Delete</button>
+        </div>
+      </div>`).join('');
+    $('blogList').querySelectorAll('[data-bedit]').forEach((b) => b.addEventListener('click', () => openBlog(b.dataset.bedit)));
+    $('blogList').querySelectorAll('[data-bdel]').forEach((b) => b.addEventListener('click', () => delBlog(b.dataset.bdel)));
+  }
+  const blogDlg = $('blogDialog');
+  async function openBlog(id) {
+    let post = null;
+    if (id) { const r = await api('/api/admin/blog/' + id); const d = await r.json(); post = d.post; }
+    $('blogDlgTitle').textContent = post ? 'Edit post' : 'New post';
+    $('bl-id').value = post ? post.id : '';
+    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'content'].forEach((f) => { $('bl-' + f).value = post ? (post[f] ?? '') : ''; });
+    $('bl-published').value = post ? String(post.published) : '1';
+    $('bl-coverFile').value = '';
+    const vl = $('bl-viewLink');
+    if (post && post.published) { vl.href = '/blog/' + post.slug; vl.style.display = 'inline-block'; } else { vl.style.display = 'none'; }
+    blogDlg.showModal();
+  }
+  on('addBlogBtn', 'click', () => openBlog(null));
+  on('blogCancel', 'click', () => blogDlg.close());
+  on('bl-coverUpload', 'click', async () => { const p = await uploadImage($('bl-coverFile')); if (!p) return; $('bl-cover_image').value = p; });
+  on('blogSave', 'click', async () => {
+    const id = $('bl-id').value;
+    const payload = {};
+    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'content'].forEach((f) => { payload[f] = $('bl-' + f).value; });
+    payload.published = $('bl-published').value;
+    if (!payload.title.trim()) { alert('Title is required.'); return; }
+    const r = await api(id ? '/api/admin/blog/' + id : '/api/admin/blog', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (!d.ok) { alert(d.error || 'Save failed.'); return; }
+    blogDlg.close(); loadBlog();
+  });
+  async function delBlog(id) {
+    if (!confirm('Delete this post permanently?')) return;
+    await api('/api/admin/blog/' + id, { method: 'DELETE' });
+    loadBlog();
+  }
+
+  // ========================================================================
   // PAGES
   // ========================================================================
   let pages = [];
@@ -621,6 +681,7 @@
     loadModels();
     loadReviews();
     loadPages();
+    loadBlog();
     loadUsers();
   }
   init();

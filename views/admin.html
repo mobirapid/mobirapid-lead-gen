@@ -91,6 +91,7 @@
       <button class="tab" data-tab="reviews">Google Reviews</button>
       <button class="tab" data-tab="integrations">SMS &amp; Email</button>
       <button class="tab" data-tab="seo">SEO &amp; Analytics</button>
+      <button class="tab" data-tab="blog">Blog</button>
       <button class="tab" data-tab="pages">Compliance Pages</button>
       <button class="tab" data-tab="users">Users</button>
     </nav>
@@ -584,6 +585,26 @@
       </div>
     </section>
 
+    <!-- ===================== BLOG ===================== -->
+    <section class="panel" id="panel-blog">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>Blog</h3><p class="muted">Write articles about MacBooks and the Apple ecosystem for organic search. Published posts appear at <code>/blog</code> and in the homepage strip.</p></div>
+          <button class="btn primary" id="addBlogBtn" type="button">+ New post</button>
+        </div>
+        <div class="grid2" style="margin-top:6px;">
+          <div><label class="fld">Show blog strip on homepage?</label>
+            <select id="set-blog_enabled"><option value="1">Visible</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Homepage strip title</label><input type="text" id="set-blog_title" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Homepage strip subtitle</label>
+        <input type="text" id="set-blog_subtitle" />
+        <div class="save-row"><button class="btn" id="saveBlogSettings">Save blog settings</button><span class="saved-msg" id="blogSettingsSaved" hidden>Saved ✓</span></div>
+        <div id="blogList" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
     <!-- ===================== USERS ===================== -->
     <section class="panel" id="panel-users">
       <div class="card">
@@ -604,6 +625,44 @@
         <div id="usersList"></div>
       </div>
     </section>
+
+  <!-- Blog editor dialog -->
+  <dialog id="blogDialog">
+    <form method="dialog">
+      <div class="dlg-head" id="blogDlgTitle">New post</div>
+      <div class="dlg-body">
+        <input type="hidden" id="bl-id" />
+        <label class="fld">Title *</label>
+        <input type="text" id="bl-title" placeholder="Refurbished vs new MacBook: which should you buy?" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Slug (URL)</label><input type="text" id="bl-slug" placeholder="auto from title" /></div>
+          <div><label class="fld">Author</label><input type="text" id="bl-author" placeholder="Mobirapid Team" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Excerpt (short summary)</label>
+        <textarea id="bl-excerpt" rows="2"></textarea>
+        <label class="fld" style="margin-top:12px;">Cover image</label>
+        <div class="upload-row">
+          <input type="text" id="bl-cover_image" placeholder="/uploads/…  or URL" style="flex:1;min-width:200px;" />
+          <input type="file" id="bl-coverFile" accept="image/*" />
+          <button class="btn small" id="bl-coverUpload" type="button">Upload</button>
+        </div>
+        <label class="fld" style="margin-top:12px;">Meta description (for Google, ~155 chars)</label>
+        <input type="text" id="bl-meta_description" maxlength="300" />
+        <label class="fld" style="margin-top:12px;">Content (HTML — use &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;, lists)</label>
+        <textarea id="bl-content" class="code" rows="12"></textarea>
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Status</label>
+            <select id="bl-published"><option value="1">Published</option><option value="0">Draft</option></select>
+          </div>
+          <div style="display:flex;align-items:flex-end;"><a class="btn" id="bl-viewLink" href="#" target="_blank" style="display:none;">View post ↗</a></div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" type="button" id="blogCancel">Cancel</button>
+        <button class="btn primary" type="button" id="blogSave">Save post</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Lead editor dialog -->
   <dialog id="leadDialog">

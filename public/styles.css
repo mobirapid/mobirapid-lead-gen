@@ -280,6 +280,29 @@ a.contact-card:hover { transform: translateY(-4px); box-shadow: 0 20px 44px rgba
 .contact-map { margin-top: 24px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
 .contact-map iframe { display: block; width: 100%; height: 360px; border: 0; }
 
+/* Blog */
+.blog-home { padding: 64px 0 8px; }
+.blog-home h2 { text-align: center; font-size: 2rem; letter-spacing: -0.025em; margin: 0 0 8px; }
+.blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.blog-card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); color: var(--ink); transition: transform .18s ease, box-shadow .18s ease; }
+.blog-card:hover { transform: translateY(-4px); box-shadow: 0 22px 48px rgba(15,23,42,0.14); }
+.blog-cover { height: 170px; background: #eef2fb center/cover no-repeat; display: grid; place-items: center; }
+.blog-cover span { width: 46px; height: 46px; border-radius: 12px; background: var(--brand-soft); }
+.blog-card-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.blog-card-body h3 { margin: 0; font-size: 1.1rem; line-height: 1.3; letter-spacing: -0.01em; }
+.blog-excerpt { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.55; flex: 1; }
+.blog-meta { color: var(--muted); font-size: 0.8rem; }
+
+/* Blog list + article pages */
+.blog-index .blog-grid { margin-top: 8px; }
+.blog-post { max-width: 760px; }
+.blog-post h1 { font-size: 2.1rem; letter-spacing: -0.025em; margin: 0 0 8px; }
+.blog-post .blog-meta { display: block; margin: 0 0 20px; }
+.blog-hero-img { width: 100%; border-radius: var(--radius); margin: 0 0 22px; display: block; }
+.blog-content h3 { margin: 26px 0 8px; font-size: 1.2rem; }
+.blog-content p { margin: 0 0 14px; }
+.blog-cta { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--line); }
+
 /* Footer — professional dark */
 .site-footer { background: #0b1220; color: #cbd5e1; margin-top: 44px; }
 .footer-top { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1.5fr; gap: 40px; padding: 56px 0 38px; }
@@ -349,7 +372,7 @@ body.cookie-open .float-contact { bottom: 104px; }
   .hero-grid { grid-template-columns: 1fr; gap: 32px; }
   .hero-copy h1 { font-size: 2.3rem; }
   .hero-overlay { background: linear-gradient(180deg, rgba(7, 12, 30, 0.82) 0%, rgba(7, 12, 30, 0.62) 55%, rgba(7, 12, 30, 0.45) 100%); }
-  .steps, .models-grid, .reviews-grid, .usp-grid, .qc-grid { grid-template-columns: 1fr; }
+  .steps, .models-grid, .reviews-grid, .usp-grid, .qc-grid, .blog-grid { grid-template-columns: 1fr; }
   .contact-grid { grid-template-columns: repeat(2, 1fr); }
   .models, .usps, .reviews, .how, .about, .contact { padding-top: 56px; }
   .footer-top { grid-template-columns: 1fr 1fr; gap: 30px; }

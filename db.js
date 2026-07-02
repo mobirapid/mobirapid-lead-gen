@@ -95,6 +95,20 @@ db.exec(`
     sort_order INTEGER NOT NULL DEFAULT 0,
     active     INTEGER NOT NULL DEFAULT 1
   );
+
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug             TEXT UNIQUE NOT NULL,
+    title            TEXT NOT NULL,
+    excerpt          TEXT,
+    content          TEXT,
+    cover_image      TEXT,
+    author           TEXT,
+    meta_description TEXT,
+    published        INTEGER NOT NULL DEFAULT 1,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // --- Lightweight migration: add columns if upgrading an older DB ---
@@ -204,6 +218,10 @@ const DEFAULT_SETTINGS = {
     { icon: 'card', title: 'Credit Card Payment' },
     { icon: 'exchange', title: 'Old MacBook Buyback & Exchange' },
   ]),
+  // Blog
+  blog_enabled: '1',
+  blog_title: 'From our blog',
+  blog_subtitle: 'Guides and tips on MacBooks and the Apple ecosystem.',
   footer_text: '© Mobirapid. All rights reserved.',
   footer_email: 'sachin@mobirapid.com',
   footer_tagline: 'Quality-checked new & refurbished Apple MacBooks, matched to your work — with GST invoice, warranty and expert guidance.',
@@ -429,6 +447,63 @@ if (reviewCount === 0) {
     { author: 'Aisha K.', rating: 5, text: 'They helped our startup buy 4 machines within budget. Great service and quick delivery.', date_label: '1 month ago', sort_order: 3, active: 1 },
   ];
   for (const r of seed) insReview.run(r);
+}
+
+// --- Seed starter blog posts (only if table is empty) ---
+const blogCount = db.prepare('SELECT COUNT(*) AS n FROM blog_posts').get().n;
+if (blogCount === 0) {
+  const insBlog = db.prepare(
+    `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, published)
+     VALUES (@slug, @title, @excerpt, @content, @cover_image, @author, @meta_description, @published)`
+  );
+  const posts = [
+    {
+      slug: 'refurbished-vs-new-macbook-2025',
+      title: 'Refurbished vs New MacBook: which should you buy?',
+      excerpt: 'A refurbished MacBook can save you 30–60% over new. Here is how to decide which is right for you.',
+      meta_description: 'Refurbished vs new MacBook — compare price, warranty, condition and value to decide which is right for you in India.',
+      author: 'Mobirapid Team',
+      content: `<p>Apple MacBooks hold their value and last for years, which makes a good refurbished unit one of the smartest purchases in tech. But is refurbished right for you, or should you buy new? Here is a simple way to decide.</p>
+<h3>When refurbished makes sense</h3>
+<p>If you want maximum value, a quality-checked refurbished MacBook typically costs 30–60% less than new while performing identically for everyday work, study, coding and creative tasks. Look for a seller that grades condition honestly, tests the battery, and provides a warranty and a GST invoice.</p>
+<h3>When to buy new</h3>
+<p>Buy new if you need the very latest chip on day one, want the full Apple warranty, or need a specific build-to-order configuration. For most people, though, last-generation refurbished hardware is more than enough — an M1 or M2 MacBook still flies.</p>
+<h3>What to check before buying refurbished</h3>
+<p>Confirm the exact chip, RAM and storage; ask for the battery health; verify the serial number; and make sure you get a written warranty. At Mobirapid, every device passes a 35-point quality check and you can even verify your unit on a video call before you pay.</p>`,
+      cover_image: '', published: 1,
+    },
+    {
+      slug: 'check-macbook-battery-health',
+      title: 'How to check the battery health of your MacBook',
+      excerpt: 'Battery health is the number one thing to check on any used MacBook. Here is how to read it in seconds.',
+      meta_description: 'Learn how to check your MacBook battery health and cycle count in seconds, and what a healthy number looks like.',
+      author: 'Mobirapid Team',
+      content: `<p>Battery is the part of a laptop that wears with use, so it is the first thing to check on any pre-owned MacBook. The good news: macOS tells you everything you need in a couple of clicks.</p>
+<h3>The quick way</h3>
+<p>Hold <strong>Option</strong> and click the battery icon in the menu bar, or open <em>System Settings → Battery → Battery Health</em>. You will see a status such as "Normal" and, on newer versions, a maximum-capacity percentage.</p>
+<h3>Check the cycle count</h3>
+<p>Open <em>Apple menu → About This Mac → More Info → System Report → Power</em> and look for "Cycle Count". Apple rates most modern MacBook batteries for 1000 cycles. A unit with a few hundred cycles and 85%+ capacity has plenty of life left.</p>
+<h3>What we do at Mobirapid</h3>
+<p>We test and report battery health on every device, and back it with a 6-month warranty — so you never have to guess.</p>`,
+      cover_image: '', published: 1,
+    },
+    {
+      slug: 'macbook-air-vs-pro',
+      title: 'MacBook Air vs MacBook Pro: which one fits your work?',
+      excerpt: 'Air or Pro? The right choice depends on what you actually do. Here is a plain-English guide.',
+      meta_description: 'MacBook Air vs MacBook Pro — a plain-English guide to choosing the right MacBook for your workload and budget.',
+      author: 'Mobirapid Team',
+      content: `<p>Both the MacBook Air and MacBook Pro are excellent — the difference is how hard you push them. Here is how to choose.</p>
+<h3>Choose the MacBook Air if…</h3>
+<p>You mainly browse, write, use office apps, attend video calls and do light photo editing. The Air is thin, silent (fanless) and has all-day battery life. For students and everyday professionals, it is usually all the MacBook you need.</p>
+<h3>Choose the MacBook Pro if…</h3>
+<p>You do sustained heavy work — video editing, 3D, large codebases, music production or data science. The Pro's active cooling, brighter display and Pro-class chips keep performance high for hours, and the bigger screens help.</p>
+<h3>Still not sure?</h3>
+<p>Tell us what you do and your budget, and we will match you to the right refurbished model on a free consultation call.</p>`,
+      cover_image: '', published: 1,
+    },
+  ];
+  for (const p of posts) insBlog.run(p);
 }
 
 module.exports = db;

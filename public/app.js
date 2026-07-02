@@ -36,6 +36,7 @@
       renderReviews(data.reviews, data.settings);
       renderQc(data.settings);
       renderFaq(data.settings);
+      renderBlog(data.settings, data.posts);
       renderAbout(data.settings);
       renderContact(data.settings);
       renderSocial(data.settings);
@@ -225,6 +226,25 @@
         <summary>${esc(f.q)}<span class="faq-plus">+</span></summary>
         <div class="faq-answer">${esc(f.a)}</div>
       </details>`).join('');
+  }
+
+  function renderBlog(s, posts) {
+    const section = $('blogSection');
+    posts = Array.isArray(posts) ? posts : [];
+    if (!s.blog_enabled || !posts.length) { section.hidden = true; return; }
+    section.hidden = false;
+    if (s.blog_title) $('blogHomeTitle').textContent = s.blog_title;
+    $('blogHomeSubtitle').textContent = s.blog_subtitle || '';
+    const fmt = (d) => { try { return new Date(String(d).replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
+    $('blogHomeGrid').innerHTML = posts.map((p) => `
+      <a class="blog-card" href="/blog/${esc(p.slug)}">
+        <div class="blog-cover" style="${p.cover_image ? `background-image:url('${esc(p.cover_image)}')` : ''}">${p.cover_image ? '' : '<span></span>'}</div>
+        <div class="blog-card-body">
+          <h3>${esc(p.title)}</h3>
+          <p class="blog-excerpt">${esc(p.excerpt || '')}</p>
+          <span class="blog-meta">${esc(p.author || 'Mobirapid')} · ${fmt(p.created_at)}</span>
+        </div>
+      </a>`).join('');
   }
 
   function renderAbout(s) {

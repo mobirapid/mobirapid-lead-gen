@@ -346,12 +346,107 @@ app.get('/robots.txt', (req, res) => {
 app.get('/sitemap.xml', (req, res) => {
   const base = baseUrl(req);
   const pages = db.prepare('SELECT slug FROM content_pages ORDER BY sort_order').all();
-  const urls = ['/'].concat(pages.map((p) => '/p/' + p.slug));
+  const posts = db.prepare('SELECT slug FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
+  const urls = ['/', '/blog'].concat(pages.map((p) => '/p/' + p.slug)).concat(posts.map((p) => '/blog/' + p.slug));
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     urls.map((u) => `  <url><loc>${base}${u}</loc></url>`).join('\n') +
     `\n</urlset>`;
   res.type('application/xml').send(xml);
+});
+
+// ---------------------------------------------------------------------------
+// Blog (server-rendered for SEO)
+// ---------------------------------------------------------------------------
+function siteHeaderHtml() {
+  const brand = esc(getSetting('brand_name', 'Mobirapid'));
+  const logo = getSetting('logo_path', '');
+  return `<header class="site-header"><div class="container header-inner">
+  <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
+  <a class="header-cta" href="/#lead-form">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
+</div></header>`;
+}
+function siteFooterHtml() {
+  const legal = esc(getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid'));
+  const pages = db.prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC').all();
+  const links = ['<a href="/blog">Blog</a>'].concat(pages.map((p) => `<a href="/p/${esc(p.slug)}">${esc(p.title)}</a>`)).join(' · ');
+  return `<footer class="site-footer"><div class="footer-bottom"><div class="container footer-bottom-inner">
+  <span>© ${new Date().getFullYear()} ${legal}. All rights reserved.</span>
+  <span class="footer-links">${links}</span>
+</div></div></footer>`;
+}
+function pageHead(req, title, desc, canonical, extra) {
+  const ga = getSetting('ga_measurement_id', '').replace(/[^A-Za-z0-9-]/g, '');
+  const gaTag = ga
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga}');</script>`
+    : '';
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<link rel="canonical" href="${canonical}">
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:type" content="article">
+<link rel="stylesheet" href="/styles.css">
+${gaTag}${getSetting('head_code', '')}${extra || ''}
+</head><body>`;
+}
+function pageTail() { return `${siteFooterHtml()}${getSetting('body_code', '')}</body></html>`; }
+function fmtBlogDate(s) {
+  try { return new Date(String(s).replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; }
+}
+
+app.get('/blog', (req, res) => {
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const posts = db.prepare('SELECT slug, title, excerpt, cover_image, author, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
+  const cards = posts.map((p) => `
+    <a class="blog-card" href="/blog/${esc(p.slug)}">
+      <div class="blog-cover" style="${p.cover_image ? `background-image:url('${esc(p.cover_image)}')` : ''}">${p.cover_image ? '' : '<span></span>'}</div>
+      <div class="blog-card-body">
+        <h3>${esc(p.title)}</h3>
+        <p class="blog-excerpt">${esc(p.excerpt || '')}</p>
+        <span class="blog-meta">${esc(p.author || brand)} · ${fmtBlogDate(p.created_at)}</span>
+      </div>
+    </a>`).join('');
+  const title = getSetting('blog_title', 'Blog') + ' — ' + brand;
+  const desc = getSetting('blog_subtitle', '') || `${brand} blog — MacBook guides and Apple ecosystem tips.`;
+  res.send(
+    pageHead(req, title, desc, base + '/blog') +
+    siteHeaderHtml() +
+    `<main class="container page-body blog-index"><a class="back-link" href="/">← Back to home</a><h1>${esc(getSetting('blog_title', 'Blog'))}</h1><p class="section-sub" style="text-align:left;margin:0 0 26px;">${esc(getSetting('blog_subtitle', ''))}</p><div class="blog-grid">${cards || '<p class="muted">No posts yet.</p>'}</div></main>` +
+    pageTail()
+  );
+});
+
+app.get('/blog/:slug', (req, res) => {
+  const post = db.prepare('SELECT * FROM blog_posts WHERE slug = ? AND published = 1').get(req.params.slug);
+  if (!post) return res.status(404).send('Post not found');
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const url = base + '/blog/' + esc(post.slug);
+  const desc = post.meta_description || post.excerpt || post.title;
+  const ld = {
+    '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title,
+    description: post.excerpt || post.meta_description || post.title,
+    datePublished: post.created_at, dateModified: post.updated_at || post.created_at,
+    author: { '@type': 'Organization', name: post.author || brand },
+    publisher: { '@type': 'Organization', name: getSetting('legal_name', '') || brand },
+    mainEntityOfPage: url,
+  };
+  if (post.cover_image) ld.image = post.cover_image.startsWith('/') ? base + post.cover_image : post.cover_image;
+  const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
+  res.send(
+    pageHead(req, post.title + ' — ' + brand, desc, url, ldTag) +
+    siteHeaderHtml() +
+    `<main class="container page-body blog-post"><a class="back-link" href="/blog">← All articles</a>
+    <h1>${esc(post.title)}</h1>
+    <p class="blog-meta">${esc(post.author || brand)} · ${fmtBlogDate(post.created_at)}</p>
+    ${post.cover_image ? `<img class="blog-hero-img" src="${esc(post.cover_image)}" alt="${esc(post.title)}">` : ''}
+    <div class="page-content blog-content">${post.content || ''}</div>
+    <div class="blog-cta"><a class="hero-button" href="/#lead-form">Book a free consultation →</a></div>
+    </main>` +
+    pageTail()
+  );
 });
 
 // ===========================================================================
@@ -369,6 +464,9 @@ app.get('/api/site', (req, res) => {
   const pages = db
     .prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC, title ASC')
     .all();
+  const posts = getSetting('blog_enabled', '1') === '1'
+    ? db.prepare('SELECT slug, title, excerpt, cover_image, author, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC LIMIT 3').all()
+    : [];
   const reviewsEnabled = getSetting('reviews_enabled', '0') === '1';
   let reviews = reviewsEnabled
     ? db.prepare('SELECT id, author, rating, text, date_label FROM reviews WHERE active = 1 ORDER BY sort_order ASC, id ASC').all()
@@ -386,6 +484,7 @@ app.get('/api/site', (req, res) => {
       reviews_enabled: reviewsEnabled,
       about_enabled: getSetting('about_enabled', '1') === '1',
       contact_enabled: getSetting('contact_enabled', '1') === '1',
+      blog_enabled: getSetting('blog_enabled', '1') === '1',
       qc_enabled: getSetting('qc_enabled', '1') === '1',
       qc_video_enabled: getSetting('qc_video_enabled', '1') === '1',
       qc_items: parseJsonSetting('qc_items', []),
@@ -400,6 +499,7 @@ app.get('/api/site', (req, res) => {
     models,
     pages,
     reviews,
+    posts,
   });
 });
 
@@ -839,6 +939,59 @@ app.put('/api/admin/reviews/:id', requireAdmin, (req, res) => {
 });
 app.delete('/api/admin/reviews/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM reviews WHERE id = ?').run(parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+
+// Blog posts CRUD
+function slugify(s) {
+  return String(s || '').toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80) || 'post';
+}
+app.get('/api/admin/blog', requireAdmin, (req, res) => {
+  res.json({ ok: true, posts: db.prepare('SELECT id, slug, title, excerpt, cover_image, author, published, created_at FROM blog_posts ORDER BY id DESC').all() });
+});
+app.get('/api/admin/blog/:id', requireAdmin, (req, res) => {
+  const p = db.prepare('SELECT * FROM blog_posts WHERE id = ?').get(parseInt(req.params.id, 10));
+  if (!p) return res.status(404).json({ ok: false, error: 'Not found.' });
+  res.json({ ok: true, post: p });
+});
+function blogFromBody(b) {
+  return {
+    title: String(b.title || '').trim(),
+    slug: (String(b.slug || '').trim() ? slugify(b.slug) : slugify(b.title)),
+    excerpt: String(b.excerpt || '').trim().slice(0, 400),
+    content: String(b.content || ''),
+    cover_image: String(b.cover_image || '').trim(),
+    author: String(b.author || '').trim(),
+    meta_description: String(b.meta_description || '').trim().slice(0, 300),
+    published: b.published === false || b.published === 'false' || b.published === 0 ? 0 : 1,
+  };
+}
+app.post('/api/admin/blog', requireAdmin, (req, res) => {
+  const p = blogFromBody(req.body);
+  if (!p.title) return res.status(400).json({ ok: false, error: 'Title is required.' });
+  // ensure unique slug
+  let slug = p.slug, n = 2;
+  while (db.prepare('SELECT id FROM blog_posts WHERE slug = ?').get(slug)) slug = p.slug + '-' + n++;
+  const info = db.prepare(
+    `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, published)
+     VALUES (@slug, @title, @excerpt, @content, @cover_image, @author, @meta_description, @published)`
+  ).run({ ...p, slug });
+  res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
+});
+app.put('/api/admin/blog/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const p = blogFromBody(req.body);
+  if (!p.title) return res.status(400).json({ ok: false, error: 'Title is required.' });
+  let slug = p.slug, n = 2;
+  while (db.prepare('SELECT id FROM blog_posts WHERE slug = ? AND id != ?').get(slug, id)) slug = p.slug + '-' + n++;
+  db.prepare(
+    `UPDATE blog_posts SET slug=@slug, title=@title, excerpt=@excerpt, content=@content, cover_image=@cover_image,
+     author=@author, meta_description=@meta_description, published=@published, updated_at=datetime('now') WHERE id=@id`
+  ).run({ ...p, slug, id });
+  res.json({ ok: true, slug });
+});
+app.delete('/api/admin/blog/:id', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM blog_posts WHERE id = ?').run(parseInt(req.params.id, 10));
   res.json({ ok: true });
 });
 
