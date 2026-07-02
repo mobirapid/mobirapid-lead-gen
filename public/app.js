@@ -553,6 +553,25 @@
     els.forEach((e, i) => { e.classList.add('reveal'); e.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(e); });
   }
 
+  // ---- Engagement tracking (reduces "bounce" by recording real interactions) ----
+  function track(name, params) {
+    try { if (window.gtag) window.gtag('event', name, params || {}); } catch (e) {}
+    try { if (window.fbq) window.fbq('trackCustom', name, params || {}); } catch (e) {}
+    try { (window.dataLayer = window.dataLayer || []).push(Object.assign({ event: name }, params || {})); } catch (e) {}
+  }
+  const _sd = {};
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    if (h <= 0) return;
+    const pct = Math.round((window.scrollY / h) * 100);
+    [25, 50, 75, 90].forEach((t) => { if (pct >= t && !_sd[t]) { _sd[t] = 1; track('scroll_depth', { percent: t }); } });
+  }, { passive: true });
+  setTimeout(() => track('engaged_time', { seconds: 15 }), 15000);
+  let _firstInteract = false;
+  const flagInteract = (what) => { if (_firstInteract) return; _firstInteract = true; track('form_interaction', { field: what }); };
+  if (sendOtpBtn) sendOtpBtn.addEventListener('click', () => flagInteract('send_code'));
+  if ($('name')) $('name').addEventListener('focus', () => flagInteract('name'), { once: true });
+
   // Call-type selector icons
   const _ci = window.MOBI_ICONS || {};
   if ($('ctPhoneIc')) $('ctPhoneIc').innerHTML = _ci.phone || '';
