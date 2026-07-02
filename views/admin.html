@@ -581,6 +581,20 @@
       </div>
 
       <div class="card">
+        <h3>Meta (Facebook) Conversions API</h3>
+        <p class="muted">Sends the "Lead" event server-side too (more reliable than the browser Pixel, deduplicated automatically). Get the token from Events Manager → Settings → Conversions API → Generate access token.</p>
+        <div class="grid2">
+          <div><label class="fld">Enable Conversions API?</label>
+            <select id="set-fb_capi_enabled"><option value="0">Off</option><option value="1">On</option></select>
+          </div>
+          <div><label class="fld">Pixel / Dataset ID</label><input type="text" id="set-fb_pixel_id" placeholder="1043761011517569" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Access token</label>
+        <input type="password" id="set-fb_capi_token" autocomplete="off" />
+        <div class="save-row"><button class="btn" id="saveCapi">Save Conversions API</button><span class="saved-msg" id="capiSaved" hidden>Saved ✓</span></div>
+      </div>
+
+      <div class="card">
         <h3>Custom code</h3>
         <p class="muted">Paste any tracking / verification code. <b>Head code</b> goes inside &lt;head&gt; (Google Tag Manager, Meta Pixel, Search Console verification, etc.). <b>Body code</b> goes before &lt;/body&gt; (chat widgets, GTM noscript). Applies to all pages.</p>
         <label class="fld">Head code</label>

@@ -455,6 +455,8 @@
     if (!phoneVerified) { setStatus('Please verify your phone number first.', 'err'); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
 
+    const getCookie = (n) => { const m = document.cookie.match('(^|;)\\s*' + n + '\\s*=\\s*([^;]+)'); return m ? m.pop() : ''; };
+    const eventId = 'lead.' + Date.now() + '.' + Math.random().toString(36).slice(2, 10);
     const best_time = bestTimeSel.value;
     const payload = {
       name: $('name').value.trim(),
@@ -466,6 +468,9 @@
       budget: $('budget').value,
       best_time,
       message: $('message').value.trim(),
+      event_id: eventId,
+      fbp: getCookie('_fbp'),
+      fbc: getCookie('_fbc'),
     };
 
     submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; setStatus('', '');
@@ -476,7 +481,7 @@
       form.reset(); otpField.hidden = true; companyFields.hidden = true; phoneVerified = false;
       setStatus(data.message, 'ok'); submitBtn.textContent = 'Request received ✓';
       // Fire conversion events (only if the respective tag is installed)
-      try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Consultation request' }); } catch (e) {}
+      try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Consultation request' }, { eventID: eventId }); } catch (e) {}
       try { if (window.gtag) window.gtag('event', 'generate_lead', { event_category: 'lead' }); } catch (e) {}
       try { (window.dataLayer = window.dataLayer || []).push({ event: 'lead_submitted' }); } catch (e) {}
     } catch (err) {

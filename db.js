@@ -173,6 +173,10 @@ const DEFAULT_SETTINGS = {
   ga_measurement_id: '',
   head_code: '',
   body_code: '',
+  // Meta (Facebook) Conversions API — server-side Lead events
+  fb_capi_enabled: '0',
+  fb_pixel_id: '',
+  fb_capi_token: '',
   // About section
   about_enabled: '1',
   about_title: 'About Mobirapid',

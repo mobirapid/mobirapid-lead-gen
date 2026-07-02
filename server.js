@@ -56,6 +56,7 @@ const PRIVATE_KEYS = new Set([
   'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'lead_notify_to',
   'ga_measurement_id', 'head_code', 'body_code',
   'google_place_id', 'google_places_api_key',
+  'fb_capi_enabled', 'fb_pixel_id', 'fb_capi_token',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -245,6 +246,46 @@ async function refreshGoogleRating() {
   return gCache;
 }
 function googleLiveEnabled() { return getSetting('google_reviews_live', '0') === '1' && getSetting('google_places_api_key', '') && getSetting('google_place_id', ''); }
+
+// ---------------------------------------------------------------------------
+// Meta (Facebook) Conversions API — server-side "Lead" event.
+// ---------------------------------------------------------------------------
+function sha256(v) { return crypto.createHash('sha256').update(String(v)).digest('hex'); }
+async function sendMetaCapiLead(lead, req, meta) {
+  if (getSetting('fb_capi_enabled', '0') !== '1') return;
+  const pixel = getSetting('fb_pixel_id', '').trim();
+  const token = getSetting('fb_capi_token', '').trim();
+  if (!pixel || !token) return;
+  try {
+    const phoneDigits = String(lead.phone || '').replace(/[^\d]/g, '');
+    const email = String(lead.company_email || '').trim().toLowerCase();
+    const user_data = {
+      client_ip_address: req.ip,
+      client_user_agent: req.headers['user-agent'] || '',
+    };
+    if (phoneDigits) user_data.ph = [sha256(phoneDigits)];
+    if (email) user_data.em = [sha256(email)];
+    if (lead.name) user_data.fn = [sha256(String(lead.name).trim().toLowerCase())];
+    if (meta.fbp) user_data.fbp = meta.fbp;
+    if (meta.fbc) user_data.fbc = meta.fbc;
+    const event = {
+      event_name: 'Lead',
+      event_time: Math.floor(Date.now() / 1000),
+      action_source: 'website',
+      event_source_url: meta.sourceUrl || (baseUrl(req) + '/'),
+      event_id: meta.eventId || undefined,
+      user_data,
+      custom_data: { content_name: 'Consultation request' },
+    };
+    const r = await fetch(`https://graph.facebook.com/v19.0/${encodeURIComponent(pixel)}/events`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: [event], access_token: token }),
+    });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); console.error('Meta CAPI error:', (d.error && d.error.message) || r.status); }
+  } catch (e) {
+    console.error('Meta CAPI failed:', e.message);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Rate limiters
@@ -701,6 +742,11 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
   const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(Number(info.lastInsertRowid));
   db.prepare('DELETE FROM otps WHERE phone = ?').run(phone);
   try { await sendLeadEmail(lead); } catch (e) { console.error('Lead email failed (lead still saved):', e.message); }
+  // Meta Conversions API (server-side Lead event, deduped with the browser Pixel via event_id)
+  sendMetaCapiLead(lead, req, {
+    eventId: String(b.event_id || ''), fbp: String(b.fbp || ''), fbc: String(b.fbc || ''),
+    sourceUrl: req.headers.referer || '',
+  });
   res.json({ ok: true, message: 'Thanks! Your consultation request has been received. Our team will reach out shortly.' });
 });
 

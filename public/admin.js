@@ -423,6 +423,9 @@
     if (!p) return;
     $('set-og_image').value = p;
   });
+  on('saveCapi', 'click', () => {
+    saveSettings(collectSettings(['fb_capi_enabled', 'fb_pixel_id', 'fb_capi_token']), $('capiSaved'));
+  });
 
   // ========================================================================
   // SMS & EMAIL INTEGRATIONS
