@@ -646,8 +646,10 @@
           <input type="file" id="bl-coverFile" accept="image/*" />
           <button class="btn small" id="bl-coverUpload" type="button">Upload</button>
         </div>
-        <label class="fld" style="margin-top:12px;">Meta description (for Google, ~155 chars)</label>
-        <input type="text" id="bl-meta_description" maxlength="300" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Tags (comma separated)</label><input type="text" id="bl-tags" placeholder="Buying guide, Refurbished, Tips" /></div>
+          <div><label class="fld">Meta description (for Google)</label><input type="text" id="bl-meta_description" maxlength="300" /></div>
+        </div>
         <label class="fld" style="margin-top:12px;">Content (HTML — use &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;, lists)</label>
         <textarea id="bl-content" class="code" rows="12"></textarea>
         <div class="grid2" style="margin-top:12px;">

@@ -568,7 +568,7 @@
     if (id) { const r = await api('/api/admin/blog/' + id); const d = await r.json(); post = d.post; }
     $('blogDlgTitle').textContent = post ? 'Edit post' : 'New post';
     $('bl-id').value = post ? post.id : '';
-    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'content'].forEach((f) => { $('bl-' + f).value = post ? (post[f] ?? '') : ''; });
+    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'tags', 'content'].forEach((f) => { $('bl-' + f).value = post ? (post[f] ?? '') : ''; });
     $('bl-published').value = post ? String(post.published) : '1';
     $('bl-coverFile').value = '';
     const vl = $('bl-viewLink');
@@ -581,7 +581,7 @@
   on('blogSave', 'click', async () => {
     const id = $('bl-id').value;
     const payload = {};
-    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'content'].forEach((f) => { payload[f] = $('bl-' + f).value; });
+    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'tags', 'content'].forEach((f) => { payload[f] = $('bl-' + f).value; });
     payload.published = $('bl-published').value;
     if (!payload.title.trim()) { alert('Title is required.'); return; }
     const r = await api(id ? '/api/admin/blog/' + id : '/api/admin/blog', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

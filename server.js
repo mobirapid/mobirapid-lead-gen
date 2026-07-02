@@ -395,11 +395,9 @@ function fmtBlogDate(s) {
   try { return new Date(String(s).replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; }
 }
 
-app.get('/blog', (req, res) => {
-  const base = baseUrl(req);
-  const brand = getSetting('brand_name', 'Mobirapid');
-  const posts = db.prepare('SELECT slug, title, excerpt, cover_image, author, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
-  const cards = posts.map((p) => `
+function postTags(p) { return String(p.tags || '').split(',').map((t) => t.trim()).filter(Boolean); }
+function blogCardHtml(p, brand) {
+  return `
     <a class="blog-card" href="/blog/${esc(p.slug)}">
       <div class="blog-cover" style="${p.cover_image ? `background-image:url('${esc(p.cover_image)}')` : ''}">${p.cover_image ? '' : '<span></span>'}</div>
       <div class="blog-card-body">
@@ -407,13 +405,37 @@ app.get('/blog', (req, res) => {
         <p class="blog-excerpt">${esc(p.excerpt || '')}</p>
         <span class="blog-meta">${esc(p.author || brand)} · ${fmtBlogDate(p.created_at)}</span>
       </div>
-    </a>`).join('');
+    </a>`;
+}
+app.get('/blog', (req, res) => {
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const q = String(req.query.q || '').trim().toLowerCase();
+  const tag = String(req.query.tag || '').trim().toLowerCase();
+  let posts = db.prepare('SELECT slug, title, excerpt, cover_image, author, created_at, tags FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
+  if (tag) posts = posts.filter((p) => postTags(p).map((t) => t.toLowerCase()).includes(tag));
+  if (q) posts = posts.filter((p) => `${p.title} ${p.excerpt || ''} ${p.tags || ''}`.toLowerCase().includes(q));
+
+  // Tag cloud from all published posts
+  const allTags = {};
+  for (const p of db.prepare('SELECT tags FROM blog_posts WHERE published = 1').all()) for (const t of postTags(p)) allTags[t] = (allTags[t] || 0) + 1;
+  const tagChips = Object.keys(allTags).sort().map((t) =>
+    `<a class="blog-tag${t.toLowerCase() === tag ? ' active' : ''}" href="/blog?tag=${encodeURIComponent(t)}">${esc(t)}</a>`).join('');
+
+  const cards = posts.map((p) => blogCardHtml(p, brand)).join('');
+  const heading = tag ? `Articles tagged "${esc(req.query.tag)}"` : q ? `Search: "${esc(req.query.q)}"` : esc(getSetting('blog_title', 'Blog'));
   const title = getSetting('blog_title', 'Blog') + ' — ' + brand;
   const desc = getSetting('blog_subtitle', '') || `${brand} blog — MacBook guides and Apple ecosystem tips.`;
   res.send(
     pageHead(req, title, desc, base + '/blog') +
     siteHeaderHtml() +
-    `<main class="container page-body blog-index"><a class="back-link" href="/">← Back to home</a><h1>${esc(getSetting('blog_title', 'Blog'))}</h1><p class="section-sub" style="text-align:left;margin:0 0 26px;">${esc(getSetting('blog_subtitle', ''))}</p><div class="blog-grid">${cards || '<p class="muted">No posts yet.</p>'}</div></main>` +
+    `<main class="container page-body blog-index">
+      <a class="back-link" href="/">← Back to home</a>
+      <h1>${heading}</h1>
+      <form class="blog-search" method="get" action="/blog"><input type="search" name="q" value="${esc(req.query.q || '')}" placeholder="Search articles…"><button type="submit">Search</button></form>
+      ${tagChips ? `<div class="blog-tags-bar">${(tag || q) ? '<a class="blog-tag" href="/blog">All</a>' : ''}${tagChips}</div>` : ''}
+      <div class="blog-grid">${cards || '<p class="muted">No articles found.</p>'}</div>
+    </main>` +
     pageTail()
   );
 });
@@ -435,6 +457,20 @@ app.get('/blog/:slug', (req, res) => {
   };
   if (post.cover_image) ld.image = post.cover_image.startsWith('/') ? base + post.cover_image : post.cover_image;
   const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
+
+  const tags = postTags(post);
+  const tagsHtml = tags.length
+    ? `<div class="blog-tags-bar">${tags.map((t) => `<a class="blog-tag" href="/blog?tag=${encodeURIComponent(t)}">${esc(t)}</a>`).join('')}</div>` : '';
+
+  // Related: prefer posts sharing a tag, then fill with latest.
+  const others = db.prepare('SELECT slug, title, excerpt, cover_image, author, created_at, tags FROM blog_posts WHERE published = 1 AND id != ? ORDER BY id DESC').all(post.id);
+  const lower = tags.map((t) => t.toLowerCase());
+  let related = others.filter((o) => postTags(o).some((t) => lower.includes(t.toLowerCase())));
+  for (const o of others) { if (related.length >= 3) break; if (!related.includes(o)) related.push(o); }
+  related = related.slice(0, 3);
+  const relatedHtml = related.length
+    ? `<section class="blog-related"><h2>Related articles</h2><div class="blog-grid">${related.map((p) => blogCardHtml(p, brand)).join('')}</div></section>` : '';
+
   res.send(
     pageHead(req, post.title + ' — ' + brand, desc, url, ldTag) +
     siteHeaderHtml() +
@@ -443,7 +479,9 @@ app.get('/blog/:slug', (req, res) => {
     <p class="blog-meta">${esc(post.author || brand)} · ${fmtBlogDate(post.created_at)}</p>
     ${post.cover_image ? `<img class="blog-hero-img" src="${esc(post.cover_image)}" alt="${esc(post.title)}">` : ''}
     <div class="page-content blog-content">${post.content || ''}</div>
+    ${tagsHtml}
     <div class="blog-cta"><a class="hero-button" href="/#lead-form">Book a free consultation →</a></div>
+    ${relatedHtml}
     </main>` +
     pageTail()
   );
@@ -963,6 +1001,7 @@ function blogFromBody(b) {
     cover_image: String(b.cover_image || '').trim(),
     author: String(b.author || '').trim(),
     meta_description: String(b.meta_description || '').trim().slice(0, 300),
+    tags: String(b.tags || '').split(',').map((t) => t.trim()).filter(Boolean).join(', ').slice(0, 200),
     published: b.published === false || b.published === 'false' || b.published === 0 ? 0 : 1,
   };
 }
@@ -973,8 +1012,8 @@ app.post('/api/admin/blog', requireAdmin, (req, res) => {
   let slug = p.slug, n = 2;
   while (db.prepare('SELECT id FROM blog_posts WHERE slug = ?').get(slug)) slug = p.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, published)
-     VALUES (@slug, @title, @excerpt, @content, @cover_image, @author, @meta_description, @published)`
+    `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, tags, published)
+     VALUES (@slug, @title, @excerpt, @content, @cover_image, @author, @meta_description, @tags, @published)`
   ).run({ ...p, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -986,7 +1025,7 @@ app.put('/api/admin/blog/:id', requireAdmin, (req, res) => {
   while (db.prepare('SELECT id FROM blog_posts WHERE slug = ? AND id != ?').get(slug, id)) slug = p.slug + '-' + n++;
   db.prepare(
     `UPDATE blog_posts SET slug=@slug, title=@title, excerpt=@excerpt, content=@content, cover_image=@cover_image,
-     author=@author, meta_description=@meta_description, published=@published, updated_at=datetime('now') WHERE id=@id`
+     author=@author, meta_description=@meta_description, tags=@tags, published=@published, updated_at=datetime('now') WHERE id=@id`
   ).run({ ...p, slug, id });
   res.json({ ok: true, slug });
 });
