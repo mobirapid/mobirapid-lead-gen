@@ -312,6 +312,9 @@ a.contact-card:hover { transform: translateY(-4px); box-shadow: 0 20px 44px rgba
 .blog-post .blog-tags-bar { margin-top: 24px; }
 .blog-related { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
 .blog-related h2 { font-size: 1.5rem; margin: 0 0 20px; letter-spacing: -0.01em; }
+.blog-pager { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; gap: 12px; }
+.blog-pager a { font-weight: 600; color: var(--brand); }
+.blog-pager-info { color: var(--muted); font-size: 0.9rem; }
 
 /* Footer — professional dark */
 .site-footer { background: #0b1220; color: #cbd5e1; margin-top: 44px; }

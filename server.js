@@ -422,7 +422,15 @@ app.get('/blog', (req, res) => {
   const tagChips = Object.keys(allTags).sort().map((t) =>
     `<a class="blog-tag${t.toLowerCase() === tag ? ' active' : ''}" href="/blog?tag=${encodeURIComponent(t)}">${esc(t)}</a>`).join('');
 
-  const cards = posts.map((p) => blogCardHtml(p, brand)).join('');
+  const PER_PAGE = 9;
+  const totalPages = Math.max(1, Math.ceil(posts.length / PER_PAGE));
+  let page = parseInt(req.query.page, 10) || 1;
+  if (page < 1) page = 1; if (page > totalPages) page = totalPages;
+  const pagePosts = posts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const qs = (pg) => { const p = new URLSearchParams(); if (req.query.q) p.set('q', req.query.q); if (req.query.tag) p.set('tag', req.query.tag); if (pg > 1) p.set('page', pg); const s = p.toString(); return '/blog' + (s ? '?' + s : ''); };
+  const pager = totalPages > 1
+    ? `<div class="blog-pager">${page > 1 ? `<a href="${qs(page - 1)}">← Newer</a>` : '<span></span>'}<span class="blog-pager-info">Page ${page} of ${totalPages}</span>${page < totalPages ? `<a href="${qs(page + 1)}">Older →</a>` : '<span></span>'}</div>` : '';
+  const cards = pagePosts.map((p) => blogCardHtml(p, brand)).join('');
   const heading = tag ? `Articles tagged "${esc(req.query.tag)}"` : q ? `Search: "${esc(req.query.q)}"` : esc(getSetting('blog_title', 'Blog'));
   const title = getSetting('blog_title', 'Blog') + ' — ' + brand;
   const desc = getSetting('blog_subtitle', '') || `${brand} blog — MacBook guides and Apple ecosystem tips.`;
@@ -435,6 +443,7 @@ app.get('/blog', (req, res) => {
       <form class="blog-search" method="get" action="/blog"><input type="search" name="q" value="${esc(req.query.q || '')}" placeholder="Search articles…"><button type="submit">Search</button></form>
       ${tagChips ? `<div class="blog-tags-bar">${(tag || q) ? '<a class="blog-tag" href="/blog">All</a>' : ''}${tagChips}</div>` : ''}
       <div class="blog-grid">${cards || '<p class="muted">No articles found.</p>'}</div>
+      ${pager}
     </main>` +
     pageTail()
   );

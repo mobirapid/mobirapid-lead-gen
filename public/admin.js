@@ -568,7 +568,8 @@
     if (id) { const r = await api('/api/admin/blog/' + id); const d = await r.json(); post = d.post; }
     $('blogDlgTitle').textContent = post ? 'Edit post' : 'New post';
     $('bl-id').value = post ? post.id : '';
-    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'tags', 'content'].forEach((f) => { $('bl-' + f).value = post ? (post[f] ?? '') : ''; });
+    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'tags'].forEach((f) => { $('bl-' + f).value = post ? (post[f] ?? '') : ''; });
+    $('bl-editor').innerHTML = post ? (post.content || '') : '';
     $('bl-published').value = post ? String(post.published) : '1';
     $('bl-coverFile').value = '';
     const vl = $('bl-viewLink');
@@ -578,10 +579,18 @@
   on('addBlogBtn', 'click', () => openBlog(null));
   on('blogCancel', 'click', () => blogDlg.close());
   on('bl-coverUpload', 'click', async () => { const p = await uploadImage($('bl-coverFile')); if (!p) return; $('bl-cover_image').value = p; });
+  // Rich text editor toolbar
+  document.querySelectorAll('.rte-toolbar button').forEach((b) => b.addEventListener('click', () => {
+    const cmd = b.dataset.cmd;
+    $('bl-editor').focus();
+    if (cmd === 'createLink') { const url = prompt('Link URL:', 'https://'); if (url) document.execCommand('createLink', false, url); }
+    else document.execCommand(cmd, false, b.dataset.val || null);
+  }));
   on('blogSave', 'click', async () => {
     const id = $('bl-id').value;
     const payload = {};
-    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'tags', 'content'].forEach((f) => { payload[f] = $('bl-' + f).value; });
+    ['title', 'slug', 'author', 'excerpt', 'cover_image', 'meta_description', 'tags'].forEach((f) => { payload[f] = $('bl-' + f).value; });
+    payload.content = $('bl-editor').innerHTML;
     payload.published = $('bl-published').value;
     if (!payload.title.trim()) { alert('Title is required.'); return; }
     const r = await api(id ? '/api/admin/blog/' + id : '/api/admin/blog', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

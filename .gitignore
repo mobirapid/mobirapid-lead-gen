@@ -9,3 +9,6 @@ server.log
 public/uploads/*
 !public/uploads/.gitkeep
 !public/uploads/banner-hero.jpg
+!public/uploads/blog-refurbished.jpg
+!public/uploads/blog-battery.jpg
+!public/uploads/blog-air-vs-pro.jpg

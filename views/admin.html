@@ -63,6 +63,13 @@
     .model-row .info small { color: var(--muted); }
     .inactive-tag { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
     textarea.code { min-height: 280px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+    .rte-toolbar { display: flex; flex-wrap: wrap; gap: 6px; border: 1px solid var(--line); border-bottom: none; border-radius: 10px 10px 0 0; padding: 8px; background: #f8fafc; }
+    .rte-toolbar button { background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 0.85rem; min-width: 32px; }
+    .rte-toolbar button:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .rte { border: 1px solid var(--line); border-radius: 0 0 10px 10px; padding: 14px 16px; min-height: 260px; max-height: 460px; overflow-y: auto; font-size: 0.95rem; line-height: 1.6; background: #fff; }
+    .rte:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+    .rte h3 { margin: 16px 0 6px; font-size: 1.1rem; }
+    .rte p { margin: 0 0 10px; }
     dialog { border: none; border-radius: var(--radius); box-shadow: 0 30px 60px rgba(0,0,0,0.3); padding: 0; width: min(560px, 94vw); }
     dialog::backdrop { background: rgba(8,15,35,0.45); }
     .dlg-head { padding: 18px 22px; border-bottom: 1px solid var(--line); font-weight: 700; }
@@ -650,8 +657,19 @@
           <div><label class="fld">Tags (comma separated)</label><input type="text" id="bl-tags" placeholder="Buying guide, Refurbished, Tips" /></div>
           <div><label class="fld">Meta description (for Google)</label><input type="text" id="bl-meta_description" maxlength="300" /></div>
         </div>
-        <label class="fld" style="margin-top:12px;">Content (HTML — use &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;, lists)</label>
-        <textarea id="bl-content" class="code" rows="12"></textarea>
+        <label class="fld" style="margin-top:12px;">Content</label>
+        <div class="rte-toolbar">
+          <button type="button" data-cmd="formatBlock" data-val="H3" title="Heading">H</button>
+          <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+          <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+          <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+          <button type="button" data-cmd="formatBlock" data-val="P" title="Normal text">¶</button>
+          <button type="button" data-cmd="createLink" title="Insert link">🔗</button>
+          <button type="button" data-cmd="unlink" title="Remove link">unlink</button>
+          <button type="button" data-cmd="removeFormat" title="Clear formatting">clear</button>
+        </div>
+        <div id="bl-editor" class="rte" contenteditable="true"></div>
         <div class="grid2" style="margin-top:12px;">
           <div><label class="fld">Status</label>
             <select id="bl-published"><option value="1">Published</option><option value="0">Draft</option></select>
