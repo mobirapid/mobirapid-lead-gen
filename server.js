@@ -417,6 +417,7 @@ app.get('/sitemap.xml', (req, res) => {
   const prods = db.prepare('SELECT slug FROM macbook_models WHERE active = 1 AND slug IS NOT NULL ORDER BY sort_order').all();
   const entries = [
     { loc: '/', lastmod: today, priority: '1.0' },
+    { loc: '/compare', lastmod: today, priority: '0.7' },
     { loc: '/blog', lastmod: today, priority: '0.8' },
     ...prods.map((p) => ({ loc: '/macbook/' + p.slug, lastmod: today, priority: '0.7' })),
     ...pages.map((p) => ({ loc: '/p/' + p.slug, lastmod: today, priority: '0.4' })),
@@ -437,6 +438,7 @@ function siteHeaderHtml() {
   const logo = getSetting('logo_path', '');
   return `<header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
+  <nav class="header-nav"><a href="/#modelsSection">MacBooks</a><a href="/compare">Compare</a><a href="/blog">Blog</a></nav>
   <a class="header-cta" href="/#lead-form">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
 </div></header>`;
 }
@@ -639,6 +641,105 @@ app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
   );
 });
 
+// Compare page (server-rendered fallback + interactive picker)
+app.get('/compare', (req, res) => {
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const priceNote = getSetting('price_note', '');
+  const models = db.prepare('SELECT * FROM macbook_models WHERE active = 1 ORDER BY sort_order ASC, id ASC').all();
+  const ROWS = [
+    ['price', 'Price'], ['cpu', 'Chip / CPU'], ['gpu', 'GPU'], ['memory', 'Memory'],
+    ['storage', 'Storage'], ['display', 'Display'], ['condition_grade', 'Condition'], ['warranty', 'Warranty'],
+  ];
+  // Server-rendered fallback: full spec table for all models (SEO + no-JS)
+  const fallbackCols = models.map((m) =>
+    `<th scope="col"><a href="/macbook/${esc(m.slug)}">${esc(m.name)}</a></th>`).join('');
+  const fallbackRows = ROWS.map(([k, label]) =>
+    `<tr><th scope="row">${esc(label)}</th>${models.map((m) => `<td>${esc(m[k] || '—')}</td>`).join('')}</tr>`).join('');
+  const fallback = `<div class="cmp-scroll"><table class="cmp-table"><thead><tr><th></th>${fallbackCols}</tr></thead>
+    <tbody>${fallbackRows}</tbody></table></div>`;
+
+  const data = models.map((m) => ({
+    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', badge: m.badge || '',
+    cpu: m.cpu || '', gpu: m.gpu || '', memory: m.memory || '', storage: m.storage || '',
+    display: m.display || '', condition_grade: m.condition_grade || '', warranty: m.warranty || '',
+  }));
+  const jsonData = JSON.stringify(data).replace(/</g, '\\u003c');
+  const jsonRows = JSON.stringify(ROWS);
+  const preIds = String(req.query.ids || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+  const ld = {
+    '@context': 'https://schema.org', '@type': 'ItemList', name: 'Compare refurbished MacBooks',
+    itemListElement: models.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + '/macbook/' + esc(m.slug), name: m.name })),
+  };
+  const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
+
+  res.send(
+    pageHead(req, 'Compare Refurbished MacBooks — ' + brand,
+      'Compare refurbished MacBook models side by side — chip, CPU & GPU cores, memory, storage, display and price. Pick the right Mac for your work.',
+      base + '/compare', ldTag) +
+    siteHeaderHtml() +
+    `<main class="container page-body cmp">
+      <a class="back-link" href="/#modelsSection">← All MacBooks</a>
+      <h1>Compare refurbished MacBooks</h1>
+      <p class="cmp-intro">Select up to four models to compare specs side by side.${priceNote ? ' ' + esc(priceNote) + '.' : ''}</p>
+      <div class="cmp-picker" id="cmpPicker">${models.map((m) =>
+        `<label class="cmp-chip"><input type="checkbox" value="${esc(m.slug)}"> ${esc(m.name)}</label>`).join('')}</div>
+      <div id="cmpApp" hidden></div>
+      <noscript>${fallback}</noscript>
+      <div id="cmpFallback">${fallback}</div>
+    </main>
+    <script>
+    (function(){
+      var DATA = ${jsonData}, ROWS = ${jsonRows}, PRE = ${JSON.stringify(preIds)};
+      var picker = document.getElementById('cmpPicker');
+      var app = document.getElementById('cmpApp');
+      var fallback = document.getElementById('cmpFallback');
+      var boxes = Array.prototype.slice.call(picker.querySelectorAll('input'));
+      function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+      function selected(){return boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;});}
+      function bySlug(s){for(var i=0;i<DATA.length;i++){if(DATA[i].slug===s)return DATA[i];}return null;}
+      function build(){
+        var sel = selected();
+        if(!sel.length){app.innerHTML='<p class="cmp-empty">Pick at least two models above to compare.</p>';return;}
+        var models = sel.map(bySlug).filter(Boolean);
+        var head='<tr><th></th>'+models.map(function(m){
+          return '<th scope="col"><div class="cmp-card">'+
+            (m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'">':'<div class="cmp-ph"></div>')+
+            (m.badge?'<span class="cmp-badge">'+esc(m.badge)+'</span>':'')+
+            '<a href="/macbook/'+esc(m.slug)+'">'+esc(m.name)+'</a></div></th>';
+        }).join('')+'</tr>';
+        var body=ROWS.map(function(r){
+          return '<tr><th scope="row">'+esc(r[1])+'</th>'+models.map(function(m){
+            return '<td'+(r[0]==='price'?' class="cmp-price"':'')+'>'+esc(m[r[0]]||'—')+'</td>';
+          }).join('')+'</tr>';
+        }).join('');
+        var cta='<tr><th scope="row"></th>'+models.map(function(m){
+          return '<td><a class="cmp-book" href="/?model='+encodeURIComponent(m.slug)+'#lead-form">Book Now →</a></td>';
+        }).join('')+'</tr>';
+        app.innerHTML='<div class="cmp-scroll"><table class="cmp-table cmp-live"><thead>'+head+'</thead><tbody>'+body+cta+'</tbody></table></div>';
+      }
+      function limit(){
+        var sel=selected();
+        boxes.forEach(function(b){var over=sel.length>=4&&!b.checked;b.disabled=over;b.parentNode.classList.toggle('disabled',over);});
+      }
+      function syncUrl(){
+        var sel=selected();var u=new URL(location.href);
+        if(sel.length)u.searchParams.set('ids',sel.join(','));else u.searchParams.delete('ids');
+        history.replaceState(null,'',u);
+      }
+      boxes.forEach(function(b){b.addEventListener('change',function(){limit();build();syncUrl();});});
+      // initial selection: from ?ids or first three
+      var init = PRE.filter(function(s){return bySlug(s);});
+      if(!init.length) init = DATA.slice(0,3).map(function(m){return m.slug;});
+      boxes.forEach(function(b){b.checked = init.indexOf(b.value)>-1;});
+      fallback.hidden=true; app.hidden=false; limit(); build();
+    })();
+    </script>` +
+    pageTail()
+  );
+});
+
 // Product detail page (server-rendered, Product schema)
 app.get('/macbook/:slug', (req, res) => {
   const m = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND active = 1').get(req.params.slug);
@@ -676,7 +777,10 @@ app.get('/macbook/:slug', (req, res) => {
             ${m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''}
           </div>
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
-          <a class="pdp-book" href="${bookUrl}">Book Now →</a>
+          <div class="pdp-actions">
+            <a class="pdp-book" href="${bookUrl}">Book Now →</a>
+            <a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>
+          </div>
           <ul class="pdp-trust">
             <li>✓ 35-point quality check</li>
             <li>✓ GST invoice with serial number</li>
