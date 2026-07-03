@@ -126,6 +126,12 @@ ensureColumn('blog_posts', 'tags', 'TEXT');
 ensureColumn('leads', 'call_type', 'TEXT');
 ensureColumn('leads', 'interested_model', 'TEXT');
 ensureColumn('macbook_models', 'slug', 'TEXT');
+ensureColumn('macbook_models', 'cpu', 'TEXT');
+ensureColumn('macbook_models', 'gpu', 'TEXT');
+ensureColumn('macbook_models', 'memory', 'TEXT');
+ensureColumn('macbook_models', 'storage', 'TEXT');
+ensureColumn('macbook_models', 'display', 'TEXT');
+ensureColumn('macbook_models', 'software', 'TEXT');
 
 // Users table for additional logins (e.g. lead-only staff accounts).
 db.exec(`
@@ -622,6 +628,84 @@ for (const m of allModels) {
   while (usedSlugs.has(s)) s = base + '-' + n++;
   usedSlugs.add(s);
   setModelSlug.run(s, m.id);
+}
+
+// Backfill structured spec fields (CPU/GPU cores, memory, storage, display, compatible software)
+// derived from the model name + specs line. Only fills fields that are empty so admin edits stick.
+function chipOf(text) {
+  const t = String(text || '');
+  if (/M4\s*Max/i.test(t)) return 'M4 Max';
+  if (/M4\s*Pro/i.test(t)) return 'M4 Pro';
+  if (/M4/i.test(t)) return 'M4';
+  if (/M3\s*Max/i.test(t)) return 'M3 Max';
+  if (/M3\s*Pro/i.test(t)) return 'M3 Pro';
+  if (/M3/i.test(t)) return 'M3';
+  if (/M2\s*Max/i.test(t)) return 'M2 Max';
+  if (/M2\s*Pro/i.test(t)) return 'M2 Pro';
+  if (/M2/i.test(t)) return 'M2';
+  if (/M1\s*Max/i.test(t)) return 'M1 Max';
+  if (/M1\s*Pro/i.test(t)) return 'M1 Pro';
+  if (/M1/i.test(t)) return 'M1';
+  return '';
+}
+const CHIP_CORES = {
+  'M1':      { cpu: '8-core CPU', gpu: '7-core GPU' },
+  'M2':      { cpu: '8-core CPU', gpu: '10-core GPU' },
+  'M3':      { cpu: '8-core CPU', gpu: '10-core GPU' },
+  'M4':      { cpu: '10-core CPU', gpu: '10-core GPU' },
+  'M1 Pro':  { cpu: '10-core CPU', gpu: '16-core GPU' },
+  'M2 Pro':  { cpu: '12-core CPU', gpu: '19-core GPU' },
+  'M3 Pro':  { cpu: '12-core CPU', gpu: '18-core GPU' },
+  'M4 Pro':  { cpu: '14-core CPU', gpu: '20-core GPU' },
+  'M1 Max':  { cpu: '10-core CPU', gpu: '32-core GPU' },
+  'M2 Max':  { cpu: '12-core CPU', gpu: '38-core GPU' },
+  'M3 Max':  { cpu: '16-core CPU', gpu: '40-core GPU' },
+  'M4 Max':  { cpu: '16-core CPU', gpu: '40-core GPU' },
+};
+function displayOf(chip, name) {
+  const n = String(name || '');
+  if (/16[\s-]?inch|16"/.test(n)) return '16.2" Liquid Retina XDR · 3456×2234 · 120Hz ProMotion · 1000 nits';
+  if (/14[\s-]?inch|14"/.test(n)) return '14.2" Liquid Retina XDR · 3024×1964 · 120Hz ProMotion · 1000 nits';
+  if (chip === 'M1' && /Air/i.test(n)) return '13.3" Retina · 2560×1600 · 400 nits';
+  return '13.6" Liquid Retina · 2560×1664 · 500 nits';
+}
+function softwareOf(chip) {
+  if (/Pro|Max/.test(chip)) {
+    return 'Final Cut Pro, DaVinci Resolve & Adobe Premiere (4K/8K editing), Blender & Cinema 4D (3D), Xcode, Docker, Logic Pro, Photoshop & Lightroom, and AI/ML frameworks (PyTorch, TensorFlow).';
+  }
+  return 'Adobe Photoshop & Lightroom, Final Cut Pro, Xcode & VS Code, Microsoft Office 365, Figma, light 4K video editing, and data-science notebooks (Python, Jupyter).';
+}
+function memStoreFrom(specs) {
+  const parts = String(specs || '').split(/[·|,]/).map((x) => x.trim());
+  let memory = '', storage = '';
+  for (const p of parts) {
+    if (/SSD|TB|storage/i.test(p) && /\d/.test(p)) storage = p;
+    else if (/GB\b/i.test(p) && /RAM|memory/i.test(p)) memory = p.replace(/\s*(RAM|memory)/i, '').trim();
+    else if (/GB\b/i.test(p) && !storage && parts.indexOf(p) !== parts.length - 1) memory = memory || p;
+  }
+  // Fallback: first "NNGB" token = memory, a token with SSD/TB = storage
+  if (!memory) { const m = String(specs || '').match(/(\d+)\s*GB(?!\s*SSD)/i); if (m) memory = m[1] + 'GB'; }
+  if (!storage) { const s = String(specs || '').match(/(\d+\s*(?:GB|TB)\s*SSD)/i); if (s) storage = s[1]; }
+  if (memory && !/GB|memory/i.test(memory)) memory = memory + 'GB';
+  if (memory) memory = memory.replace(/\s+/g, '') + (/(unified|memory)/i.test(memory) ? '' : ' unified memory');
+  return { memory, storage };
+}
+const specModels = db.prepare('SELECT id, name, specs, cpu, gpu, memory, storage, display, software FROM macbook_models').all();
+const setSpecs = db.prepare('UPDATE macbook_models SET cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software WHERE id=@id');
+for (const m of specModels) {
+  if (m.cpu || m.gpu || m.display || m.software) continue; // don't overwrite admin edits
+  const chip = chipOf(m.name) || chipOf(m.specs);
+  const cores = CHIP_CORES[chip] || { cpu: '', gpu: '' };
+  const ms = memStoreFrom(m.specs);
+  setSpecs.run({
+    id: m.id,
+    cpu: (chip ? chip + ' chip · ' : '') + cores.cpu,
+    gpu: cores.gpu,
+    memory: ms.memory,
+    storage: ms.storage,
+    display: displayOf(chip, m.name),
+    software: softwareOf(chip),
+  });
 }
 
 module.exports = db;

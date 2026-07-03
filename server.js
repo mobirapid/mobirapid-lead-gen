@@ -654,6 +654,8 @@ app.get('/macbook/:slug', (req, res) => {
     category: 'Refurbished Laptop', itemCondition: 'https://schema.org/RefurbishedCondition',
   };
   if (m.image) ld.image = m.image.startsWith('/') ? base + m.image : m.image;
+  const props = [['CPU', m.cpu], ['GPU', m.gpu], ['Memory', m.memory], ['Storage', m.storage], ['Display', m.display]].filter((p) => p[1]);
+  if (props.length) ld.additionalProperty = props.map((p) => ({ '@type': 'PropertyValue', name: p[0], value: p[1] }));
   if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + '/macbook/' + esc(m.slug) };
   const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   const desc = (m.description || m.specs || m.name).slice(0, 180);
@@ -682,6 +684,28 @@ app.get('/macbook/:slug', (req, res) => {
           </ul>
         </div>
       </div>
+      ${(() => {
+        const rows = [
+          ['Chip / CPU', m.cpu],
+          ['GPU', m.gpu],
+          ['Memory (RAM)', m.memory],
+          ['Storage', m.storage],
+          ['Display', m.display],
+          ['Condition', m.condition_grade ? m.condition_grade + ' (refurbished)' : ''],
+          ['Warranty', m.warranty],
+        ].filter((r) => r[1]);
+        if (!rows.length) return '';
+        return `<section class="pdp-section">
+          <h2>Full configuration</h2>
+          <table class="pdp-spec-table"><tbody>
+            ${rows.map((r) => `<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}
+          </tbody></table>
+        </section>`;
+      })()}
+      ${m.software ? `<section class="pdp-section">
+        <h2>What can this MacBook run?</h2>
+        <p class="pdp-software">${esc(m.software)}</p>
+      </section>` : ''}
     </main>` +
     pageTail()
   );
@@ -1058,6 +1082,12 @@ function modelFromBody(b) {
     badge: String(b.badge || '').trim(),
     condition_grade: String(b.condition_grade || '').trim(),
     warranty: String(b.warranty || '').trim(),
+    cpu: String(b.cpu || '').trim().slice(0, 120),
+    gpu: String(b.gpu || '').trim().slice(0, 120),
+    memory: String(b.memory || '').trim().slice(0, 120),
+    storage: String(b.storage || '').trim().slice(0, 120),
+    display: String(b.display || '').trim().slice(0, 200),
+    software: String(b.software || '').trim().slice(0, 600),
     sort_order: parseInt(b.sort_order || '0', 10) || 0,
     active: b.active === false || b.active === 'false' || b.active === 0 ? 0 : 1,
   };
@@ -1068,8 +1098,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, slug, price, image, specs, description, badge, condition_grade, warranty, sort_order, active)
-     VALUES (@name, @slug, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, slug, price, image, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, sort_order, active)
+     VALUES (@name, @slug, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -1081,7 +1111,8 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
     `UPDATE macbook_models SET name=@name, slug=@slug, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
-     condition_grade=@condition_grade, warranty=@warranty, sort_order=@sort_order, active=@active WHERE id=@id`
+     condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
+     sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });
   res.json({ ok: true, slug });
 });

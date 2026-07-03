@@ -387,7 +387,7 @@
     const m = id ? models.find((x) => String(x.id) === String(id)) : null;
     $('modelDlgTitle').textContent = m ? 'Edit model' : 'Add model';
     $('m-id').value = m ? m.id : '';
-    ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
+    ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
     const prev = $('m-imagePrev');
     if (m && m.image) showPrev(prev, m.image); else prev.style.display = 'none';
@@ -406,7 +406,11 @@
       name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), specs: $('m-specs').value.trim(),
       description: $('m-description').value.trim(),
       badge: $('m-badge').value, condition_grade: $('m-condition_grade').value.trim(),
-      warranty: $('m-warranty').value.trim(), image: $('m-image').value.trim(),
+      warranty: $('m-warranty').value.trim(),
+      cpu: $('m-cpu').value.trim(), gpu: $('m-gpu').value.trim(),
+      memory: $('m-memory').value.trim(), storage: $('m-storage').value.trim(),
+      display: $('m-display').value.trim(), software: $('m-software').value.trim(),
+      image: $('m-image').value.trim(),
       sort_order: parseInt($('m-sort_order').value || '0', 10), active: $('m-active').value,
     };
     if (!payload.name) { alert('Model name is required.'); return; }

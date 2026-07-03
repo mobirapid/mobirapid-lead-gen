@@ -547,3 +547,17 @@ body.cookie-open .float-contact { bottom: 104px; }
   .pdp-info h1 { font-size: 1.55rem; }
   .pdp-price { font-size: 1.4rem; }
 }
+
+/* Product detail — spec table + software */
+.pdp-section { margin-top: 42px; }
+.pdp-section h2 { font-size: 1.25rem; letter-spacing: -0.02em; margin: 0 0 16px; }
+.pdp-spec-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow); }
+.pdp-spec-table th, .pdp-spec-table td { text-align: left; padding: 13px 18px; font-size: 0.96rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.pdp-spec-table tr:last-child th, .pdp-spec-table tr:last-child td { border-bottom: none; }
+.pdp-spec-table th { width: 190px; color: var(--muted); font-weight: 600; background: #f8fafc; }
+.pdp-spec-table td { color: var(--ink-soft); font-weight: 500; }
+.pdp-software { background: var(--brand-soft); border: 1px solid rgba(37, 99, 235, 0.18); border-radius: var(--radius-sm); padding: 16px 18px; color: var(--ink-soft); margin: 0; line-height: 1.7; }
+@media (max-width: 560px) {
+  .pdp-spec-table th { width: 130px; }
+  .pdp-spec-table th, .pdp-spec-table td { padding: 11px 12px; font-size: 0.9rem; }
+}
