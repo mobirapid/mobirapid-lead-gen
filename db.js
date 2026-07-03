@@ -662,6 +662,14 @@ const CHIP_CORES = {
   'M3 Max':  { cpu: '16-core CPU', gpu: '40-core GPU' },
   'M4 Max':  { cpu: '16-core CPU', gpu: '40-core GPU' },
 };
+// Pro chips shipped different base core counts by screen size — pick the accurate base config.
+function coresFor(chip, name) {
+  const is16 = /16[\s-]?inch|16"/.test(String(name || ''));
+  if (chip === 'M1 Pro') return is16 ? { cpu: '10-core CPU', gpu: '16-core GPU' } : { cpu: '8-core CPU', gpu: '14-core GPU' };
+  if (chip === 'M2 Pro') return is16 ? { cpu: '12-core CPU', gpu: '19-core GPU' } : { cpu: '10-core CPU', gpu: '16-core GPU' };
+  if (chip === 'M3 Pro') return is16 ? { cpu: '12-core CPU', gpu: '18-core GPU' } : { cpu: '11-core CPU', gpu: '14-core GPU' };
+  return CHIP_CORES[chip] || { cpu: '', gpu: '' };
+}
 function displayOf(chip, name) {
   const n = String(name || '');
   if (/16[\s-]?inch|16"/.test(n)) return '16.2" Liquid Retina XDR · 3456×2234 · 120Hz ProMotion · 1000 nits';
@@ -695,7 +703,7 @@ const setSpecs = db.prepare('UPDATE macbook_models SET cpu=@cpu, gpu=@gpu, memor
 for (const m of specModels) {
   if (m.cpu || m.gpu || m.display || m.software) continue; // don't overwrite admin edits
   const chip = chipOf(m.name) || chipOf(m.specs);
-  const cores = CHIP_CORES[chip] || { cpu: '', gpu: '' };
+  const cores = coresFor(chip, m.name);
   const ms = memStoreFrom(m.specs);
   setSpecs.run({
     id: m.id,
@@ -706,6 +714,31 @@ for (const m of specModels) {
     display: displayOf(chip, m.name),
     software: softwareOf(chip),
   });
+}
+
+// One-time correction: earlier auto-fill used upgraded (higher) core counts for some base
+// configs. Fix the seeded catalog to Apple's accurate base specs. Runs once, and skips any
+// row an admin has clearly customised (so manual edits are never clobbered).
+const SPEC_FIX_FLAG = 'spec_cores_fix_v2';
+const already = db.prepare('SELECT value FROM settings WHERE key = ?').get(SPEC_FIX_FLAG);
+if (!already) {
+  const CORRECT = {
+    'Refurbished MacBook Pro 14" M3 Pro': { from: '12-core CPU', cpu: 'M3 Pro chip · 11-core CPU', gpu: '14-core GPU' },
+    'Refurbished MacBook Pro 14" M2 Pro': { from: '12-core CPU', cpu: 'M2 Pro chip · 10-core CPU', gpu: '16-core GPU' },
+    'Refurbished MacBook Pro 14" M1 Pro': { from: '10-core CPU', cpu: 'M1 Pro chip · 8-core CPU', gpu: '14-core GPU' },
+    'Refurbished MacBook Air 13" M2':     { from: '10-core GPU', cpu: 'M2 chip · 8-core CPU', gpu: '8-core GPU' },
+  };
+  const upd = db.prepare('UPDATE macbook_models SET cpu=@cpu, gpu=@gpu WHERE id=@id');
+  const rows = db.prepare('SELECT id, name, cpu, gpu FROM macbook_models').all();
+  for (const r of rows) {
+    const fix = CORRECT[r.name];
+    if (!fix) continue;
+    // Only correct rows that still hold the old auto-filled value (don't touch admin edits)
+    if ((r.cpu || '').includes(fix.from) || (r.gpu || '').includes(fix.from)) {
+      upd.run({ id: r.id, cpu: fix.cpu, gpu: fix.gpu });
+    }
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(SPEC_FIX_FLAG, '1');
 }
 
 module.exports = db;
