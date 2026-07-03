@@ -69,7 +69,7 @@
         <td>${esc(l.phone)} ${l.phone_verified ? '<span class="verified" title="Verified">✓</span>' : ''}</td>
         <td>${l.client_type ? `<span class="pill type">${esc(l.client_type)}</span>` : '—'}</td>
         <td>${l.company_name ? `${esc(l.company_name)}<br><small>${esc(l.company_email || '')}</small>` : '—'}</td>
-        <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}</td>
+        <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}${l.interested_model ? `<br><small title="Interested model">🖥 ${esc(l.interested_model)}</small>` : ''}</td>
         <td>${esc(l.budget) || '—'}</td>
         <td>${esc(l.best_time) || '—'}${l.call_type ? `<br><span class="pill ${/video/i.test(l.call_type) ? 'req' : 'type'}">${esc(l.call_type)}</span>` : ''}</td>
         <td>${statusCell}</td>
@@ -108,7 +108,7 @@
     const l = allLeads.find((x) => String(x.id) === String(id));
     if (!l) return;
     $('l-id').value = l.id;
-    ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { $('l-' + f).value = l[f] ?? ''; });
+    ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'interested_model', 'message'].forEach((f) => { if ($('l-' + f)) $('l-' + f).value = l[f] ?? ''; });
     $('l-client_type').value = l.client_type || '';
     $('l-call_type').value = l.call_type || '';
     $('l-status').value = l.status || 'New';
@@ -118,7 +118,7 @@
   $('leadSave').addEventListener('click', async () => {
     const id = $('l-id').value;
     const payload = {};
-    ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'message'].forEach((f) => { payload[f] = $('l-' + f).value.trim(); });
+    ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'interested_model', 'message'].forEach((f) => { if ($('l-' + f)) payload[f] = $('l-' + f).value.trim(); });
     payload.call_type = $('l-call_type').value;
     payload.status = $('l-status').value;
     if (!payload.name) { alert('Name is required.'); return; }
@@ -387,7 +387,7 @@
     const m = id ? models.find((x) => String(x.id) === String(id)) : null;
     $('modelDlgTitle').textContent = m ? 'Edit model' : 'Add model';
     $('m-id').value = m ? m.id : '';
-    ['name', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'image', 'sort_order'].forEach((f) => { $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
+    ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
     const prev = $('m-imagePrev');
     if (m && m.image) showPrev(prev, m.image); else prev.style.display = 'none';
@@ -403,7 +403,7 @@
   $('modelSave').addEventListener('click', async () => {
     const id = $('m-id').value;
     const payload = {
-      name: $('m-name').value.trim(), price: $('m-price').value.trim(), specs: $('m-specs').value.trim(),
+      name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), specs: $('m-specs').value.trim(),
       description: $('m-description').value.trim(),
       badge: $('m-badge').value, condition_grade: $('m-condition_grade').value.trim(),
       warranty: $('m-warranty').value.trim(), image: $('m-image').value.trim(),

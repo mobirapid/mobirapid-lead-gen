@@ -124,6 +124,8 @@ ensureColumn('macbook_models', 'description', 'TEXT');
 ensureColumn('leads', 'status', "TEXT DEFAULT 'New'");
 ensureColumn('blog_posts', 'tags', 'TEXT');
 ensureColumn('leads', 'call_type', 'TEXT');
+ensureColumn('leads', 'interested_model', 'TEXT');
+ensureColumn('macbook_models', 'slug', 'TEXT');
 
 // Users table for additional logins (e.g. lead-only staff accounts).
 db.exec(`
@@ -605,6 +607,21 @@ const insExtra = db.prepare(
 );
 for (const p of extraPosts) {
   if (!db.prepare('SELECT id FROM blog_posts WHERE slug = ?').get(p.slug)) insExtra.run(p);
+}
+
+// Backfill unique slugs for MacBook models (used for /macbook/:slug product pages)
+function slugifyModel(s) {
+  return String(s || '').toLowerCase().trim().replace(/["]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80) || 'macbook';
+}
+const allModels = db.prepare('SELECT id, name, slug FROM macbook_models').all();
+const usedSlugs = new Set(allModels.map((m) => m.slug).filter(Boolean));
+const setModelSlug = db.prepare('UPDATE macbook_models SET slug = ? WHERE id = ?');
+for (const m of allModels) {
+  if (m.slug) continue;
+  let base = slugifyModel(m.name), s = base, n = 2;
+  while (usedSlugs.has(s)) s = base + '-' + n++;
+  usedSlugs.add(s);
+  setModelSlug.run(s, m.id);
 }
 
 module.exports = db;

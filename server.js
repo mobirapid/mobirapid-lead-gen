@@ -144,6 +144,7 @@ Type:          ${lead.client_type || '-'}
 Company:       ${lead.company_name || '-'}
 Company email: ${lead.company_email || '-'}
 Requirement:   ${lead.requirement || '-'}
+Interested in: ${lead.interested_model || '-'}
 Budget:        ${lead.budget || '-'}
 Call type:     ${lead.call_type || '-'}
 Best time:     ${lead.best_time || '-'}
@@ -413,9 +414,11 @@ app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const pages = db.prepare('SELECT slug FROM content_pages ORDER BY sort_order').all();
   const posts = db.prepare('SELECT slug, updated_at, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
+  const prods = db.prepare('SELECT slug FROM macbook_models WHERE active = 1 AND slug IS NOT NULL ORDER BY sort_order').all();
   const entries = [
     { loc: '/', lastmod: today, priority: '1.0' },
     { loc: '/blog', lastmod: today, priority: '0.8' },
+    ...prods.map((p) => ({ loc: '/macbook/' + p.slug, lastmod: today, priority: '0.7' })),
     ...pages.map((p) => ({ loc: '/p/' + p.slug, lastmod: today, priority: '0.4' })),
     ...posts.map((p) => ({ loc: '/blog/' + p.slug, lastmod: String(p.updated_at || p.created_at || today).slice(0, 10), priority: '0.6' })),
   ];
@@ -636,6 +639,54 @@ app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
   );
 });
 
+// Product detail page (server-rendered, Product schema)
+app.get('/macbook/:slug', (req, res) => {
+  const m = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND active = 1').get(req.params.slug);
+  if (!m) return res.status(404).send('Product not found');
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const priceNote = getSetting('price_note', '');
+  const bookUrl = `/?model=${encodeURIComponent(m.slug)}#lead-form`;
+  const priceNum = String(m.price || '').replace(/[^\d.]/g, '');
+  const ld = {
+    '@context': 'https://schema.org', '@type': 'Product', name: m.name,
+    description: m.description || m.specs || m.name, brand: { '@type': 'Brand', name: 'Apple' },
+    category: 'Refurbished Laptop', itemCondition: 'https://schema.org/RefurbishedCondition',
+  };
+  if (m.image) ld.image = m.image.startsWith('/') ? base + m.image : m.image;
+  if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + '/macbook/' + esc(m.slug) };
+  const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
+  const desc = (m.description || m.specs || m.name).slice(0, 180);
+  const badge = m.badge ? `<span class="pdp-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
+  res.send(
+    pageHead(req, m.name + ' — ' + brand, desc, base + '/macbook/' + esc(m.slug), ldTag) +
+    siteHeaderHtml() +
+    `<main class="container page-body pdp">
+      <a class="back-link" href="/#modelsSection">← All MacBooks</a>
+      <div class="pdp-grid">
+        <div class="pdp-media">${m.image ? `<img src="${esc(m.image)}" alt="${esc(m.name)}">` : `<div class="pdp-media-ph"><span></span></div>`}${badge}</div>
+        <div class="pdp-info">
+          <h1>${esc(m.name)}</h1>
+          ${m.specs ? `<p class="pdp-specs">${esc(m.specs)}</p>` : ''}
+          ${m.price ? `<div class="pdp-price">${esc(m.price)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>'}
+          <div class="pdp-meta">
+            ${m.condition_grade ? `<span class="pdp-tag ok">${esc(m.condition_grade)} condition</span>` : ''}
+            ${m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''}
+          </div>
+          ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
+          <a class="pdp-book" href="${bookUrl}">Book Now →</a>
+          <ul class="pdp-trust">
+            <li>✓ 35-point quality check</li>
+            <li>✓ GST invoice with serial number</li>
+            <li>✓ Free video-call verification before you pay</li>
+          </ul>
+        </div>
+      </div>
+    </main>` +
+    pageTail()
+  );
+});
+
 // Compliance / content page (server-rendered)
 app.get('/p/:slug', (req, res) => {
   const page = db.prepare('SELECT * FROM content_pages WHERE slug = ?').get(req.params.slug);
@@ -723,6 +774,7 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
   const budget = String(b.budget || '').trim();
   const bestTime = String(b.best_time || '').trim();
   const callType = String(b.call_type || '').trim();
+  const interestedModel = String(b.interested_model || '').trim().slice(0, 200);
   const message = String(b.message || '').trim().slice(0, 2000);
 
   if (!name) return res.status(400).json({ ok: false, error: 'Name is required.' });
@@ -737,9 +789,9 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
   if (!otp || otp.verified !== 1) return res.status(400).json({ ok: false, error: 'Please verify your phone number first.' });
 
   const info = db.prepare(
-    `INSERT INTO leads (name, phone, phone_verified, client_type, company_name, company_email, requirement, budget, best_time, call_type, message)
-     VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(name, phone, clientType, companyName, companyEmail, requirement, budget, bestTime, callType, message);
+    `INSERT INTO leads (name, phone, phone_verified, client_type, company_name, company_email, requirement, budget, best_time, call_type, interested_model, message)
+     VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(name, phone, clientType, companyName, companyEmail, requirement, budget, bestTime, callType, interestedModel, message);
 
   const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(Number(info.lastInsertRowid));
   db.prepare('DELETE FROM otps WHERE phone = ?').run(phone);
@@ -877,6 +929,7 @@ app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
     budget: String(b.budget || '').trim(),
     best_time: String(b.best_time || '').trim(),
     call_type: String(b.call_type || '').trim(),
+    interested_model: String(b.interested_model || '').trim().slice(0, 200),
     message: String(b.message || '').trim().slice(0, 2000),
     status: LEAD_STATUSES.includes(b.status) ? b.status : 'New',
   };
@@ -884,7 +937,7 @@ app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
   db.prepare(
     `UPDATE leads SET name=@name, phone=@phone, client_type=@client_type, company_name=@company_name,
      company_email=@company_email, requirement=@requirement, budget=@budget, best_time=@best_time,
-     call_type=@call_type, message=@message, status=@status WHERE id=@id`
+     call_type=@call_type, interested_model=@interested_model, message=@message, status=@status WHERE id=@id`
   ).run(lead);
   res.json({ ok: true });
 });
@@ -911,7 +964,7 @@ app.post('/api/admin/leads/bulk-delete', requireAdmin, requireFullRole, (req, re
 });
 app.get('/api/admin/leads.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM leads ORDER BY id DESC').all();
-  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'call_type', 'best_time', 'status', 'message', 'created_at'];
+  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'interested_model', 'budget', 'call_type', 'best_time', 'status', 'message', 'created_at'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv');
@@ -994,8 +1047,10 @@ app.get('/api/admin/models', requireAdmin, (req, res) => {
   res.json({ ok: true, models: db.prepare('SELECT * FROM macbook_models ORDER BY sort_order ASC, id ASC').all() });
 });
 function modelFromBody(b) {
+  const name = String(b.name || '').trim();
   return {
-    name: String(b.name || '').trim(),
+    name,
+    slug: b.slug ? slugify(b.slug) : slugify(name),
     price: String(b.price || '').trim(),
     image: String(b.image || '').trim(),
     specs: String(b.specs || '').trim(),
@@ -1010,20 +1065,25 @@ function modelFromBody(b) {
 app.post('/api/admin/models', requireAdmin, (req, res) => {
   const m = modelFromBody(req.body);
   if (!m.name) return res.status(400).json({ ok: false, error: 'Model name is required.' });
+  let slug = m.slug, n = 2;
+  while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, price, image, specs, description, badge, condition_grade, warranty, sort_order, active)
-     VALUES (@name, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @sort_order, @active)`
-  ).run(m);
-  res.json({ ok: true, id: Number(info.lastInsertRowid) });
+    `INSERT INTO macbook_models (name, slug, price, image, specs, description, badge, condition_grade, warranty, sort_order, active)
+     VALUES (@name, @slug, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @sort_order, @active)`
+  ).run({ ...m, slug });
+  res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
 app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   const m = modelFromBody(req.body);
   if (!m.name) return res.status(400).json({ ok: false, error: 'Model name is required.' });
+  const id = parseInt(req.params.id, 10);
+  let slug = m.slug, n = 2;
+  while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, slug=@slug, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, sort_order=@sort_order, active=@active WHERE id=@id`
-  ).run({ ...m, id: parseInt(req.params.id, 10) });
-  res.json({ ok: true });
+  ).run({ ...m, slug, id });
+  res.json({ ok: true, slug });
 });
 app.delete('/api/admin/models/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM macbook_models WHERE id = ?').run(parseInt(req.params.id, 10));

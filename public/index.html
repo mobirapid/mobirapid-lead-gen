@@ -38,6 +38,8 @@
           <p class="form-sub">Takes under a minute. We'll verify your number and call at your preferred time.</p>
 
           <form id="leadForm" novalidate>
+            <input type="hidden" id="interested_model" name="interested_model" value="" />
+            <div class="model-note" id="modelNote" hidden></div>
             <div class="field">
               <label for="name">Full name <span class="req">*</span></label>
               <input type="text" id="name" name="name" placeholder="e.g. Sachin Sharma" required />

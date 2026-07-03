@@ -37,6 +37,7 @@
       renderQc(data.settings);
       renderFaq(data.settings);
       renderBlog(data.settings, data.posts);
+      applyModelParam(data.models);
       renderAbout(data.settings);
       renderContact(data.settings);
       renderSocial(data.settings);
@@ -121,6 +122,24 @@
     }
   }
 
+  function applyModelParam(models) {
+    const slug = new URLSearchParams(location.search).get('model');
+    if (!slug) return;
+    const m = (models || []).find((x) => x.slug === slug);
+    if (!m) return;
+    const hidden = $('interested_model');
+    if (hidden) hidden.value = m.name;
+    const note = $('modelNote');
+    if (note) {
+      note.innerHTML = 'Enquiring about: <strong>' + esc(m.name) + '</strong>';
+      note.hidden = false;
+    }
+    const form = document.getElementById('lead-form') || document.getElementById('leadForm');
+    if (form && form.scrollIntoView) {
+      setTimeout(() => form.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }
+  }
+
   function renderModels(models, s) {
     const section = $('modelsSection');
     if (!models || !models.length) { section.hidden = true; return; }
@@ -144,7 +163,7 @@
             ${m.condition_grade ? `<span class="model-grade">${esc(m.condition_grade)}</span>` : ''}
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
-          <a class="model-cta" href="#lead-form">Enquire →</a>
+          <a class="model-cta" href="${m.slug ? '/macbook/' + esc(m.slug) : '#lead-form'}">View details →</a>
         </div>
       </article>`;
     }).join('');
@@ -468,6 +487,7 @@
       budget: $('budget').value,
       best_time,
       call_type: (document.querySelector('input[name="call_type"]:checked') || {}).value || '',
+      interested_model: ($('interested_model') || {}).value || '',
       message: $('message').value.trim(),
       event_id: eventId,
       fbp: getCookie('_fbp'),
