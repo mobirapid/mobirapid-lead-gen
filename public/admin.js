@@ -54,9 +54,8 @@
     $('rows').innerHTML = rows.map((l) => {
       const st = l.status || 'New';
       const opts = statuses.map((s) => `<option ${s === st ? 'selected' : ''}>${s}</option>`).join('');
-      const statusCell = edit
-        ? `<select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select>`
-        : `<span class="pill st-${esc(st.toLowerCase())}" style="padding:4px 10px;border-radius:999px;">${esc(st)}</span>`;
+      // Status is editable by any logged-in staff (admin or lead-only user); edit/delete stay admin-only.
+      const statusCell = `<select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select>`;
       const actionsCell = edit
         ? `<td style="white-space:nowrap;"><button class="btn small" data-ledit="${l.id}">Edit</button> <button class="btn small danger" data-ldel="${l.id}">Delete</button></td>`
         : '<td>—</td>';
@@ -78,10 +77,12 @@
         ${actionsCell}
       </tr>`;
     }).join('');
+    // Status dropdown works for every staff role.
+    $('rows').querySelectorAll('[data-lstatus]').forEach((sel) => sel.addEventListener('change', () => changeStatus(sel.dataset.lstatus, sel.value, sel)));
+    // Edit / delete / bulk-select are admin-only.
     if (edit) {
       $('rows').querySelectorAll('[data-ledit]').forEach((b) => b.addEventListener('click', () => openLead(b.dataset.ledit)));
       $('rows').querySelectorAll('[data-ldel]').forEach((b) => b.addEventListener('click', () => delLead(b.dataset.ldel)));
-      $('rows').querySelectorAll('[data-lstatus]').forEach((sel) => sel.addEventListener('change', () => changeStatus(sel.dataset.lstatus, sel.value, sel)));
       $('rows').querySelectorAll('.rowchk').forEach((c) => c.addEventListener('change', updateSelection));
       if ($('selectAll')) $('selectAll').checked = false;
       updateSelection();

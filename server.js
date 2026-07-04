@@ -1070,7 +1070,8 @@ app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
   res.json({ ok: true });
 });
 // Quick status change (inline dropdown)
-app.post('/api/admin/leads/:id/status', requireAdmin, requireFullRole, (req, res) => {
+// Both admin and lead-only staff may change a lead's status (but not edit/delete the lead).
+app.post('/api/admin/leads/:id/status', requireAdmin, (req, res) => {
   const status = req.body.status;
   if (!LEAD_STATUSES.includes(status)) return res.status(400).json({ ok: false, error: 'Invalid status.' });
   db.prepare('UPDATE leads SET status = ? WHERE id = ?').run(status, parseInt(req.params.id, 10));
