@@ -261,7 +261,7 @@ const DEFAULT_SETTINGS = {
   // Business & India compliance details
   legal_name: 'MOBIRAPID PRIVATE LIMITED',
   gstin: '08AAPCM9747E1ZV',
-  registered_address: '',
+  registered_address: 'Head Office: A1, Above HDFC Bank, First Floor, Dev Nagar, Tonk Road, Jaipur, Rajasthan',
   customer_care_email: 'sachin@mobirapid.com',
   customer_care_phone: '',
   grievance_officer_name: '',
@@ -313,6 +313,17 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(GST_FIX_FLAG)) {
   setVal.run('legal_name', 'MOBIRAPID PRIVATE LIMITED');
   setVal.run('gstin', '08AAPCM9747E1ZV');
   setVal.run(GST_FIX_FLAG, '1');
+}
+
+// One-time: set the registered head-office address (used on policy pages, contact section
+// and footer). Admin can edit it later from the compliance settings.
+const ADDR_FIX_FLAG = 'address_fix_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(ADDR_FIX_FLAG)) {
+  const addr = 'Head Office: A1, Above HDFC Bank, First Floor, Dev Nagar, Tonk Road, Jaipur, Rajasthan';
+  const s = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+  s.run('registered_address', addr);
+  s.run('contact_address', addr);
+  s.run(ADDR_FIX_FLAG, '1');
 }
 
 // One-time: set the canonical site URL to the live .in domain (used for canonical tags,
