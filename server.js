@@ -633,7 +633,7 @@ app.get('/api/site', (req, res) => {
 app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
   const email = getSetting('customer_care_email', '') || getSetting('footer_email', '') || 'security@mobirapid.com';
   const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-  const host = req.headers.host || 'mobirapid.com';
+  const host = req.headers.host || 'mobirapid.in';
   res.type('text/plain').send(
     `Contact: mailto:${email}\n` +
     `Expires: ${expires}\n` +

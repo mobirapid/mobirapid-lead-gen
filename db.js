@@ -192,7 +192,7 @@ const DEFAULT_SETTINGS = {
   payu_salt: '',
   reserve_thankyou_text: 'Thank you! Your reservation payment was received. Our team will call you shortly to confirm your MacBook and complete the delivery.',
   // SEO + Analytics (injected into the page <head>/<body> from the server)
-  site_url: '',
+  site_url: 'https://mobirapid.in',
   meta_title: 'Mobirapid — Refurbished MacBooks with Warranty & GST Invoice',
   meta_description: 'Buy quality-checked refurbished Apple MacBooks in India — 35-point tested, 6-month warranty and GST invoice. Book a free consultation with Mobirapid.',
   meta_keywords: 'refurbished macbook, used macbook, buy refurbished macbook india, macbook pro, macbook air, second hand macbook',
@@ -313,6 +313,14 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(GST_FIX_FLAG)) {
   setVal.run('legal_name', 'MOBIRAPID PRIVATE LIMITED');
   setVal.run('gstin', '08AAPCM9747E1ZV');
   setVal.run(GST_FIX_FLAG, '1');
+}
+
+// One-time: set the canonical site URL to the live .in domain (used for canonical tags,
+// sitemap, and PayU success/failure return URLs). Admin can change it later.
+const DOMAIN_FIX_FLAG = 'domain_fix_in_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(DOMAIN_FIX_FLAG)) {
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('site_url', 'https://mobirapid.in');
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(DOMAIN_FIX_FLAG, '1');
 }
 
 // --- Seed compliance pages (India-specific templates) ---
