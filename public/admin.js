@@ -365,7 +365,19 @@
     const data = await r.json();
     models = data.models || [];
     renderModelsList();
+    fillOfferModels();
   }
+  function fillOfferModels() {
+    const sel = $('set-offer_model_slug');
+    if (!sel) return;
+    const cur = (settings && settings.offer_model_slug) || sel.value || '';
+    sel.innerHTML = '<option value="">— Select a model —</option>' +
+      models.map((m) => `<option value="${esc(m.slug)}">${esc(m.name)}</option>`).join('');
+    sel.value = cur;
+  }
+  on('offerSaveBtn', 'click', () => {
+    saveSettings(collectSettings(['offer_enabled', 'offer_model_slug', 'offer_label', 'offer_badge', 'offer_price', 'offer_mrp', 'offer_subtitle', 'offer_gst_note']), $('offerSaved'));
+  });
   function renderModelsList() {
     if (!models.length) { $('modelsList').innerHTML = '<p class="muted" style="padding:14px 0;">No models yet. Click “Add model”.</p>'; return; }
     $('modelsList').innerHTML = models.map((m) => `

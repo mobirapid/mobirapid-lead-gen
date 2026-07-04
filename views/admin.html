@@ -204,6 +204,30 @@
       </div>
 
       <div class="card">
+        <h3>Deal of the Day</h3>
+        <p class="muted">A highlighted offer banner near the top of the homepage. Pick one model and set a special price. Leave the badge blank to auto-show "Save ₹X" from the MRP.</p>
+        <div class="grid2">
+          <div>
+            <label class="fld">Show on site</label>
+            <select id="set-offer_enabled"><option value="0">Hidden</option><option value="1">Visible</option></select>
+          </div>
+          <div>
+            <label class="fld">Featured model</label>
+            <select id="set-offer_model_slug"><option value="">— Select a model —</option></select>
+          </div>
+          <div><label class="fld">Label</label><input type="text" id="set-offer_label" placeholder="Deal of the Day" /></div>
+          <div><label class="fld">Badge (optional)</label><input type="text" id="set-offer_badge" placeholder="Auto: Save ₹20,000" /></div>
+          <div><label class="fld">Special price</label><input type="text" id="set-offer_price" placeholder="₹1,64,900" /></div>
+          <div><label class="fld">MRP / original price (optional)</label><input type="text" id="set-offer_mrp" placeholder="₹1,84,900" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Subtitle</label>
+        <input type="text" id="set-offer_subtitle" placeholder="Our highest-spec Mac at today's best price." />
+        <label class="fld" style="margin-top:12px;">Fine print (GST / warranty line)</label>
+        <input type="text" id="set-offer_gst_note" placeholder="Inclusive of GST · Invoice with serial number · 6-month warranty" />
+        <div style="margin-top:14px;"><button class="btn primary" id="offerSaveBtn" type="button">Save deal</button> <span class="saved" id="offerSaved" hidden>Saved ✓</span></div>
+      </div>
+
+      <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div><h3>USP strip — "Why buy from us"</h3><p class="muted">The icon row near the top of the page. Edit text, pick icons, add or remove items.</p></div>
           <button class="btn" id="addUspBtn" type="button">+ Add USP</button>

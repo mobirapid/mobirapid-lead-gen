@@ -32,6 +32,7 @@
       if (!data.ok) return;
       applySettings(data.settings);
       renderUsps(data.settings);
+      renderDeal(data.settings, data.models);
       renderModels(data.models, data.settings);
       renderReviews(data.reviews, data.settings);
       renderQc(data.settings);
@@ -138,6 +139,55 @@
     if (form && form.scrollIntoView) {
       setTimeout(() => form.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
     }
+  }
+
+  function renderDeal(s, models) {
+    const section = $('dealSection');
+    if (!section) return;
+    const on = String(s.offer_enabled) === '1';
+    const m = on ? (models || []).find((x) => x.slug === s.offer_model_slug) : null;
+    if (!on || !m) { section.hidden = true; return; }
+
+    const price = (s.offer_price || m.price || '').trim();
+    const mrp = (s.offer_mrp || '').trim();
+    const num = (v) => parseInt(String(v).replace(/[^\d]/g, ''), 10) || 0;
+    let badge = (s.offer_badge || '').trim();
+    if (!badge && mrp && price && num(mrp) > num(price)) {
+      badge = 'Save ₹' + (num(mrp) - num(price)).toLocaleString('en-IN');
+    }
+    const specs = [m.cpu, m.gpu, m.memory, m.storage].filter(Boolean);
+    const chips = (specs.length ? specs : [m.specs].filter(Boolean))
+      .map((x) => `<span class="deal-spec">${esc(x)}</span>`).join('');
+    const media = m.image
+      ? `<img class="deal-photo-img" src="${esc(m.image)}" alt="${esc(m.name)}">`
+      : `<div class="deal-photo"><div class="laptop"></div><div class="base"></div></div>`;
+
+    $('dealInner').innerHTML = `
+      <div class="deal-copy">
+        <span class="deal-badge"><span class="dot"></span> ${esc(s.offer_label || 'Deal of the Day')}</span>
+        <h2 class="deal-title">${esc(m.name)}</h2>
+        ${s.offer_subtitle ? `<p class="deal-sub">${esc(s.offer_subtitle)}</p>` : ''}
+        ${chips ? `<div class="deal-specs">${chips}</div>` : ''}
+        <div class="deal-price-row">
+          <span class="deal-price">${esc(price || 'Price on request')}</span>
+          ${mrp ? `<span class="deal-mrp">${esc(mrp)}</span>` : ''}
+          ${badge ? `<span class="deal-save">${esc(badge)}</span>` : ''}
+        </div>
+        ${s.offer_gst_note ? `<p class="deal-gst">${esc(s.offer_gst_note)}</p>` : ''}
+        <div class="deal-actions">
+          <a class="deal-book" href="#lead-form" data-deal-model="${esc(m.name)}">Book Now →</a>
+          <a class="deal-view" href="/macbook/${esc(m.slug)}">View full specs</a>
+        </div>
+      </div>
+      <div class="deal-media">${media}</div>`;
+    section.hidden = false;
+
+    const book = $('dealInner').querySelector('.deal-book');
+    if (book) book.addEventListener('click', () => {
+      const hidden = $('interested_model'); if (hidden) hidden.value = book.dataset.dealModel;
+      const note = $('modelNote');
+      if (note) { note.innerHTML = 'Enquiring about: <strong>' + esc(book.dataset.dealModel) + '</strong>'; note.hidden = false; }
+    });
   }
 
   function renderModels(models, s) {
