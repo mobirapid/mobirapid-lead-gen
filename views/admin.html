@@ -232,6 +232,27 @@
       </div>
 
       <div class="card">
+        <h3>Payment gateway — PayU</h3>
+        <p class="muted">Turn this on to accept the booking/reserve amount online. When enabled, the "Reserve" button opens PayU secure checkout (the "Payment link" above is ignored). Your keys are stored securely and never shown on the website.</p>
+        <div class="grid2">
+          <div>
+            <label class="fld">Enable PayU</label>
+            <select id="set-payu_enabled"><option value="0">Off</option><option value="1">On</option></select>
+          </div>
+          <div>
+            <label class="fld">Mode</label>
+            <select id="set-payu_mode"><option value="test">Test</option><option value="live">Live</option></select>
+          </div>
+          <div><label class="fld">Merchant Key</label><input type="text" id="set-payu_merchant_key" placeholder="PayU Merchant Key" autocomplete="off" /></div>
+          <div><label class="fld">Merchant Salt (32-bit / v1)</label><input type="text" id="set-payu_salt" placeholder="PayU Salt" autocomplete="off" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Thank-you message (shown after successful payment)</label>
+        <input type="text" id="set-reserve_thankyou_text" />
+        <div style="margin-top:14px;"><button class="btn primary" id="payuSaveBtn" type="button">Save payment settings</button> <span class="saved" id="payuSaved" hidden>Saved ✓</span></div>
+        <p class="muted" style="margin-top:10px;">Success/return URLs to configure in your PayU dashboard: <code>/reserve/success</code> and <code>/reserve/failure</code> (on your domain).</p>
+      </div>
+
+      <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div><h3>USP strip — "Why buy from us"</h3><p class="muted">The icon row near the top of the page. Edit text, pick icons, add or remove items.</p></div>
           <button class="btn" id="addUspBtn" type="button">+ Add USP</button>

@@ -653,3 +653,26 @@ body.cookie-open .float-contact { bottom: 104px; }
 .deal-reserve:hover { background: rgba(255,255,255,.28); transform: translateY(-2px); }
 .deal-soldout { color: #fff; font-weight: 700; font-size: 1.05rem; }
 .deal-soldout .deal-notify { color: #fff; text-decoration: underline; }
+
+/* Reserve / PayU checkout page */
+.reserve-page { max-width: 560px; }
+.reserve-page h1 { font-size: 1.7rem; letter-spacing: -.02em; margin: 0 0 18px; }
+.reserve-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+.reserve-item { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.reserve-item img { width: 84px; height: 60px; object-fit: contain; border-radius: var(--radius-xs); background: #f1f4fa; }
+.reserve-amt { font-size: 1.05rem; margin: 16px 0 20px; }
+.reserve-amt span { color: var(--muted); font-size: .85rem; }
+.reserve-form { display: flex; flex-direction: column; gap: 14px; }
+.reserve-form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; color: var(--ink-soft); }
+.reserve-form label span { color: var(--err); }
+.reserve-form input { padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); font-size: 1rem; font-family: inherit; }
+.reserve-form input:focus { outline: none; border-color: var(--brand); box-shadow: var(--ring); }
+.reserve-pay { margin-top: 6px; background: var(--grad-primary); color: #fff; font-weight: 800; font-size: 1.05rem; border: none; padding: 15px; border-radius: var(--radius-sm); cursor: pointer; box-shadow: 0 12px 26px rgba(37,99,235,.28); transition: transform .18s ease; }
+.reserve-pay:hover { transform: translateY(-2px); }
+.reserve-secure { text-align: center; color: var(--muted); font-size: .82rem; margin: 4px 0 0; }
+.reserve-result { text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 40px 26px; }
+.reserve-result h1 { margin: 12px 0; }
+.reserve-check { width: 64px; height: 64px; margin: 0 auto; border-radius: 50%; background: var(--ok); color: #fff; font-size: 2rem; display: flex; align-items: center; justify-content: center; }
+.reserve-result.fail h1 { color: var(--err); }
+.reserve-ref { color: var(--muted); font-size: .9rem; margin: 14px 0 22px; }
+.reserve-result .pdp-book { display: inline-block; }

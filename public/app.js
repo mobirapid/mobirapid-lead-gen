@@ -173,12 +173,15 @@
     // Reserve / booking amount: manual field, else auto 10% of price
     let reserveAmt = (s.offer_reserve_amount || '').trim();
     if (!reserveAmt && price && num(price) > 0) reserveAmt = '₹' + Math.round(num(price) * 0.1).toLocaleString('en-IN');
-    const reserveUrl = (s.offer_reserve_url || '').trim();
+    // Reserve destination: PayU checkout page > static payment link > lead form fallback
+    const payuOn = String(s.payu_enabled) === '1';
+    const reserveUrl = payuOn ? ('/reserve?model=' + encodeURIComponent(m.slug)) : (s.offer_reserve_url || '').trim();
+    const reserveExternal = !payuOn && reserveUrl;
 
     const actions = soldOut
       ? `<span class="deal-soldout">Sold out — <a href="#lead-form" class="deal-notify">notify me of similar deals</a></span>`
       : `<a class="deal-book" href="#lead-form" data-deal-model="${esc(m.name)}" data-video="1">📹 Book a video call</a>
-         ${reserveAmt ? `<a class="deal-reserve" ${reserveUrl ? `href="${esc(reserveUrl)}" target="_blank" rel="noopener"` : `href="#lead-form"`} data-deal-model="${esc(m.name)}" data-reserve="${esc(reserveAmt)}">Reserve with ${esc(reserveAmt)}</a>` : ''}
+         ${reserveAmt ? `<a class="deal-reserve" ${reserveUrl ? `href="${esc(reserveUrl)}"${reserveExternal ? ' target="_blank" rel="noopener"' : ''}` : `href="#lead-form"`} data-deal-model="${esc(m.name)}" data-reserve="${esc(reserveAmt)}">Reserve with ${esc(reserveAmt)}</a>` : ''}
          <a class="deal-view" href="/macbook/${esc(m.slug)}">View full specs</a>`;
 
     $('dealInner').innerHTML = `

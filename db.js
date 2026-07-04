@@ -185,6 +185,12 @@ const DEFAULT_SETTINGS = {
   offer_qty: '1',
   offer_reserve_amount: '',
   offer_reserve_url: '',
+  // PayU payment gateway (for the Reserve button). Keys are private (never sent to browser).
+  payu_enabled: '0',
+  payu_mode: 'test',
+  payu_merchant_key: '',
+  payu_salt: '',
+  reserve_thankyou_text: 'Thank you! Your reservation payment was received. Our team will call you shortly to confirm your MacBook and complete the delivery.',
   // SEO + Analytics (injected into the page <head>/<body> from the server)
   site_url: '',
   meta_title: 'Mobirapid — Refurbished MacBooks with Warranty & GST Invoice',
