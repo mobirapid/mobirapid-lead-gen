@@ -182,6 +182,9 @@ const DEFAULT_SETTINGS = {
   offer_mrp: '',
   offer_badge: '',
   offer_gst_note: 'Inclusive of GST · Invoice with serial number · 6-month warranty',
+  offer_qty: '1',
+  offer_reserve_amount: '',
+  offer_reserve_url: '',
   // SEO + Analytics (injected into the page <head>/<body> from the server)
   site_url: '',
   meta_title: 'Mobirapid — Refurbished MacBooks with Warranty & GST Invoice',

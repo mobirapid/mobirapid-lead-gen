@@ -644,3 +644,12 @@ body.cookie-open .float-contact { bottom: 104px; }
   .deal-specs, .deal-price-row, .deal-actions { justify-content: center; }
   .deal-media { order: -1; }
 }
+
+/* Deal of the Day — stock + reserve/video CTAs */
+.deal-stock { display: inline-block; margin-left: 10px; background: #fde047; color: #713f12; font-weight: 800; font-size: .78rem; letter-spacing: .02em; padding: 5px 12px; border-radius: 999px; text-transform: uppercase; vertical-align: middle; }
+.deal-stock.out { background: rgba(255,255,255,.2); color: #fff; }
+.deal-reserve-note { font-size: .88rem; color: rgba(255,255,255,.92); margin: 0 0 12px; }
+.deal-reserve { background: rgba(255,255,255,.16); border: 1.5px solid rgba(255,255,255,.6); color: #fff; font-weight: 800; padding: 13px 26px; border-radius: var(--radius-sm); transition: background .18s ease, transform .18s ease; }
+.deal-reserve:hover { background: rgba(255,255,255,.28); transform: translateY(-2px); }
+.deal-soldout { color: #fff; font-weight: 700; font-size: 1.05rem; }
+.deal-soldout .deal-notify { color: #fff; text-decoration: underline; }

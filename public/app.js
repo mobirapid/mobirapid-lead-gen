@@ -162,9 +162,29 @@
       ? `<img class="deal-photo-img" src="${esc(m.image)}" alt="${esc(m.name)}">`
       : `<div class="deal-photo"><div class="laptop"></div><div class="base"></div></div>`;
 
+    // Stock / scarcity
+    const qty = s.offer_qty === '' || s.offer_qty == null ? null : num(s.offer_qty);
+    const soldOut = qty === 0;
+    let stockLabel = '';
+    if (qty === 1) stockLabel = 'Only 1 piece left';
+    else if (qty !== null && qty >= 2 && qty <= 5) stockLabel = 'Only ' + qty + ' left';
+    else if (soldOut) stockLabel = 'Sold out';
+
+    // Reserve / booking amount: manual field, else auto 10% of price
+    let reserveAmt = (s.offer_reserve_amount || '').trim();
+    if (!reserveAmt && price && num(price) > 0) reserveAmt = '₹' + Math.round(num(price) * 0.1).toLocaleString('en-IN');
+    const reserveUrl = (s.offer_reserve_url || '').trim();
+
+    const actions = soldOut
+      ? `<span class="deal-soldout">Sold out — <a href="#lead-form" class="deal-notify">notify me of similar deals</a></span>`
+      : `<a class="deal-book" href="#lead-form" data-deal-model="${esc(m.name)}" data-video="1">📹 Book a video call</a>
+         ${reserveAmt ? `<a class="deal-reserve" ${reserveUrl ? `href="${esc(reserveUrl)}" target="_blank" rel="noopener"` : `href="#lead-form"`} data-deal-model="${esc(m.name)}" data-reserve="${esc(reserveAmt)}">Reserve with ${esc(reserveAmt)}</a>` : ''}
+         <a class="deal-view" href="/macbook/${esc(m.slug)}">View full specs</a>`;
+
     $('dealInner').innerHTML = `
       <div class="deal-copy">
         <span class="deal-badge"><span class="dot"></span> ${esc(s.offer_label || 'Deal of the Day')}</span>
+        ${stockLabel ? `<span class="deal-stock${soldOut ? ' out' : ''}">${esc(stockLabel)}</span>` : ''}
         <h2 class="deal-title">${esc(m.name)}</h2>
         ${s.offer_subtitle ? `<p class="deal-sub">${esc(s.offer_subtitle)}</p>` : ''}
         ${chips ? `<div class="deal-specs">${chips}</div>` : ''}
@@ -173,21 +193,34 @@
           ${mrp ? `<span class="deal-mrp">${esc(mrp)}</span>` : ''}
           ${badge ? `<span class="deal-save">${esc(badge)}</span>` : ''}
         </div>
+        ${!soldOut && reserveAmt ? `<p class="deal-reserve-note">Reserve this unit with just ${esc(reserveAmt)} — adjusted in your final invoice.</p>` : ''}
         ${s.offer_gst_note ? `<p class="deal-gst">${esc(s.offer_gst_note)}</p>` : ''}
-        <div class="deal-actions">
-          <a class="deal-book" href="#lead-form" data-deal-model="${esc(m.name)}">Book Now →</a>
-          <a class="deal-view" href="/macbook/${esc(m.slug)}">View full specs</a>
-        </div>
+        <div class="deal-actions">${actions}</div>
       </div>
       <div class="deal-media">${media}</div>`;
     section.hidden = false;
 
+    // Video-call button: prefill model, pick "Video call", show note, scroll to form
     const book = $('dealInner').querySelector('.deal-book');
     if (book) book.addEventListener('click', () => {
-      const hidden = $('interested_model'); if (hidden) hidden.value = book.dataset.dealModel;
-      const note = $('modelNote');
-      if (note) { note.innerHTML = 'Enquiring about: <strong>' + esc(book.dataset.dealModel) + '</strong>'; note.hidden = false; }
+      prefillDealForm(book.dataset.dealModel);
+      const vid = document.querySelector('input[name="call_type"][value="Video call"]');
+      if (vid) vid.checked = true;
     });
+    // Reserve button without a payment link falls back to the form (as a reservation enquiry)
+    const reserve = $('dealInner').querySelector('.deal-reserve');
+    if (reserve && !reserveUrl) reserve.addEventListener('click', () => {
+      prefillDealForm(reserve.dataset.dealModel, 'Reservation request (' + reserve.dataset.reserve + ')');
+    });
+  }
+
+  function prefillDealForm(modelName, prefixNote) {
+    const hidden = $('interested_model'); if (hidden) hidden.value = modelName;
+    const note = $('modelNote');
+    if (note) {
+      note.innerHTML = (prefixNote ? esc(prefixNote) + ' — ' : 'Enquiring about: ') + '<strong>' + esc(modelName) + '</strong>';
+      note.hidden = false;
+    }
   }
 
   function renderModels(models, s) {

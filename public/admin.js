@@ -376,7 +376,7 @@
     sel.value = cur;
   }
   on('offerSaveBtn', 'click', () => {
-    saveSettings(collectSettings(['offer_enabled', 'offer_model_slug', 'offer_label', 'offer_badge', 'offer_price', 'offer_mrp', 'offer_subtitle', 'offer_gst_note']), $('offerSaved'));
+    saveSettings(collectSettings(['offer_enabled', 'offer_model_slug', 'offer_label', 'offer_badge', 'offer_price', 'offer_mrp', 'offer_subtitle', 'offer_gst_note', 'offer_qty', 'offer_reserve_amount', 'offer_reserve_url']), $('offerSaved'));
   });
   function renderModelsList() {
     if (!models.length) { $('modelsList').innerHTML = '<p class="muted" style="padding:14px 0;">No models yet. Click “Add model”.</p>'; return; }
