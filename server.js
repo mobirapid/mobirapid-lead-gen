@@ -930,6 +930,34 @@ app.post('/reserve/failure', (req, res) => {
   </div>`));
 });
 
+// Business & contact details block (from admin settings) appended to every policy page —
+// required by payment aggregators (legal name, registered address, GSTIN, contact).
+function businessDetailsHtml() {
+  const legal = getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid');
+  const addr = getSetting('registered_address', '');
+  const gstin = getSetting('gstin', '');
+  const email = getSetting('customer_care_email', '') || getSetting('social_email', '');
+  const phone = getSetting('customer_care_phone', '') || getSetting('social_phone', '');
+  const goName = getSetting('grievance_officer_name', '');
+  const goEmail = getSetting('grievance_officer_email', '');
+  const goPhone = getSetting('grievance_officer_phone', '');
+  const rows = [];
+  if (legal) rows.push(['Legal entity', esc(legal)]);
+  if (addr) rows.push(['Registered address', esc(addr).replace(/\n/g, '<br>')]);
+  if (gstin) rows.push(['GSTIN', esc(gstin)]);
+  if (email) rows.push(['Customer care email', `<a href="mailto:${esc(email)}">${esc(email)}</a>`]);
+  if (phone) rows.push(['Customer care phone', `<a href="tel:${esc(phone.replace(/\s/g, ''))}">${esc(phone)}</a>`]);
+  if (goName || goEmail || goPhone) {
+    rows.push(['Grievance Officer', [esc(goName), goEmail ? `<a href="mailto:${esc(goEmail)}">${esc(goEmail)}</a>` : '', esc(goPhone)].filter(Boolean).join(' · ')]);
+  }
+  if (!rows.length) return '';
+  return `<section class="biz-details">
+    <h2>Business &amp; contact details</h2>
+    <table class="biz-table"><tbody>${rows.map((r) => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</tbody></table>
+    <p class="biz-note">Online payments are processed securely by PayU (PCI-DSS compliant). All prices are in Indian Rupees (₹) and include applicable taxes as shown at checkout.</p>
+  </section>`;
+}
+
 // Compliance / content page (server-rendered)
 app.get('/p/:slug', (req, res) => {
   const page = db.prepare('SELECT * FROM content_pages WHERE slug = ?').get(req.params.slug);
@@ -961,6 +989,7 @@ ${headCode}${getSetting('head_code', '')}
   <a class="back-link" href="/">← Back to home</a>
   <h1>${esc(page.title)}</h1>
   <div class="page-content">${page.content || ''}</div>
+  ${businessDetailsHtml()}
 </main>
 <footer class="site-footer"><div class="container footer-inner">
   <span>${footer}</span>

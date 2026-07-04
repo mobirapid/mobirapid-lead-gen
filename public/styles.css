@@ -676,3 +676,14 @@ body.cookie-open .float-contact { bottom: 104px; }
 .reserve-result.fail h1 { color: var(--err); }
 .reserve-ref { color: var(--muted); font-size: .9rem; margin: 14px 0 22px; }
 .reserve-result .pdp-book { display: inline-block; }
+
+/* Business & contact details block on policy pages */
+.biz-details { margin-top: 40px; padding-top: 26px; border-top: 2px solid var(--line); }
+.biz-details h2 { font-size: 1.2rem; margin: 0 0 16px; }
+.biz-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.biz-table th, .biz-table td { text-align: left; padding: 12px 16px; font-size: .94rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.biz-table tr:last-child th, .biz-table tr:last-child td { border-bottom: none; }
+.biz-table th { width: 200px; color: var(--muted); font-weight: 600; background: #f8fafc; white-space: nowrap; }
+.biz-table td { color: var(--ink-soft); }
+.biz-note { font-size: .85rem; color: var(--muted); margin: 14px 0 0; }
+@media (max-width: 560px) { .biz-table th { width: 130px; } .biz-table th, .biz-table td { padding: 10px 12px; font-size: .88rem; } }

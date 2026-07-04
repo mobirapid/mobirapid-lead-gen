@@ -259,8 +259,8 @@ const DEFAULT_SETTINGS = {
   footer_email: 'sachin@mobirapid.com',
   footer_tagline: 'Quality-checked new & refurbished Apple MacBooks, matched to your work — with GST invoice, warranty and expert guidance.',
   // Business & India compliance details
-  legal_name: 'Mobirapid',
-  gstin: '',
+  legal_name: 'MOBIRAPID PRIVATE LIMITED',
+  gstin: '08AAPCM9747E1ZV',
   registered_address: '',
   customer_care_email: 'sachin@mobirapid.com',
   customer_care_phone: '',
@@ -305,6 +305,16 @@ const DEFAULT_SETTINGS = {
 const insSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) insSetting.run(k, v);
 
+// One-time correction of the registered business details to match the PayU-verified
+// merchant record (GSTIN, legal name). Runs once; admins can still edit afterwards.
+const GST_FIX_FLAG = 'gst_details_fix_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(GST_FIX_FLAG)) {
+  const setVal = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+  setVal.run('legal_name', 'MOBIRAPID PRIVATE LIMITED');
+  setVal.run('gstin', '08AAPCM9747E1ZV');
+  setVal.run(GST_FIX_FLAG, '1');
+}
+
 // --- Seed compliance pages (India-specific templates) ---
 // NOTE: These are starter templates aligned with Indian law (IT Act 2000 & SPDI
 // Rules 2011, DPDP Act 2023, Consumer Protection (E-Commerce) Rules 2020, IT Rules
@@ -325,7 +335,9 @@ const DEFAULT_PAGES = [
 <h3>Purpose &amp; lawful basis</h3>
 <p>We process your data, with your consent, solely to respond to your enquiry, provide our products and services, issue GST invoices, and for legitimate business and legal purposes. We do not sell your personal data.</p>
 <h3>Sharing</h3>
-<p>We share data only with service providers who help us operate (e.g. SMS/email delivery, logistics) and where required by applicable law or a lawful authority.</p>
+<p>We share data only with service providers who help us operate (e.g. SMS/email delivery, logistics, and our payment gateway) and where required by applicable law or a lawful authority.</p>
+<h3>Payment information</h3>
+<p>Online payments (including any booking/reservation amount) are processed by our PCI-DSS compliant payment aggregator, PayU. Your full card, UPI, net-banking or wallet credentials are entered on the payment provider's secure page and are <strong>never</strong> collected, seen or stored on our servers. We only receive a payment status and transaction reference to confirm your order.</p>
 <h3>Data retention &amp; security</h3>
 <p>We retain your data only as long as necessary for the purposes above or as required by law, and we apply reasonable security practices to protect it.</p>
 <h3>Your rights</h3>
@@ -345,6 +357,8 @@ const DEFAULT_PAGES = [
 <p>We sell new and quality-checked refurbished Apple MacBooks. Prices are in Indian Rupees (₹) and are inclusive/exclusive of GST as indicated at checkout. A GST invoice with the device serial number is provided with every purchase. Final price, configuration and availability are confirmed during your consultation.</p>
 <h3>Orders</h3>
 <p>Submitting the consultation form is a request to be contacted and does not by itself create a binding contract of sale. A sale is confirmed only upon our acceptance and your payment.</p>
+<h3>Payments &amp; booking amount</h3>
+<p>All payments are collected in Indian Rupees (₹) through our PCI-DSS compliant payment aggregator, PayU. Where you choose to reserve a device, a part-payment ("booking amount") is collected online to hold that unit for you; this booking amount is adjusted against your final invoice. Prices, taxes and any applicable shipping charges are shown before you confirm payment. We do not store your card, UPI or net-banking credentials — these are handled on PayU's secure page.</p>
 <h3>Intellectual property &amp; trademark disclaimer</h3>
 <p>Apple, MacBook, MacBook Air and MacBook Pro are trademarks of Apple Inc., registered in the U.S. and other countries. Mobirapid is an independent reseller and is not affiliated with, authorised, sponsored or endorsed by Apple Inc.</p>
 <h3>Governing law &amp; jurisdiction</h3>
@@ -352,17 +366,21 @@ const DEFAULT_PAGES = [
   },
   {
     slug: 'refund-policy',
-    title: 'Refund / Return Policy',
+    title: 'Refund & Cancellation Policy',
     sort_order: 3,
     content: `${reviewNote}
+<h3>Order cancellation</h3>
+<p>You may cancel an order any time before it is dispatched by contacting our customer care. Once a cancellation is accepted, any amount already paid (including a booking/reservation amount) is refunded in full to your original payment method.</p>
+<h3>Booking / reservation amount</h3>
+<p>A booking amount paid to reserve a device is adjusted against your final invoice. If you cancel before dispatch, or if we are unable to fulfil the reserved device, the booking amount is refunded in full. Booking amounts are non-refundable only where you fail to complete the purchase after the device has been held and confirmed for you, as communicated at the time of reservation.</p>
 <h3>Returns</h3>
 <p>If a device is dead-on-arrival or does not match the agreed specification or condition, you may raise a return request within the return window communicated at the time of purchase. The device must be returned with all original accessories, packaging and the invoice.</p>
-<h3>Refunds</h3>
-<p>Approved refunds are processed to the original payment method within the timeline communicated at purchase (typically a few business days after the returned device passes inspection), in line with the Consumer Protection (E-Commerce) Rules, 2020.</p>
+<h3>Refund timeline</h3>
+<p>Approved refunds and cancellations are processed to the original payment method within <strong>7–10 business days</strong> (for returns, after the returned device passes inspection), in line with the Consumer Protection (E-Commerce) Rules, 2020. The actual credit date depends on your bank or card issuer.</p>
 <h3>Non-returnable cases</h3>
 <p>Returns are not accepted for physical/liquid damage caused after delivery, unauthorised repair, or missing accessories, except where required by law.</p>
 <h3>How to claim</h3>
-<p>To start a return or refund, contact our customer care (details in the footer) with your order number and reason. You may also escalate to our Grievance Officer.</p>`,
+<p>To cancel an order or start a return or refund, contact our customer care (details below) with your order/transaction number and reason. You may also escalate to our Grievance Officer.</p>`,
   },
   {
     slug: 'warranty-policy',
@@ -382,7 +400,7 @@ const DEFAULT_PAGES = [
     sort_order: 5,
     content: `${reviewNote}
 <h3>Delivery</h3>
-<p>We deliver across serviceable locations in India through reputed courier and logistics partners. Estimated delivery timelines are shared at the time of order confirmation.</p>
+<p>We deliver across serviceable locations in India through reputed courier and logistics partners. Orders are typically dispatched within <strong>1–3 business days</strong> of payment confirmation and delivered within <strong>3–7 business days</strong>, depending on your location. Exact timelines are confirmed at the time of order.</p>
 <h3>Charges</h3>
 <p>Shipping charges, if any, are displayed before you confirm your order. Open-box delivery may be available in select locations where the service is supported.</p>
 <h3>Tracking &amp; receipt</h3>
@@ -406,6 +424,17 @@ const DEFAULT_PAGES = [
 <h3>Escalation</h3>
 <p>If you are not satisfied with the resolution, you may approach the appropriate consumer forum or the National Consumer Helpline (1915 · consumerhelpline.gov.in).</p>`,
   },
+  {
+    slug: 'contact-us',
+    title: 'Contact Us',
+    sort_order: 7,
+    content: `${reviewNote}
+<p>We're happy to help with any question about our refurbished MacBooks, your order, a payment, a return or a warranty claim. Reach us using the details below and our team will respond promptly during business hours.</p>
+<h3>Business hours</h3>
+<p>Monday to Saturday, 10:00 AM – 7:00 PM IST (excluding public holidays).</p>
+<h3>Registered business &amp; contact details</h3>
+<p>Our full legal name, registered address, GSTIN, customer-care email and phone number are listed at the bottom of this page and in the site footer. For payment or refund queries, please keep your order/transaction reference handy.</p>`,
+  },
 ];
 
 const insPage = db.prepare('INSERT INTO content_pages (slug, title, content, sort_order) VALUES (?, ?, ?, ?)');
@@ -415,8 +444,8 @@ for (const p of DEFAULT_PAGES) {
   const existing = getPage.get(p.slug);
   if (!existing) {
     insPage.run(p.slug, p.title, p.content, p.sort_order);
-  } else if (existing.content && existing.content.indexOf(OLD_MARKER) !== -1) {
-    // Page still has the old unedited template — safe to refresh with the India version.
+  } else if (existing.content && (existing.content.indexOf(OLD_MARKER) !== -1 || existing.content.indexOf(PAGE_MARKER) !== -1)) {
+    // Page still has an unedited starter template (old or current) — safe to refresh.
     updPage.run(p.title, p.content, p.sort_order, p.slug);
   }
   // Otherwise the page was edited by the admin — leave it untouched.
