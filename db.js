@@ -673,6 +673,91 @@ const extraPosts = [
 <h3>The Mobirapid promise</h3>
 <p>Every device is quality-checked across 35 points, comes with a GST invoice and a 6-month warranty, and you can verify your exact unit on a free video call before paying. We even buy back and exchange your old Mac. <a href="/#lead-form">Book a free consultation</a> and we will match you to the right MacBook and budget.</p>`,
   },
+  {
+    slug: 'best-macbook-for-ai-ml-data-science',
+    title: 'Best refurbished MacBook for AI, machine learning & data science',
+    excerpt: 'Which MacBook handles AI, ML and data science best — and how much RAM you really need. A practical, budget-aware guide.',
+    meta_description: 'The best refurbished MacBook for AI, machine learning and data science in India — how much unified memory you need, which chip to pick, and value recommendations.',
+    author: 'Mobirapid Team',
+    cover_image: '/uploads/blog-ai-ml.jpg',
+    tags: 'Buying guide, AI & ML, Data science',
+    published: 1,
+    content: `<p>Apple silicon changed the game for data work. Because the CPU, GPU and Neural Engine share a single pool of <strong>unified memory</strong>, a MacBook can move large datasets and models around far more efficiently than a traditional laptop — no copying data back and forth between separate CPU and GPU memory. That, plus all-day battery and near-silent operation, is why so many machine-learning engineers and data scientists work on a Mac. Here is how to choose the right one, especially if you are buying refurbished to stretch your budget.</p>
+<h3>Memory matters more than anything else</h3>
+<p>For AI, ML and data science, unified memory (RAM) is the single most important spec. It decides how large a dataset you can hold in a pandas dataframe, how big a model you can fine-tune, and whether you can run a local large language model at all. A rough guide:</p>
+<p><strong>16GB</strong> — comfortable for learning, notebooks, classical ML (scikit-learn, XGBoost), data cleaning and small-to-medium datasets. This is the sensible minimum.<br>
+<strong>24–36GB</strong> — the sweet spot for serious work: larger dataframes, computer-vision training, and running mid-size local LLMs (7B–13B) with quantisation.<br>
+<strong>48GB and above</strong> — for heavy on-device model work, big feature sets and running larger local models smoothly.</p>
+<p>Because you cannot upgrade memory later on Apple silicon, buy a little more than you think you need today.</p>
+<h3>Which chip should you pick?</h3>
+<p>Every M-series chip includes a Neural Engine and Metal-accelerated GPU that PyTorch and TensorFlow can use via the Metal backend. The differences are about scale and speed:</p>
+<p><strong>M1 / M2 / M3 / M4 (standard)</strong> in a MacBook Air or base Pro are excellent for study, notebooks, data analysis and light model training. An M2 or M3 Air with 16–24GB is a brilliant value machine for a data-science student or analyst.<br>
+<strong>M-series Pro chips</strong> (M1 Pro, M2 Pro, M3 Pro) add more CPU and GPU cores and much higher memory bandwidth — a real difference when you train models, run heavy pipelines or keep many containers open.<br>
+<strong>M-series Max chips</strong> are for the heaviest local training and large-model work, with the most GPU cores and the highest memory ceilings.</p>
+<h3>Storage: get an SSD you will not outgrow</h3>
+<p>Datasets, model checkpoints and Docker images fill space fast. 512GB is a practical starting point; 1TB is better if you keep large datasets locally. You can always add an external SSD over Thunderbolt, but internal storage is faster and hassle-free.</p>
+<h3>Value picks by budget</h3>
+<p><strong>Best value overall:</strong> a refurbished M2 or M3 MacBook Air with 16–24GB — silent, light and more than capable for most data-science and ML learning.<br>
+<strong>Best for serious ML:</strong> a refurbished 14" MacBook Pro with an M-series Pro chip and 24–36GB — sustained performance for training and pipelines.<br>
+<strong>Best for local LLMs and heavy training:</strong> a Pro or Max configuration with 36GB+ unified memory.</p>
+<p>Buying refurbished means you can often afford one memory tier higher than you could with a new machine — and for AI/ML work, that extra memory is exactly where the money should go.</p>
+<h3>Set yourself up for success</h3>
+<p>Install Python via <em>miniforge</em> or <em>conda</em>, use PyTorch or TensorFlow with the Metal (MPS) backend for GPU acceleration, and keep projects in isolated environments. For very large training runs you will still reach for the cloud — but a well-specced MacBook handles the vast majority of day-to-day AI and data work locally.</p>
+<h3>Not sure which to choose?</h3>
+<p>Tell us your workload — notebooks, computer vision, NLP, local LLMs — and your budget, and we will match you to the right refurbished MacBook. You can <a href="/compare">compare models side by side</a> or <a href="/#lead-form">book a free consultation</a>, and every device ships with a GST invoice, a 6-month warranty and a 35-point quality check.</p>`,
+  },
+  {
+    slug: 'm1-vs-m2-vs-m3-vs-m4-macbook',
+    title: 'M1 vs M2 vs M3 vs M4: which MacBook chip should you buy refurbished?',
+    excerpt: 'Four generations of Apple silicon, one simple question: which offers the best value today? Here is a clear, no-hype comparison.',
+    meta_description: 'M1 vs M2 vs M3 vs M4 MacBook chips compared — real-world differences, who each suits, and which offers the best value on the refurbished market.',
+    author: 'Mobirapid Team',
+    cover_image: '/uploads/blog-chips.jpg',
+    tags: 'Buying guide, Comparison, Apple silicon',
+    published: 1,
+    content: `<p>Since 2020, Apple has released four generations of its own silicon — M1, M2, M3 and M4 — and each is available in standard, Pro and Max versions. On the refurbished market they now sit side by side, which raises the obvious question: which one should you actually buy? Here is a plain-English comparison to help you get the most performance for your money.</p>
+<h3>M1 — the value champion</h3>
+<p>The chip that started it all is still remarkably capable. An M1 MacBook Air or Pro breezes through browsing, office apps, coding, photo editing and everyday multitasking, and it is silent and cool. On the refurbished market the M1 offers the lowest price for genuine Apple-silicon performance — ideal for students, everyday professionals and anyone on a tight budget.</p>
+<h3>M2 — the sweet spot</h3>
+<p>The M2 improved CPU and GPU performance and raised memory ceilings. In practice it feels a little snappier than M1 under load and handles light creative and data work more comfortably. A refurbished M2 Air with 16GB is arguably the best all-round value MacBook you can buy today — modern, efficient and affordable.</p>
+<h3>M3 — a real GPU and efficiency step</h3>
+<p>Built on a newer process, the M3 brought a more capable GPU (with features like hardware-accelerated ray tracing) and better efficiency. If you do more sustained creative work — video, photography, larger codebases — the M3 pulls ahead while keeping excellent battery life.</p>
+<h3>M4 — the latest and fastest</h3>
+<p>The M4 is Apple's newest generation, with higher core counts and the strongest performance and efficiency of the four. If you want the closest thing to current-generation power at a refurbished price, and you run demanding workloads, the M4 is the pick — though it commands the highest price of the group.</p>
+<h3>Standard vs Pro vs Max</h3>
+<p>Within each generation, the <strong>standard</strong> chip (in the Air and base Pro) is perfect for everyday and light-creative use. <strong>Pro</strong> chips add CPU and GPU cores plus much higher memory bandwidth — noticeable in video editing, development and data work. <strong>Max</strong> chips are for the heaviest professional workloads: high-resolution video, 3D and large local models. Read the exact core counts on each product page before you buy, since configurations vary.</p>
+<h3>So which is the best value?</h3>
+<p><strong>Tightest budget:</strong> M1 — still excellent for daily work.<br>
+<strong>Best all-round value:</strong> M2 — modern and affordable.<br>
+<strong>For creators:</strong> M3 — a real GPU and efficiency step.<br>
+<strong>For power users who want the latest:</strong> M4.</p>
+<p>Remember that memory and storage often matter more to your day-to-day experience than the chip generation. A well-specced M1 with 16GB will feel faster for real work than a base M3 with 8GB.</p>
+<h3>Compare and decide</h3>
+<p>You can <a href="/compare">compare our MacBook models side by side</a> — chip, cores, memory, storage and price — and <a href="/#lead-form">book a free consultation</a> if you would like us to recommend the best value for your budget. Every device is quality-checked across 35 points and comes with a GST invoice and a 6-month warranty.</p>`,
+  },
+  {
+    slug: 'gst-invoice-refurbished-macbook-business',
+    title: 'GST invoice on a refurbished MacBook: why it matters for businesses',
+    excerpt: 'Buying MacBooks for your team? A proper GST invoice protects your input tax credit, your warranty and your books. Here is what to know.',
+    meta_description: 'Why a GST invoice matters when businesses buy refurbished MacBooks in India — input tax credit, warranty, authenticity and buying for teams.',
+    author: 'Mobirapid Team',
+    cover_image: '/uploads/blog-gst.jpg',
+    tags: 'Business, GST, Buying guide',
+    published: 1,
+    content: `<p>For a business, buying a laptop is not just about the sticker price — it is about the paperwork behind it. When you buy refurbished MacBooks for your team, a proper <strong>GST invoice</strong> is what turns a good deal into a clean, claimable, warranty-backed business asset. Here is why it matters and what to look for.</p>
+<h3>Input Tax Credit (ITC)</h3>
+<p>A GST-registered business can generally claim input tax credit on the GST paid for goods bought for business use. Without a valid tax invoice — showing the seller's GSTIN, the correct GST breakdown and your business details — you cannot claim that credit. On a fleet of laptops, that ITC is real money. Always insist on a proper GST invoice, not just a cash receipt.</p>
+<h3>Proof of authenticity and ownership</h3>
+<p>A GST invoice that lists the device <strong>serial number</strong> is your record that the machine is genuine and legitimately yours. It ties a specific MacBook to your purchase, which matters for asset registers, audits, insurance and any future resale.</p>
+<h3>Warranty and returns</h3>
+<p>Your warranty and return rights are anchored to the invoice. If a device needs a warranty repair or replacement, the invoice with its serial number is what makes the claim straightforward. Buying without one leaves you exposed if anything goes wrong.</p>
+<h3>Clean books and compliance</h3>
+<p>Proper invoices keep your accounting clean: capitalised assets, correct GST records and a clear audit trail. For startups and growing teams, that tidiness pays off at funding, audit and tax time.</p>
+<h3>Buying for a team? A few extra tips</h3>
+<p>Standardise on one or two configurations so support and spares are simpler. Match the machine to the role — an Air for sales and operations, a Pro for engineering and design. Ask for stated battery health and condition grades on every unit, and get everything on one consolidated GST invoice where possible. And consider <strong>buyback or exchange</strong> of your old fleet to offset the cost of the upgrade.</p>
+<h3>How Mobirapid supports business buyers</h3>
+<p>Every MacBook we sell — new or refurbished — comes with a <strong>GST invoice showing the device serial number</strong>, a 6-month warranty and a 35-point quality check. We supply individuals and teams, offer buyback and exchange on your old Macs, and can help you pick consistent configurations for different roles. You can even verify each unit on a video call before you pay. <a href="/#lead-form">Book a consultation</a> and tell us your team size and requirement — we will put together the right devices and paperwork.</p>`,
+  },
 ];
 const insExtra = db.prepare(
   `INSERT INTO blog_posts (slug, title, excerpt, content, cover_image, author, meta_description, tags, published)
