@@ -446,11 +446,29 @@
     sel.innerHTML = cats.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
     sel.value = current || (cats[0] && cats[0].slug) || 'macbooks';
   }
+  let gradeList = [];
+  async function loadConditionGrades() {
+    try {
+      const r = await fetch('/api/site');
+      const d = await r.json();
+      let g = (d.settings && d.settings.condition_grades) || [];
+      gradeList = typeof g === 'string' ? JSON.parse(g) : g;
+    } catch { gradeList = []; }
+  }
+  function fillGradeSelect(current) {
+    const sel = $('m-condition_grade'); if (!sel) return;
+    const opts = ['<option value="">— Select grade —</option>']
+      .concat(gradeList.map((g) => `<option value="${esc(g.grade)}">${esc(g.grade)}</option>`));
+    if (current && !gradeList.some((g) => g.grade === current)) opts.push(`<option value="${esc(current)}">${esc(current)}</option>`);
+    sel.innerHTML = opts.join('');
+    sel.value = current || '';
+  }
   function openModel(id) {
     const m = id ? models.find((x) => String(x.id) === String(id)) : null;
     $('modelDlgTitle').textContent = m ? 'Edit product' : 'Add product';
     $('m-id').value = m ? m.id : '';
     fillCategorySelect($('m-category'), m ? m.category : (userScope || (cats[0] && cats[0].slug)));
+    fillGradeSelect(m ? (m.condition_grade || '') : '');
     ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'battery_health', 'colour', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
     applyCategoryFields($('m-category').value);
@@ -845,11 +863,13 @@
       showOnlyTab('models');
       const cc = $('categoriesCard'); if (cc) cc.style.display = 'none'; // can't manage categories
       await loadCategories();
+      await loadConditionGrades();
       loadModels();
       return;
     }
     // Full admin — each loads independently so one failure can't blank the others.
     await loadCategories();
+    await loadConditionGrades();
     fillUserScope();
     loadLeads();
     loadSettings();
