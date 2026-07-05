@@ -33,7 +33,8 @@
       applySettings(data.settings);
       renderUsps(data.settings);
       renderDeal(data.settings, data.models);
-      renderModels(data.models, data.settings);
+      renderCategoryCards(data.categories, data.models);
+      renderModels(data.models, data.settings, data.categories);
       renderReviews(data.reviews, data.settings);
       renderQc(data.settings);
       renderFaq(data.settings);
@@ -226,22 +227,79 @@
     }
   }
 
-  function renderModels(models, s) {
+  // Map of category slug -> {url_prefix, fields, name, singular}
+  let CAT_MAP = {};
+  function buildCatMap(categories) {
+    CAT_MAP = {};
+    (categories || []).forEach((c) => { CAT_MAP[c.slug] = c; });
+  }
+  function prodUrl(m) {
+    const c = CAT_MAP[m.category];
+    return m.slug ? '/' + (c ? c.url_prefix : 'macbook') + '/' + esc(m.slug) : '#lead-form';
+  }
+  function specLine(m, s) {
+    const c = CAT_MAP[m.category];
+    if (c && c.fields === 'phone') {
+      return [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.colour].filter(Boolean).join(' · ');
+    }
+    return m.specs || '';
+  }
+
+  function renderCategoryCards(categories, models) {
+    const wrap = $('catCards');
+    if (!wrap) return;
+    const cats = (categories || []).filter((c) => true);
+    if (cats.length < 2) { const sec = $('catCardsSection'); if (sec) sec.hidden = true; return; }
+    buildCatMap(categories);
+    const counts = {};
+    (models || []).forEach((m) => { counts[m.category] = (counts[m.category] || 0) + 1; });
+    wrap.innerHTML = cats.map((c, i) => `
+      <a class="shopcat-card ${i % 2 ? 'alt' : ''}" href="/c/${esc(c.slug)}">
+        <span class="shopcat-count">${counts[c.slug] ? counts[c.slug] + (counts[c.slug] === 1 ? ' model' : ' models') : 'Coming soon'}</span>
+        <h3>${esc(c.name)}</h3>
+        <p>${esc(c.tagline || '')}</p>
+        <span class="shopcat-go">Browse →</span>
+      </a>`).join('');
+    const sec = $('catCardsSection'); if (sec) sec.hidden = false;
+  }
+
+  function renderModels(models, s, categories) {
     const section = $('modelsSection');
     if (!models || !models.length) { section.hidden = true; return; }
+    buildCatMap(categories);
     section.hidden = false;
     if (s.models_title) $('modelsTitle').textContent = s.models_title;
     $('modelsSubtitle').textContent = s.models_subtitle || '';
+    // Category filter chips (only when 2+ categories have products)
+    const present = [...new Set(models.map((m) => m.category))];
+    const filter = $('modelsFilter');
+    if (filter) {
+      if (present.length > 1) {
+        const chips = [`<button class="mfilter on" data-cat="">All</button>`].concat(present.map((slug) => {
+          const c = CAT_MAP[slug]; return `<button class="mfilter" data-cat="${esc(slug)}">${esc(c ? c.name : slug)}</button>`;
+        }));
+        filter.innerHTML = chips.join('');
+        filter.hidden = false;
+        filter.querySelectorAll('.mfilter').forEach((b) => b.addEventListener('click', () => {
+          filter.querySelectorAll('.mfilter').forEach((x) => x.classList.toggle('on', x === b));
+          const cat = b.dataset.cat;
+          $('modelsGrid').querySelectorAll('.model-card').forEach((card) => {
+            card.style.display = (!cat || card.dataset.cat === cat) ? '' : 'none';
+          });
+        }));
+      } else { filter.hidden = true; }
+    }
     $('modelsGrid').innerHTML = models.map((m) => {
       const badge = m.badge ? `<span class="model-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
       const img = m.image
         ? `<div class="model-img" style="background-image:url('${esc(m.image)}')">${badge}</div>`
         : `<div class="model-img placeholder">${badge}<span></span></div>`;
-      return `<article class="model-card">
+      const sl = specLine(m, s);
+      return `<article class="model-card" data-cat="${esc(m.category || '')}">
         ${img}
         <div class="model-body">
           <h3>${esc(m.name)}</h3>
-          ${m.specs ? `<p class="model-specs">${esc(m.specs)}</p>` : ''}
+          ${sl ? `<p class="model-specs">${esc(sl)}</p>` : ''}
           ${m.description ? `<p class="model-desc">${esc(m.description)}</p>` : ''}
           <div class="model-meta">
             ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
@@ -249,7 +307,7 @@
             ${m.condition_grade ? `<span class="model-grade">${esc(m.condition_grade)}</span>` : ''}
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
-          <a class="model-cta" href="${m.slug ? '/macbook/' + esc(m.slug) : '#lead-form'}">View details →</a>
+          <a class="model-cta" href="${prodUrl(m)}">View details →</a>
         </div>
       </article>`;
     }).join('');

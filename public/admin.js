@@ -3,6 +3,8 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const ARRAY_KEYS = ['trust_points', 'requirement_options', 'budget_options'];
   let userRole = 'admin';
+  let userScope = null;
+  let cats = [];
   const canEditLeads = () => userRole === 'admin';
 
   // ---------- Tabs ----------
@@ -360,6 +362,14 @@
   // MODELS
   // ========================================================================
   let models = [];
+  async function loadCategories() {
+    try {
+      const r = await api('/api/admin/categories');
+      const data = await r.json();
+      cats = data.categories || [];
+    } catch { cats = []; }
+    renderCategoriesList();
+  }
   async function loadModels() {
     const r = await api('/api/admin/models');
     const data = await r.json();
@@ -367,6 +377,7 @@
     renderModelsList();
     fillOfferModels();
   }
+  function catName(slug) { const c = cats.find((x) => x.slug === slug); return c ? c.name : slug; }
   function fillOfferModels() {
     const sel = $('set-offer_model_slug');
     if (!sel) return;
@@ -387,7 +398,7 @@
       <div class="model-row">
         <div class="model-thumb" style="${m.image ? `background-image:url('${esc(m.image)}')` : ''}"></div>
         <div class="info">
-          <b>${esc(m.name)} ${m.active ? '' : '<span class="inactive-tag">(hidden)</span>'}</b>
+          <b>${esc(m.name)} <span class="cat-tag">${esc(catName(m.category))}</span> ${m.active ? '' : '<span class="inactive-tag">(hidden)</span>'}</b>
           <small>${[m.specs, m.price, m.badge, m.condition_grade].filter(Boolean).map(esc).join(' · ')}</small>
         </div>
         <div style="display:flex;gap:8px;">
@@ -399,17 +410,32 @@
     $('modelsList').querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => delModel(b.dataset.del)));
   }
   const dlg = $('modelDialog');
+  function catFieldsOf(slug) { const c = cats.find((x) => x.slug === slug); return c ? c.fields : 'macbook'; }
+  function applyCategoryFields(slug) {
+    const isPhone = catFieldsOf(slug) === 'phone';
+    if ($('macFields')) $('macFields').hidden = isPhone;
+    if ($('phoneFields')) $('phoneFields').hidden = !isPhone;
+    if ($('lbl-cpu')) $('lbl-cpu').textContent = isPhone ? 'Processor / Chip' : 'Chip / CPU';
+  }
+  function fillCategorySelect(sel, current) {
+    if (!sel) return;
+    sel.innerHTML = cats.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
+    sel.value = current || (cats[0] && cats[0].slug) || 'macbooks';
+  }
   function openModel(id) {
     const m = id ? models.find((x) => String(x.id) === String(id)) : null;
-    $('modelDlgTitle').textContent = m ? 'Edit model' : 'Add model';
+    $('modelDlgTitle').textContent = m ? 'Edit product' : 'Add product';
     $('m-id').value = m ? m.id : '';
-    ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
+    fillCategorySelect($('m-category'), m ? m.category : (userScope || (cats[0] && cats[0].slug)));
+    ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'battery_health', 'colour', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
+    applyCategoryFields($('m-category').value);
     const prev = $('m-imagePrev');
     if (m && m.image) showPrev(prev, m.image); else prev.style.display = 'none';
     $('m-imageFile').value = '';
     dlg.showModal();
   }
+  on('m-category', 'change', () => applyCategoryFields($('m-category').value));
   $('addModelBtn').addEventListener('click', () => openModel(null));
   $('modelCancel').addEventListener('click', () => dlg.close());
   $('m-uploadBtn').addEventListener('click', async () => {
@@ -419,6 +445,7 @@
   $('modelSave').addEventListener('click', async () => {
     const id = $('m-id').value;
     const payload = {
+      category: $('m-category') ? $('m-category').value : 'macbooks',
       name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), specs: $('m-specs').value.trim(),
       description: $('m-description').value.trim(),
       badge: $('m-badge').value, condition_grade: $('m-condition_grade').value.trim(),
@@ -426,6 +453,8 @@
       cpu: $('m-cpu').value.trim(), gpu: $('m-gpu').value.trim(),
       memory: $('m-memory').value.trim(), storage: $('m-storage').value.trim(),
       display: $('m-display').value.trim(), software: $('m-software').value.trim(),
+      battery_health: $('m-battery_health') ? $('m-battery_health').value.trim() : '',
+      colour: $('m-colour') ? $('m-colour').value.trim() : '',
       image: $('m-image').value.trim(),
       sort_order: parseInt($('m-sort_order').value || '0', 10), active: $('m-active').value,
     };
@@ -438,9 +467,63 @@
     dlg.close(); loadModels();
   });
   async function delModel(id) {
-    if (!confirm('Delete this model?')) return;
+    if (!confirm('Delete this product?')) return;
     await api('/api/admin/models/' + id, { method: 'DELETE' });
     loadModels();
+  }
+
+  // ---------- Categories ----------
+  const catDlg = $('categoryDialog');
+  function renderCategoriesList() {
+    const wrap = $('categoriesList');
+    if (!wrap) return;
+    if (!cats.length) { wrap.innerHTML = '<p class="muted" style="padding:12px 0;">No categories yet.</p>'; return; }
+    const counts = {};
+    models.forEach((m) => { counts[m.category] = (counts[m.category] || 0) + 1; });
+    wrap.innerHTML = cats.map((c) => `
+      <div class="model-row">
+        <div class="info">
+          <b>${esc(c.name)} <span class="cat-tag">/${esc(c.url_prefix)}</span> ${c.active ? '' : '<span class="inactive-tag">(hidden)</span>'}</b>
+          <small>${esc(c.fields === 'phone' ? 'Phone specs' : 'Laptop specs')} · ${counts[c.slug] || 0} product(s) · <a href="/c/${esc(c.slug)}" target="_blank">/c/${esc(c.slug)} ↗</a></small>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn small" data-cedit="${c.id}">Edit</button>
+          <button class="btn small danger" data-cdel="${c.id}">Delete</button>
+        </div>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-cedit]').forEach((b) => b.addEventListener('click', () => openCategory(b.dataset.cedit)));
+    wrap.querySelectorAll('[data-cdel]').forEach((b) => b.addEventListener('click', () => delCategory(b.dataset.cdel)));
+  }
+  function openCategory(id) {
+    const c = id ? cats.find((x) => String(x.id) === String(id)) : null;
+    $('catDlgTitle').textContent = c ? 'Edit category' : 'Add category';
+    $('c-id').value = c ? c.id : '';
+    $('c-name').value = c ? c.name : '';
+    $('c-singular').value = c ? c.singular : '';
+    $('c-fields').value = c ? c.fields : 'macbook';
+    $('c-tagline').value = c ? (c.tagline || '') : '';
+    $('c-sort_order').value = c ? c.sort_order : cats.length + 1;
+    $('c-active').value = c ? String(c.active) : '1';
+    $('c-urlnote').textContent = c ? `Page: /c/${c.slug} · Product URLs: /${c.url_prefix}/…` : 'The URL is generated from the name and cannot be changed after creation.';
+    catDlg.showModal();
+  }
+  on('addCatBtn', 'click', () => openCategory(null));
+  on('catCancel', 'click', () => catDlg.close());
+  on('catSave', 'click', async () => {
+    const id = $('c-id').value;
+    const payload = { name: $('c-name').value.trim(), singular: $('c-singular').value.trim(), fields: $('c-fields').value, tagline: $('c-tagline').value.trim(), sort_order: parseInt($('c-sort_order').value || '0', 10), active: $('c-active').value };
+    if (!payload.name) { alert('Category name is required.'); return; }
+    const r = await api(id ? '/api/admin/categories/' + id : '/api/admin/categories', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (!data.ok) { alert(data.error || 'Save failed.'); return; }
+    catDlg.close(); await loadCategories(); loadModels();
+  });
+  async function delCategory(id) {
+    if (!confirm('Delete this category? (Only works if it has no products.)')) return;
+    const r = await api('/api/admin/categories/' + id, { method: 'DELETE' });
+    const data = await r.json();
+    if (!data.ok) { alert(data.error || 'Delete failed.'); return; }
+    loadCategories();
   }
 
   // ========================================================================
@@ -679,18 +762,27 @@
     const d = await r.json();
     const list = d.users || [];
     $('usersList').innerHTML = list.length
-      ? list.map((u) => `
+      ? list.map((u) => {
+        const access = u.role === 'catalog' ? `${esc(catName(u.scope) || u.scope)} uploader` : 'lead access';
+        return `
         <div class="model-row">
-          <div class="info"><b>${esc(u.username)}</b><small>lead access · added ${(u.created_at || '').slice(0, 10)}</small></div>
+          <div class="info"><b>${esc(u.username)} <span class="cat-tag">${esc(u.role === 'catalog' ? 'uploader' : 'leads')}</span></b><small>${esc(access)} · added ${(u.created_at || '').slice(0, 10)}</small></div>
           <div><button class="btn small danger" data-udel="${u.id}">Remove</button></div>
-        </div>`).join('')
+        </div>`; }).join('')
       : '<p class="muted" style="padding:12px 0;">No additional users yet.</p>';
     $('usersList').querySelectorAll('[data-udel]').forEach((b) => b.addEventListener('click', () => delUser(b.dataset.udel)));
   }
+  function fillUserScope() {
+    const sel = $('u-scope'); if (!sel) return;
+    sel.innerHTML = cats.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
+  }
+  on('u-role', 'change', () => { $('u-scopeWrap').style.display = $('u-role').value === 'catalog' ? '' : 'none'; });
   on('addUserBtn', 'click', async () => {
     const username = $('u-username').value.trim();
     const password = $('u-password').value;
-    const r = await api('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const role = $('u-role') ? $('u-role').value : 'leads';
+    const scope = role === 'catalog' && $('u-scope') ? $('u-scope').value : undefined;
+    const r = await api('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role, scope }) });
     const d = await r.json();
     if (!d.ok) { showTestMsg($('userMsg'), d.error || 'Failed', false); return; }
     showTestMsg($('userMsg'), 'User created ✓', true);
@@ -703,24 +795,38 @@
     loadUsers();
   }
 
+  function showOnlyTab(tab) {
+    document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab !== tab) t.style.display = 'none'; });
+    document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
+    const t = document.querySelector(`.tab[data-tab="${tab}"]`); if (t) t.classList.add('active');
+    const p = $('panel-' + tab); if (p) p.classList.add('active');
+  }
+
   // ---------- Init (role-aware) ----------
   async function init() {
     let role = 'admin';
-    try { const r = await api('/api/admin/me'); const d = await r.json(); role = d.role || 'admin'; } catch (e) {}
+    try { const r = await api('/api/admin/me'); const d = await r.json(); role = d.role || 'admin'; userScope = d.scope || null; } catch (e) {}
     userRole = role;
 
-    if (role !== 'admin') {
-      // Lead-only staff: show just the Leads tab, view-only (no edit/delete/bulk).
-      document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab !== 'leads') t.style.display = 'none'; });
-      document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
-      const lt = document.querySelector('.tab[data-tab="leads"]'); if (lt) lt.classList.add('active');
-      $('panel-leads').classList.add('active');
+    if (role === 'leads') {
+      // Lead-only staff: show just the Leads tab (status editable; no edit/delete/bulk).
+      showOnlyTab('leads');
       ['selectAll', 'bulkDeleteBtn'].forEach((id) => { const el = $(id); if (el) el.style.display = 'none'; });
       loadLeads();
       return;
     }
+    if (role === 'catalog') {
+      // Category uploader: only the Products tab, limited to their category.
+      showOnlyTab('models');
+      const cc = $('categoriesCard'); if (cc) cc.style.display = 'none'; // can't manage categories
+      await loadCategories();
+      loadModels();
+      return;
+    }
     // Full admin — each loads independently so one failure can't blank the others.
+    await loadCategories();
+    fillUserScope();
     loadLeads();
     loadSettings();
     loadModels();

@@ -388,10 +388,18 @@
 
     <!-- ===================== MODELS ===================== -->
     <section class="panel" id="panel-models">
+      <div class="card" id="categoriesCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>Categories</h3><p class="muted">Product categories on your site (MacBooks, Phones, …). Each has its own page at <code>/c/&lt;slug&gt;</code>.</p></div>
+          <button class="btn" id="addCatBtn" type="button">+ Add category</button>
+        </div>
+        <div id="categoriesList"></div>
+      </div>
+
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div><h3>Hot &amp; Available MacBooks</h3><p class="muted">These cards show on the landing page. Add, edit, reorder or hide them.</p></div>
-          <button class="btn primary" id="addModelBtn">+ Add model</button>
+          <div><h3>Products</h3><p class="muted">MacBooks, phones and any other category. Add, edit, reorder or hide them.</p></div>
+          <button class="btn primary" id="addModelBtn">+ Add product</button>
         </div>
         <div id="modelsList"></div>
       </div>
@@ -562,8 +570,10 @@
       <div class="dlg-head" id="modelDlgTitle">Add model</div>
       <div class="dlg-body">
         <input type="hidden" id="m-id" />
-        <label class="fld">Model name *</label>
-        <input type="text" id="m-name" required placeholder='MacBook Pro 14" M3' />
+        <label class="fld">Category *</label>
+        <select id="m-category"></select>
+        <label class="fld" style="margin-top:12px;">Product name *</label>
+        <input type="text" id="m-name" required placeholder='MacBook Pro 14" M3 / iPhone 13 128GB' />
         <label class="fld" style="margin-top:12px;">Product URL slug <small style="color:#64748b;">(leave blank to auto-generate — /macbook/&lt;slug&gt;)</small></label>
         <input type="text" id="m-slug" placeholder="macbook-pro-14-m3" />
         <div class="grid2" style="margin-top:12px;">
@@ -582,17 +592,25 @@
         </div>
         <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e7eaf1;font-weight:700;font-size:0.85rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Product page configuration</div>
         <div class="grid2" style="margin-top:12px;">
-          <div><label class="fld">Chip / CPU</label><input type="text" id="m-cpu" placeholder="M3 Pro chip · 12-core CPU" /></div>
-          <div><label class="fld">GPU</label><input type="text" id="m-gpu" placeholder="18-core GPU" /></div>
+          <div><label class="fld" id="lbl-cpu">Chip / Processor</label><input type="text" id="m-cpu" placeholder="M3 Pro · 12-core CPU  /  A15 Bionic" /></div>
+          <div><label class="fld">Storage</label><input type="text" id="m-storage" placeholder="512GB SSD  /  128GB" /></div>
         </div>
-        <div class="grid2" style="margin-top:12px;">
-          <div><label class="fld">Memory (RAM)</label><input type="text" id="m-memory" placeholder="18GB unified memory" /></div>
-          <div><label class="fld">Storage</label><input type="text" id="m-storage" placeholder="512GB SSD" /></div>
+        <div id="macFields">
+          <div class="grid2" style="margin-top:12px;">
+            <div><label class="fld">GPU</label><input type="text" id="m-gpu" placeholder="18-core GPU" /></div>
+            <div><label class="fld">Memory (RAM)</label><input type="text" id="m-memory" placeholder="18GB unified memory" /></div>
+          </div>
+          <label class="fld" style="margin-top:12px;">Display (screen size & details)</label>
+          <input type="text" id="m-display" placeholder='14.2" Liquid Retina XDR · 3024×1964 · 120Hz ProMotion' />
+          <label class="fld" style="margin-top:12px;">Compatible software (what it can run)</label>
+          <textarea id="m-software" rows="3" placeholder="Final Cut Pro, Xcode, Photoshop, AI/ML frameworks…"></textarea>
         </div>
-        <label class="fld" style="margin-top:12px;">Display (screen size & details)</label>
-        <input type="text" id="m-display" placeholder='14.2" Liquid Retina XDR · 3024×1964 · 120Hz ProMotion' />
-        <label class="fld" style="margin-top:12px;">Compatible software (what it can run)</label>
-        <textarea id="m-software" rows="3" placeholder="Final Cut Pro, Xcode, Photoshop, AI/ML frameworks…"></textarea>
+        <div id="phoneFields" hidden>
+          <div class="grid2" style="margin-top:12px;">
+            <div><label class="fld">Battery health</label><input type="text" id="m-battery_health" placeholder="89%" /></div>
+            <div><label class="fld">Colour</label><input type="text" id="m-colour" placeholder="Midnight" /></div>
+          </div>
+        </div>
         <label class="fld" style="margin-top:12px;">Image</label>
         <div class="upload-row">
           <input type="file" id="m-imageFile" accept="image/*" />
@@ -609,7 +627,36 @@
       </div>
       <div class="dlg-foot">
         <button class="btn" type="button" id="modelCancel">Cancel</button>
-        <button class="btn primary" type="button" id="modelSave">Save model</button>
+        <button class="btn primary" type="button" id="modelSave">Save product</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Category editor dialog -->
+  <dialog id="categoryDialog">
+    <form method="dialog">
+      <div class="dlg-head" id="catDlgTitle">Add category</div>
+      <div class="dlg-body">
+        <input type="hidden" id="c-id" />
+        <label class="fld">Category name *</label>
+        <input type="text" id="c-name" placeholder="Refurbished Phones" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Singular label</label><input type="text" id="c-singular" placeholder="Phone" /></div>
+          <div><label class="fld">Spec field set</label>
+            <select id="c-fields"><option value="macbook">Laptop (CPU/GPU/RAM/display)</option><option value="phone">Phone (storage/battery/colour)</option></select>
+          </div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Tagline (shown on the category card &amp; page)</label>
+        <input type="text" id="c-tagline" placeholder="iPhone & Android · tested · warranty" />
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Sort order</label><input type="number" id="c-sort_order" value="0" /></div>
+          <div><label class="fld">Visible?</label><select id="c-active"><option value="1">Visible</option><option value="0">Hidden</option></select></div>
+        </div>
+        <p class="muted" id="c-urlnote" style="margin-top:10px;"></p>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" type="button" id="catCancel">Cancel</button>
+        <button class="btn primary" type="button" id="catSave">Save category</button>
       </div>
     </form>
   </dialog>
@@ -696,11 +743,15 @@
     <!-- ===================== USERS ===================== -->
     <section class="panel" id="panel-users">
       <div class="card">
-        <h3>Add a lead-only user</h3>
-        <p class="muted">These users can log in and see <b>only the Leads section</b> — not branding, settings, models or integrations. Useful for sales staff.</p>
+        <h3>Add a staff user</h3>
+        <p class="muted">Create limited-access logins. <b>Lead access</b> sees only the Leads section. A <b>category uploader</b> can add/edit/upload/delete products in one category only (e.g. Phones) — nothing else.</p>
         <div class="grid2">
-          <div><label class="fld">Username</label><input type="text" id="u-username" autocomplete="off" placeholder="e.g. sales1" /></div>
+          <div><label class="fld">Username</label><input type="text" id="u-username" autocomplete="off" placeholder="e.g. sales1 or mobiles@…" /></div>
           <div><label class="fld">Password</label><input type="password" id="u-password" autocomplete="new-password" placeholder="min 6 characters" /></div>
+          <div><label class="fld">Access type</label>
+            <select id="u-role"><option value="leads">Lead access only</option><option value="catalog">Category uploader</option></select>
+          </div>
+          <div id="u-scopeWrap" style="display:none;"><label class="fld">Category</label><select id="u-scope"></select></div>
         </div>
         <div class="save-row">
           <button class="btn primary" id="addUserBtn">Create user</button>

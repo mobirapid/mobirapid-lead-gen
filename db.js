@@ -132,6 +132,34 @@ ensureColumn('macbook_models', 'memory', 'TEXT');
 ensureColumn('macbook_models', 'storage', 'TEXT');
 ensureColumn('macbook_models', 'display', 'TEXT');
 ensureColumn('macbook_models', 'software', 'TEXT');
+// Multi-category catalog: products belong to a category (macbook, phone, …) and phones
+// use their own spec fields (chip = cpu, storage reused, plus battery health + colour).
+ensureColumn('macbook_models', 'category', "TEXT NOT NULL DEFAULT 'macbooks'");
+ensureColumn('macbook_models', 'battery_health', 'TEXT');
+ensureColumn('macbook_models', 'colour', 'TEXT');
+// Normalise any legacy/blank category values onto the 'macbooks' category slug.
+db.exec("UPDATE macbook_models SET category = 'macbooks' WHERE category IS NULL OR category = '' OR category = 'macbook'");
+
+// Categories (flexible — admin can add/rename/remove). url_prefix drives the pretty URLs
+// (/macbook/:slug, /phone/:slug) and the category landing page (/c/:slug).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT UNIQUE NOT NULL,
+    name        TEXT NOT NULL,
+    singular    TEXT NOT NULL,
+    url_prefix  TEXT UNIQUE NOT NULL,
+    tagline     TEXT,
+    fields      TEXT NOT NULL DEFAULT 'macbook',
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    active      INTEGER NOT NULL DEFAULT 1
+  );
+`);
+if (db.prepare('SELECT COUNT(*) AS n FROM categories').get().n === 0) {
+  const insCat = db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active) VALUES (@slug,@name,@singular,@url_prefix,@tagline,@fields,@sort_order,@active)');
+  insCat.run({ slug: 'macbooks', name: 'Refurbished MacBooks', singular: 'MacBook', url_prefix: 'macbook', tagline: 'M1–M4 · quality-checked · GST invoice & warranty', fields: 'macbook', sort_order: 1, active: 1 });
+  insCat.run({ slug: 'phones', name: 'Refurbished Phones', singular: 'Phone', url_prefix: 'phone', tagline: 'iPhone & Android · tested · battery-checked · warranty', fields: 'phone', sort_order: 2, active: 1 });
+}
 
 // Users table for additional logins (e.g. lead-only staff accounts).
 db.exec(`
@@ -143,6 +171,8 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+// scope = category slug a "catalog" uploader is limited to (e.g. 'phones'); NULL for others.
+ensureColumn('users', 'scope', 'TEXT');
 
 // --- Seed default settings (only inserts missing keys) ---
 const DEFAULT_SETTINGS = {

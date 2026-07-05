@@ -687,3 +687,33 @@ body.cookie-open .float-contact { bottom: 104px; }
 .biz-table td { color: var(--ink-soft); }
 .biz-note { font-size: .85rem; color: var(--muted); margin: 14px 0 0; }
 @media (max-width: 560px) { .biz-table th { width: 130px; } .biz-table th, .biz-table td { padding: 10px 12px; font-size: .88rem; } }
+
+/* Shop by category */
+.shopcat { padding: 30px 0 4px; }
+.shopcat > .container > h2 { font-size: 1.5rem; letter-spacing: -.02em; margin: 0 0 18px; }
+.shopcat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.shopcat-card { position: relative; border-radius: 18px; padding: 26px; color: #fff; overflow: hidden; min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(135deg,#4f46e5,#2563eb); box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .18s ease; }
+.shopcat-card.alt { background: linear-gradient(135deg,#0ea5e9,#06b6d4); }
+.shopcat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.shopcat-card h3 { margin: 0 0 4px; font-size: 1.4rem; color: #fff; }
+.shopcat-card p { margin: 0 0 10px; opacity: .92; font-size: .92rem; }
+.shopcat-count { position: absolute; top: 18px; right: 18px; background: rgba(255,255,255,.22); padding: 5px 13px; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+.shopcat-go { font-weight: 800; font-size: .9rem; }
+@media (max-width: 640px){ .shopcat-grid { grid-template-columns: 1fr; } }
+
+/* Category filter chips on the products grid */
+.models-filter { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 0 0 22px; }
+.mfilter { border: 1.5px solid var(--line-strong); background: #fff; color: var(--ink-soft); border-radius: 999px; padding: 8px 18px; font-weight: 600; font-size: .88rem; cursor: pointer; font-family: inherit; transition: all .15s ease; }
+.mfilter:hover { border-color: var(--brand); }
+.mfilter.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* Category landing page grid + tagline */
+.cat-tagline { color: var(--muted); font-size: 1.02rem; margin: 0 0 22px; }
+.cat-grid-page { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.cat-grid-page .model-card { width: auto; }
+.cat-grid-page .model-media { height: 170px; display: flex; align-items: center; justify-content: center; background: #f1f4fa; position: relative; border-radius: var(--radius-sm) var(--radius-sm) 0 0; overflow: hidden; }
+.cat-grid-page .model-media img { max-width: 90%; max-height: 90%; object-fit: contain; }
+.cat-grid-page .model-ph { width: 100%; height: 100%; background: linear-gradient(135deg,#eef2f9,#dbe3f1); }
+
+/* Admin: category tag chip */
+.cat-tag { display:inline-block; background:#e0e7ff; color:#3730a3; font-size:.68rem; font-weight:700; padding:2px 8px; border-radius:999px; vertical-align:middle; text-transform:none; letter-spacing:0; }

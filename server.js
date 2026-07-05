@@ -415,12 +415,15 @@ app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const pages = db.prepare('SELECT slug FROM content_pages ORDER BY sort_order').all();
   const posts = db.prepare('SELECT slug, updated_at, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
-  const prods = db.prepare('SELECT slug FROM macbook_models WHERE active = 1 AND slug IS NOT NULL ORDER BY sort_order').all();
+  const cats = db.prepare('SELECT slug, url_prefix FROM categories WHERE active = 1').all();
+  const prefixOf = {}; for (const c of cats) prefixOf[c.slug] = c.url_prefix;
+  const prods = db.prepare('SELECT slug, category FROM macbook_models WHERE active = 1 AND slug IS NOT NULL ORDER BY sort_order').all();
   const entries = [
     { loc: '/', lastmod: today, priority: '1.0' },
     { loc: '/compare', lastmod: today, priority: '0.7' },
     { loc: '/blog', lastmod: today, priority: '0.8' },
-    ...prods.map((p) => ({ loc: '/macbook/' + p.slug, lastmod: today, priority: '0.7' })),
+    ...cats.map((c) => ({ loc: '/c/' + c.slug, lastmod: today, priority: '0.8' })),
+    ...prods.map((p) => ({ loc: '/' + (prefixOf[p.category] || 'macbook') + '/' + p.slug, lastmod: today, priority: '0.7' })),
     ...pages.map((p) => ({ loc: '/p/' + p.slug, lastmod: today, priority: '0.4' })),
     ...posts.map((p) => ({ loc: '/blog/' + p.slug, lastmod: String(p.updated_at || p.created_at || today).slice(0, 10), priority: '0.6' })),
   ];
@@ -623,6 +626,7 @@ app.get('/api/site', (req, res) => {
       budget_options: parseJsonSetting('budget_options', []),
     },
     models,
+    categories: db.prepare('SELECT slug, name, singular, url_prefix, tagline, fields, sort_order FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all(),
     pages,
     reviews,
     posts,
@@ -741,10 +745,24 @@ app.get('/compare', (req, res) => {
   );
 });
 
-// Product detail page (server-rendered, Product schema)
-app.get('/macbook/:slug', (req, res) => {
-  const m = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND active = 1').get(req.params.slug);
+// --- Category helpers ---
+function catByPrefix(prefix) { return db.prepare('SELECT * FROM categories WHERE url_prefix = ? AND active = 1').get(prefix); }
+function catBySlug(slug) { return db.prepare('SELECT * FROM categories WHERE slug = ? AND active = 1').get(slug); }
+function catForProduct(m) { return db.prepare('SELECT * FROM categories WHERE slug = ?').get(m.category) || { slug: m.category, name: 'Products', singular: 'Product', url_prefix: 'macbook', fields: 'macbook' }; }
+function productUrl(m, cat) { return '/' + (cat || catForProduct(m)).url_prefix + '/' + m.slug; }
+
+// Product detail page (server-rendered, Product schema) — category-aware.
+// Generic route: /:prefix/:slug where :prefix matches a category url_prefix (else next()).
+app.get('/:prefix/:slug', (req, res, next) => {
+  const cat = catByPrefix(req.params.prefix);
+  if (!cat) return next(); // not a product prefix — let /p/:slug, /blog/:slug, etc. handle it
+  const m = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND category = ? AND active = 1').get(req.params.slug, cat.slug);
   if (!m) return res.status(404).send('Product not found');
+  renderProductPage(req, res, m, cat);
+});
+
+function renderProductPage(req, res, m, cat) {
+  const isPhone = cat.fields === 'phone';
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
   const priceNote = getSetting('price_note', '');
@@ -752,35 +770,41 @@ app.get('/macbook/:slug', (req, res) => {
   const priceNum = String(m.price || '').replace(/[^\d.]/g, '');
   const ld = {
     '@context': 'https://schema.org', '@type': 'Product', name: m.name,
-    description: m.description || m.specs || m.name, brand: { '@type': 'Brand', name: 'Apple' },
-    category: 'Refurbished Laptop', itemCondition: 'https://schema.org/RefurbishedCondition',
+    description: m.description || m.specs || m.name,
+    category: isPhone ? 'Refurbished Mobile Phone' : 'Refurbished Laptop',
+    itemCondition: 'https://schema.org/RefurbishedCondition',
   };
+  if (!isPhone) ld.brand = { '@type': 'Brand', name: 'Apple' };
   if (m.image) ld.image = m.image.startsWith('/') ? base + m.image : m.image;
-  const props = [['CPU', m.cpu], ['GPU', m.gpu], ['Memory', m.memory], ['Storage', m.storage], ['Display', m.display]].filter((p) => p[1]);
+  const specRows = isPhone
+    ? [['Processor', m.cpu], ['Storage', m.storage], ['Battery health', m.battery_health], ['Colour', m.colour], ['Condition', m.condition_grade ? m.condition_grade + ' (refurbished)' : ''], ['Warranty', m.warranty]]
+    : [['Chip / CPU', m.cpu], ['GPU', m.gpu], ['Memory (RAM)', m.memory], ['Storage', m.storage], ['Display', m.display], ['Condition', m.condition_grade ? m.condition_grade + ' (refurbished)' : ''], ['Warranty', m.warranty]];
+  const rows = specRows.filter((r) => r[1]);
+  const props = rows.filter((r) => !/Condition|Warranty/.test(r[0]));
   if (props.length) ld.additionalProperty = props.map((p) => ({ '@type': 'PropertyValue', name: p[0], value: p[1] }));
-  if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + '/macbook/' + esc(m.slug) };
+  if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + productUrl(m, cat) };
   const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   const desc = (m.description || m.specs || m.name).slice(0, 180);
   const badge = m.badge ? `<span class="pdp-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
+  const metaBits = isPhone
+    ? [m.condition_grade ? `<span class="pdp-tag ok">${esc(m.condition_grade)} condition</span>` : '', m.battery_health ? `<span class="pdp-tag">Battery ${esc(m.battery_health)}</span>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : '']
+    : [m.condition_grade ? `<span class="pdp-tag ok">${esc(m.condition_grade)} condition</span>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''];
   res.send(
-    pageHead(req, m.name + ' — ' + brand, desc, base + '/macbook/' + esc(m.slug), ldTag) +
+    pageHead(req, m.name + ' — ' + brand, desc, base + productUrl(m, cat), ldTag) +
     siteHeaderHtml() +
     `<main class="container page-body pdp">
-      <a class="back-link" href="/#modelsSection">← All MacBooks</a>
+      <a class="back-link" href="/c/${esc(cat.slug)}">← All ${esc(cat.name)}</a>
       <div class="pdp-grid">
         <div class="pdp-media">${m.image ? `<img src="${esc(m.image)}" alt="${esc(m.name)}">` : `<div class="pdp-media-ph"><span></span></div>`}${badge}</div>
         <div class="pdp-info">
           <h1>${esc(m.name)}</h1>
           ${m.specs ? `<p class="pdp-specs">${esc(m.specs)}</p>` : ''}
           ${m.price ? `<div class="pdp-price">${esc(m.price)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>'}
-          <div class="pdp-meta">
-            ${m.condition_grade ? `<span class="pdp-tag ok">${esc(m.condition_grade)} condition</span>` : ''}
-            ${m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''}
-          </div>
+          <div class="pdp-meta">${metaBits.filter(Boolean).join('')}</div>
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
           <div class="pdp-actions">
             <a class="pdp-book" href="${bookUrl}">Book Now →</a>
-            <a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>
+            ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}
           </div>
           <ul class="pdp-trust">
             <li>✓ 35-point quality check</li>
@@ -789,28 +813,55 @@ app.get('/macbook/:slug', (req, res) => {
           </ul>
         </div>
       </div>
-      ${(() => {
-        const rows = [
-          ['Chip / CPU', m.cpu],
-          ['GPU', m.gpu],
-          ['Memory (RAM)', m.memory],
-          ['Storage', m.storage],
-          ['Display', m.display],
-          ['Condition', m.condition_grade ? m.condition_grade + ' (refurbished)' : ''],
-          ['Warranty', m.warranty],
-        ].filter((r) => r[1]);
-        if (!rows.length) return '';
-        return `<section class="pdp-section">
+      ${rows.length ? `<section class="pdp-section">
           <h2>Full configuration</h2>
           <table class="pdp-spec-table"><tbody>
             ${rows.map((r) => `<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}
           </tbody></table>
-        </section>`;
-      })()}
-      ${m.software ? `<section class="pdp-section">
+        </section>` : ''}
+      ${(!isPhone && m.software) ? `<section class="pdp-section">
         <h2>What can this MacBook run?</h2>
         <p class="pdp-software">${esc(m.software)}</p>
       </section>` : ''}
+    </main>` +
+    pageTail()
+  );
+}
+
+// Category landing page (server-rendered) — lists all products in a category.
+app.get('/c/:slug', (req, res) => {
+  const cat = catBySlug(req.params.slug);
+  if (!cat) return res.status(404).send('Category not found');
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const priceNote = getSetting('price_note', '');
+  const items = db.prepare('SELECT * FROM macbook_models WHERE category = ? AND active = 1 ORDER BY sort_order ASC, id ASC').all(cat.slug);
+  const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: cat.name,
+    itemListElement: items.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + productUrl(m, cat), name: m.name })) };
+  const card = (m) => {
+    const sub = cat.fields === 'phone'
+      ? [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.condition_grade].filter(Boolean).join(' · ')
+      : [m.specs || [m.cpu, m.memory, m.storage].filter(Boolean).join(' · '), m.condition_grade].filter(Boolean).join(' · ');
+    const bd = m.badge ? `<span class="model-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
+    return `<article class="model-card">
+      <div class="model-media">${m.image ? `<img src="${esc(m.image)}" alt="${esc(m.name)}">` : '<div class="model-ph"></div>'}${bd}</div>
+      <div class="model-body">
+        <h3>${esc(m.name)}</h3>
+        ${sub ? `<p class="model-specs">${esc(sub)}</p>` : ''}
+        ${m.price ? `<div class="model-price">${esc(m.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
+        <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
+      </div>
+    </article>`;
+  };
+  res.send(
+    pageHead(req, cat.name + ' — ' + brand, cat.tagline || cat.name, base + '/c/' + esc(cat.slug), `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`) +
+    siteHeaderHtml() +
+    `<main class="container page-body">
+      <a class="back-link" href="/">← Home</a>
+      <h1>${esc(cat.name)}</h1>
+      ${cat.tagline ? `<p class="cat-tagline">${esc(cat.tagline)}</p>` : ''}
+      ${items.length ? `<div class="models-grid cat-grid-page">${items.map(card).join('')}</div>` : '<p class="muted">New stock coming soon. Please check back or book a consultation.</p>'}
+      <p style="margin-top:26px;"><a class="pdp-book" href="/#lead-form">Book a free consultation →</a></p>
     </main>` +
     pageTail()
   );
@@ -1079,8 +1130,8 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
 // ===========================================================================
 // ADMIN AUTH  (roles: "admin" = full access, "leads" = leads only)
 // ===========================================================================
-function signToken(user, role) {
-  const payload = Buffer.from(JSON.stringify({ user, role, t: Date.now() })).toString('base64url');
+function signToken(user, role, scope) {
+  const payload = Buffer.from(JSON.stringify({ user, role, scope: scope || null, t: Date.now() })).toString('base64url');
   const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -1130,8 +1181,12 @@ app.use('/api/admin', (req, res, next) => {
   // Tokens issued before roles existed have no role — treat them as full admin
   // (only the .env admin could have logged in back then).
   const role = data.role || 'admin';
+  if (role === 'admin') return next();
   const leadsOk = req.path === '/me' || req.path.startsWith('/leads');
-  if (leadsOk || role === 'admin') return next();
+  // Category uploader ('catalog') may manage products + upload images + read categories.
+  const catalogOk = req.path === '/me' || req.path.startsWith('/models') || req.path === '/upload' || req.path === '/categories';
+  if (role === 'leads' && leadsOk) return next();
+  if (role === 'catalog' && catalogOk) return next();
   return res.status(403).json({ ok: false, error: 'You do not have access to this section.' });
 });
 
@@ -1140,15 +1195,15 @@ app.use('/api/admin', (req, res, next) => {
 app.get(['/manage/login', '/admin/login'], (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
 app.post(['/manage/login', '/admin/login'], (req, res) => {
   const { username, password } = req.body;
-  let role = null;
+  let role = null, scope = null;
   if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
     role = 'admin';
   } else {
     const u = db.prepare('SELECT * FROM users WHERE username = ?').get(String(username || '').trim());
-    if (u && verifyPassword(password, u.pass_hash)) role = u.role || 'leads';
+    if (u && verifyPassword(password, u.pass_hash)) { role = u.role || 'leads'; scope = u.scope || null; }
   }
   if (role) {
-    res.cookie('admin_session', signToken(username, role), { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
+    res.cookie('admin_session', signToken(username, role, scope), { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
     return res.redirect('/manage');
   }
   res.redirect('/manage/login?error=1');
@@ -1161,21 +1216,27 @@ app.get(['/manage', '/admin'], requireAdmin, (req, res) => res.sendFile(path.joi
 // ===========================================================================
 
 // Who am I (used by the admin UI to show/hide tabs by role)
-app.get('/api/admin/me', (req, res) => res.json({ ok: true, user: req.authUser.user, role: req.authUser.role || 'admin' }));
+app.get('/api/admin/me', (req, res) => res.json({ ok: true, user: req.authUser.user, role: req.authUser.role || 'admin', scope: req.authUser.scope || null }));
 
 // User management (full admin only — enforced by the gate above)
 app.get('/api/admin/users', (req, res) => {
-  res.json({ ok: true, users: db.prepare('SELECT id, username, role, created_at FROM users ORDER BY id DESC').all() });
+  res.json({ ok: true, users: db.prepare('SELECT id, username, role, scope, created_at FROM users ORDER BY id DESC').all() });
 });
 app.post('/api/admin/users', (req, res) => {
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
-  if (!/^[a-zA-Z0-9._-]{3,40}$/.test(username)) return res.status(400).json({ ok: false, error: 'Username must be 3-40 chars (letters, numbers, . _ -).' });
+  if (!/^[a-zA-Z0-9._@-]{3,60}$/.test(username)) return res.status(400).json({ ok: false, error: 'Username must be 3-60 chars (letters, numbers, . _ - @).' });
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters.' });
   if (username === ADMIN_USER) return res.status(400).json({ ok: false, error: 'That username is reserved.' });
-  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
-  if (exists) return res.status(400).json({ ok: false, error: 'That username already exists.' });
-  db.prepare('INSERT INTO users (username, pass_hash, role) VALUES (?, ?, ?)').run(username, hashPassword(password), 'leads');
+  if (db.prepare('SELECT id FROM users WHERE username = ?').get(username)) return res.status(400).json({ ok: false, error: 'That username already exists.' });
+  // role: 'leads' (lead access) or 'catalog' (category uploader, needs scope = category slug)
+  let role = req.body.role === 'catalog' ? 'catalog' : 'leads';
+  let scope = null;
+  if (role === 'catalog') {
+    scope = String(req.body.scope || '').trim();
+    if (!db.prepare('SELECT id FROM categories WHERE slug = ?').get(scope)) return res.status(400).json({ ok: false, error: 'Pick a valid category for the uploader.' });
+  }
+  db.prepare('INSERT INTO users (username, pass_hash, role, scope) VALUES (?, ?, ?, ?)').run(username, hashPassword(password), role, scope);
   res.json({ ok: true });
 });
 app.delete('/api/admin/users/:id', (req, res) => {
@@ -1315,14 +1376,22 @@ app.post('/api/admin/upload/delete', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-// MacBook models CRUD
+// Products (MacBooks + phones + any category) CRUD
+function userScope(req) { return (req.authUser && req.authUser.role === 'catalog') ? (req.authUser.scope || null) : null; }
 app.get('/api/admin/models', requireAdmin, (req, res) => {
-  res.json({ ok: true, models: db.prepare('SELECT * FROM macbook_models ORDER BY sort_order ASC, id ASC').all() });
+  const scope = userScope(req);
+  const rows = scope
+    ? db.prepare('SELECT * FROM macbook_models WHERE category = ? ORDER BY sort_order ASC, id ASC').all(scope)
+    : db.prepare('SELECT * FROM macbook_models ORDER BY sort_order ASC, id ASC').all();
+  res.json({ ok: true, models: rows });
 });
 function modelFromBody(b) {
   const name = String(b.name || '').trim();
+  const catSlug = String(b.category || 'macbooks').trim();
+  const cat = db.prepare('SELECT slug FROM categories WHERE slug = ?').get(catSlug);
   return {
     name,
+    category: cat ? cat.slug : 'macbooks',
     slug: b.slug ? slugify(b.slug) : slugify(name),
     price: String(b.price || '').trim(),
     image: String(b.image || '').trim(),
@@ -1337,6 +1406,8 @@ function modelFromBody(b) {
     storage: String(b.storage || '').trim().slice(0, 120),
     display: String(b.display || '').trim().slice(0, 200),
     software: String(b.software || '').trim().slice(0, 600),
+    battery_health: String(b.battery_health || '').trim().slice(0, 40),
+    colour: String(b.colour || '').trim().slice(0, 60),
     sort_order: parseInt(b.sort_order || '0', 10) || 0,
     active: b.active === false || b.active === 'false' || b.active === 0 ? 0 : 1,
   };
@@ -1344,29 +1415,76 @@ function modelFromBody(b) {
 app.post('/api/admin/models', requireAdmin, (req, res) => {
   const m = modelFromBody(req.body);
   if (!m.name) return res.status(400).json({ ok: false, error: 'Model name is required.' });
+  const scope = userScope(req);
+  if (scope) m.category = scope; // uploaders can only create in their own category
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, slug, price, image, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, sort_order, active)
-     VALUES (@name, @slug, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, category, slug, price, image, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
+     VALUES (@name, @category, @slug, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
 app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const existing = db.prepare('SELECT category FROM macbook_models WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ ok: false, error: 'Not found.' });
+  const scope = userScope(req);
+  if (scope && existing.category !== scope) return res.status(403).json({ ok: false, error: 'You can only edit your own category.' });
   const m = modelFromBody(req.body);
   if (!m.name) return res.status(400).json({ ok: false, error: 'Model name is required.' });
-  const id = parseInt(req.params.id, 10);
+  if (scope) m.category = scope;
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, slug=@slug, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
-     sort_order=@sort_order, active=@active WHERE id=@id`
+     battery_health=@battery_health, colour=@colour, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });
   res.json({ ok: true, slug });
 });
 app.delete('/api/admin/models/:id', requireAdmin, (req, res) => {
-  db.prepare('DELETE FROM macbook_models WHERE id = ?').run(parseInt(req.params.id, 10));
+  const id = parseInt(req.params.id, 10);
+  const scope = userScope(req);
+  if (scope) {
+    const ex = db.prepare('SELECT category FROM macbook_models WHERE id = ?').get(id);
+    if (ex && ex.category !== scope) return res.status(403).json({ ok: false, error: 'You can only delete your own category.' });
+  }
+  db.prepare('DELETE FROM macbook_models WHERE id = ?').run(id);
+  res.json({ ok: true });
+});
+
+// Categories CRUD (read allowed for catalog uploaders; writes are admin-only)
+app.get('/api/admin/categories', requireAdmin, (req, res) => {
+  res.json({ ok: true, categories: db.prepare('SELECT * FROM categories ORDER BY sort_order ASC, id ASC').all() });
+});
+app.post('/api/admin/categories', requireAdmin, requireFullRole, (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ ok: false, error: 'Category name is required.' });
+  const slug = slugify(b.slug || name);
+  const prefix = slugify(b.url_prefix || b.singular || name).replace(/s$/, '');
+  if (db.prepare('SELECT id FROM categories WHERE slug = ? OR url_prefix = ?').get(slug, prefix)) return res.status(400).json({ ok: false, error: 'A category with that slug/prefix already exists.' });
+  const info = db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active) VALUES (?,?,?,?,?,?,?,?)')
+    .run(slug, name, String(b.singular || name).trim(), prefix, String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1);
+  res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
+});
+app.put('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {
+  const b = req.body || {};
+  const id = parseInt(req.params.id, 10);
+  const name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ ok: false, error: 'Category name is required.' });
+  db.prepare('UPDATE categories SET name=?, singular=?, tagline=?, fields=?, sort_order=?, active=? WHERE id=?')
+    .run(name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, id);
+  res.json({ ok: true });
+});
+app.delete('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const cat = db.prepare('SELECT slug FROM categories WHERE id = ?').get(id);
+  if (!cat) return res.status(404).json({ ok: false, error: 'Not found.' });
+  const count = db.prepare('SELECT COUNT(*) AS n FROM macbook_models WHERE category = ?').get(cat.slug).n;
+  if (count > 0) return res.status(400).json({ ok: false, error: `Move or delete the ${count} product(s) in this category first.` });
+  db.prepare('DELETE FROM categories WHERE id = ?').run(id);
   res.json({ ok: true });
 });
 
