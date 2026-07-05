@@ -1,6 +1,17 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function gradeClass(grade) {
+    const g = String(grade || '').toLowerCase();
+    if (/new|sealed/.test(g)) return 'g-new';
+    if (/non-activated|non activated/.test(g)) return 'g-mint';
+    if (/open box|activated/.test(g)) return 'g-teal';
+    if (/excellent/.test(g)) return 'g-excellent';
+    if (/very good/.test(g)) return 'g-verygood';
+    if (/good/.test(g)) return 'g-good';
+    if (/fair/.test(g)) return 'g-fair';
+    return 'g-good';
+  }
 
   // ----- Form refs -----
   const phone = $('phone');
@@ -304,7 +315,7 @@
           <div class="model-meta">
             ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
             ${m.price && s.price_note ? `<span class="model-gst">${esc(s.price_note)}</span>` : ''}
-            ${m.condition_grade ? `<span class="model-grade">${esc(m.condition_grade)}</span>` : ''}
+            ${m.condition_grade ? `<a class="model-grade cond-pill ${gradeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : ''}
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
           <a class="model-cta" href="${prodUrl(m)}">View details →</a>

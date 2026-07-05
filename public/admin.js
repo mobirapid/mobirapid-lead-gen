@@ -196,6 +196,8 @@
     renderQcRows();
     try { faqItems = JSON.parse(settings.faq_items || '[]'); } catch { faqItems = []; }
     renderFaqRows();
+    try { conditionItems = JSON.parse(settings.condition_grades || '[]'); } catch { conditionItems = []; }
+    renderConditionRows();
   }
 
   // ---- USP strip editor ----
@@ -273,6 +275,25 @@
   }
   on('addFaqBtn', 'click', () => { faqItems.push({ q: '', a: '' }); renderFaqRows(); });
 
+  let conditionItems = [];
+  function renderConditionRows() {
+    const wrap = $('conditionRows'); if (!wrap) return;
+    wrap.innerHTML = conditionItems.map((c, i) => `
+      <div style="padding:12px 0;border-bottom:1px solid var(--line);">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" data-cg="${i}" value="${esc(c.grade || '')}" placeholder="Grade name (e.g. Excellent)" style="flex:1;font-weight:600;" />
+          <button class="btn small danger" data-cgrem="${i}" type="button">Remove</button>
+        </div>
+        <input type="text" data-cs="${i}" value="${esc(c.summary || '')}" placeholder="Short summary (one line)" style="margin-top:8px;width:100%;" />
+        <textarea data-cd="${i}" rows="2" placeholder="Full description" style="margin-top:8px;">${esc(c.detail || '')}</textarea>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-cg]').forEach((el) => el.addEventListener('input', () => { conditionItems[+el.dataset.cg].grade = el.value; }));
+    wrap.querySelectorAll('[data-cs]').forEach((el) => el.addEventListener('input', () => { conditionItems[+el.dataset.cs].summary = el.value; }));
+    wrap.querySelectorAll('[data-cd]').forEach((el) => el.addEventListener('input', () => { conditionItems[+el.dataset.cd].detail = el.value; }));
+    wrap.querySelectorAll('[data-cgrem]').forEach((el) => el.addEventListener('click', () => { conditionItems.splice(+el.dataset.cgrem, 1); renderConditionRows(); }));
+  }
+  on('addConditionBtn', 'click', () => { conditionItems.push({ grade: '', summary: '', detail: '' }); renderConditionRows(); });
+
   function showPrev(img, src) { img.src = src; img.style.display = 'block'; }
 
   function collectSettings(keys) {
@@ -305,7 +326,7 @@
 
   // Branding save (all branding keys + uploaded image paths)
   $('saveBranding').addEventListener('click', () => {
-    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'announce_enabled', 'announce_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'qc_enabled', 'qc_title', 'qc_subtitle', 'qc_video_enabled', 'qc_video_text', 'faq_enabled', 'faq_title', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
+    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'announce_enabled', 'announce_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'qc_enabled', 'qc_title', 'qc_subtitle', 'qc_video_enabled', 'qc_video_text', 'faq_enabled', 'faq_title', 'condition_enabled', 'condition_title', 'condition_intro', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
     const payload = collectSettings(keys);
     payload.logo_path = settings.logo_path || '';
     payload.banner_image = settings.banner_image || '';
@@ -320,6 +341,9 @@
     );
     payload.faq_items = JSON.stringify(
       faqItems.filter((f) => (f.q || '').trim()).map((f) => ({ q: f.q.trim(), a: (f.a || '').trim() }))
+    );
+    payload.condition_grades = JSON.stringify(
+      conditionItems.filter((c) => (c.grade || '').trim()).map((c) => ({ grade: c.grade.trim(), summary: (c.summary || '').trim(), detail: (c.detail || '').trim() }))
     );
     saveSettings(payload, $('brandingSaved'));
   });

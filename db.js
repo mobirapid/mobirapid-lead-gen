@@ -270,6 +270,19 @@ const DEFAULT_SETTINGS = {
     { q: 'What if the device has a problem?', a: 'You are covered by our warranty and return policy. Contact us and we will repair, replace or refund as per the policy.' },
     { q: 'Do you provide a GST invoice?', a: 'Yes, every purchase includes a GST invoice with the device serial number.' },
   ]),
+  // Condition grades — defined on the /condition page and linked from product condition tags.
+  condition_enabled: '1',
+  condition_title: 'Condition grades explained',
+  condition_intro: 'Every device passes our 35-point quality check and is then graded honestly so you know exactly what you are buying. Here is what each grade means — cosmetically and functionally.',
+  condition_grades: JSON.stringify([
+    { grade: 'New Sealed Pack', summary: 'Brand-new, factory-sealed', detail: 'Completely new, factory-sealed and never opened, with full manufacturer warranty and 100% battery health. Indistinguishable from retail.' },
+    { grade: 'Open Box & Non-activated', summary: 'Opened for checks, never activated', detail: 'The box was opened only for our verification, but the device was never activated or used. As good as new, with full warranty and pristine cosmetics.' },
+    { grade: 'Open Box & Activated', summary: 'Activated & tested, essentially unused', detail: 'Opened and activated for testing (for example an ex-display or lightly handled unit) but essentially unused. No meaningful signs of wear.' },
+    { grade: 'Excellent', summary: 'Near-new, no visible marks', detail: 'Lightly used and fully refurbished. No visible scratches or dents on close inspection and high battery health — looks almost new.' },
+    { grade: 'Very Good', summary: 'Minor light micro-scratches', detail: 'Minor signs of use — light micro-scratches visible only at certain angles, no dents. Fully tested and working perfectly.' },
+    { grade: 'Good', summary: 'Light visible wear', detail: 'Noticeable but minor cosmetic wear such as light scratches or scuffs, and possibly small marks. Fully functional and tested.' },
+    { grade: 'Fair', summary: 'Visible wear, great value', detail: 'Visible cosmetic wear (scratches, scuffs and possibly minor dents) but fully functional and tested. The best value for money.' },
+  ]),
   // USP / "Why buy from us" strip
   usps_enabled: '1',
   usps_title: 'Why buy from Mobirapid',

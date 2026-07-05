@@ -421,6 +421,7 @@ app.get('/sitemap.xml', (req, res) => {
   const entries = [
     { loc: '/', lastmod: today, priority: '1.0' },
     { loc: '/compare', lastmod: today, priority: '0.7' },
+    { loc: '/condition', lastmod: today, priority: '0.5' },
     { loc: '/blog', lastmod: today, priority: '0.8' },
     ...cats.map((c) => ({ loc: '/c/' + c.slug, lastmod: today, priority: '0.8' })),
     ...prods.map((p) => ({ loc: '/' + (prefixOf[p.category] || 'macbook') + '/' + p.slug, lastmod: today, priority: '0.7' })),
@@ -442,14 +443,14 @@ function siteHeaderHtml() {
   const logo = getSetting('logo_path', '');
   return `<header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
-  <nav class="header-nav"><a href="/#modelsSection">MacBooks</a><a href="/compare">Compare</a><a href="/blog">Blog</a></nav>
+  <nav class="header-nav"><a href="/#modelsSection">Shop</a><a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
   <a class="header-cta" href="/#lead-form">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
 </div></header>`;
 }
 function siteFooterHtml() {
   const legal = esc(getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid'));
   const pages = db.prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC').all();
-  const links = ['<a href="/blog">Blog</a>'].concat(pages.map((p) => `<a href="/p/${esc(p.slug)}">${esc(p.title)}</a>`)).join(' · ');
+  const links = ['<a href="/blog">Blog</a>', '<a href="/condition">Condition grades</a>'].concat(pages.map((p) => `<a href="/p/${esc(p.slug)}">${esc(p.title)}</a>`)).join(' · ');
   return `<footer class="site-footer"><div class="footer-bottom"><div class="container footer-bottom-inner">
   <span>© ${new Date().getFullYear()} ${legal}. All rights reserved.</span>
   <span class="footer-links">${links}</span>
@@ -787,8 +788,8 @@ function renderProductPage(req, res, m, cat) {
   const desc = (m.description || m.specs || m.name).slice(0, 180);
   const badge = m.badge ? `<span class="pdp-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
   const metaBits = isPhone
-    ? [m.condition_grade ? `<span class="pdp-tag ok">${esc(m.condition_grade)} condition</span>` : '', m.battery_health ? `<span class="pdp-tag">Battery ${esc(m.battery_health)}</span>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : '']
-    : [m.condition_grade ? `<span class="pdp-tag ok">${esc(m.condition_grade)} condition</span>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''];
+    ? [m.condition_grade ? `<a class="pdp-tag cond-pill ${gradeBadgeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : '', m.battery_health ? `<span class="pdp-tag">Battery ${esc(m.battery_health)}</span>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : '']
+    : [m.condition_grade ? `<a class="pdp-tag cond-pill ${gradeBadgeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''];
   res.send(
     pageHead(req, m.name + ' — ' + brand, desc, base + productUrl(m, cat), ldTag) +
     siteHeaderHtml() +
@@ -862,6 +863,46 @@ app.get('/c/:slug', (req, res) => {
       ${cat.tagline ? `<p class="cat-tagline">${esc(cat.tagline)}</p>` : ''}
       ${items.length ? `<div class="models-grid cat-grid-page">${items.map(card).join('')}</div>` : '<p class="muted">New stock coming soon. Please check back or book a consultation.</p>'}
       <p style="margin-top:26px;"><a class="pdp-book" href="/#lead-form">Book a free consultation →</a></p>
+    </main>` +
+    pageTail()
+  );
+});
+
+// Condition-grade badge colour (best → most worn)
+function gradeBadgeClass(grade) {
+  const g = String(grade || '').toLowerCase();
+  if (/new|sealed/.test(g)) return 'g-new';
+  if (/non-activated|non activated/.test(g)) return 'g-mint';
+  if (/open box|activated/.test(g)) return 'g-teal';
+  if (/excellent/.test(g)) return 'g-excellent';
+  if (/very good/.test(g)) return 'g-verygood';
+  if (/good/.test(g)) return 'g-good';
+  if (/fair/.test(g)) return 'g-fair';
+  return 'g-good';
+}
+// Condition grades page (server-rendered) — definitions with coloured badges.
+app.get('/condition', (req, res) => {
+  const base = baseUrl(req);
+  const brand = getSetting('brand_name', 'Mobirapid');
+  let grades = [];
+  try { grades = JSON.parse(getSetting('condition_grades', '[]')) || []; } catch { grades = []; }
+  const title = getSetting('condition_title', 'Condition grades explained');
+  const intro = getSetting('condition_intro', '');
+  const cards = grades.map((g) => `
+    <div class="cond-card">
+      <span class="cond-badge ${gradeBadgeClass(g.grade)}">${esc(g.grade)}</span>
+      ${g.summary ? `<p class="cond-summary">${esc(g.summary)}</p>` : ''}
+      ${g.detail ? `<p class="cond-detail">${esc(g.detail)}</p>` : ''}
+    </div>`).join('');
+  res.send(
+    pageHead(req, title + ' — ' + brand, intro.slice(0, 180) || title, base + '/condition', '') +
+    siteHeaderHtml() +
+    `<main class="container page-body cond-page">
+      <a class="back-link" href="/">← Home</a>
+      <h1>${esc(title)}</h1>
+      ${intro ? `<p class="cond-intro">${esc(intro)}</p>` : ''}
+      <div class="cond-grid">${cards}</div>
+      <p style="margin-top:26px;color:var(--muted);font-size:.9rem;">Every device — regardless of grade — passes our 35-point quality check and comes with a GST invoice and warranty. You can verify your exact unit on a free video call before you pay.</p>
     </main>` +
     pageTail()
   );

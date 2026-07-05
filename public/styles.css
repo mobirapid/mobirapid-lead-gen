@@ -717,3 +717,29 @@ body.cookie-open .float-contact { bottom: 104px; }
 
 /* Admin: category tag chip */
 .cat-tag { display:inline-block; background:#e0e7ff; color:#3730a3; font-size:.68rem; font-weight:700; padding:2px 8px; border-radius:999px; vertical-align:middle; text-transform:none; letter-spacing:0; }
+
+/* Condition grades page + badges */
+.cond-page { max-width: 860px; }
+.cond-page h1 { font-size: 1.9rem; letter-spacing: -.02em; margin: 0 0 10px; }
+.cond-intro { color: var(--muted); font-size: 1.02rem; margin: 0 0 26px; }
+.cond-grid { display: grid; gap: 14px; }
+.cond-card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 16px 20px; }
+.cond-summary { font-weight: 700; color: var(--ink); margin: 10px 0 4px; }
+.cond-detail { color: var(--ink-soft); margin: 0; font-size: .96rem; }
+.cond-badge { display: inline-block; font-weight: 800; font-size: .82rem; padding: 6px 14px; border-radius: 999px; letter-spacing: .01em; }
+/* grade colours (best -> most worn) */
+.g-new     { background: #dcfce7; color: #14532d; } .cond-card:has(.g-new)     { border-left-color: #16a34a; }
+.g-mint    { background: #d1fae5; color: #065f46; } .cond-card:has(.g-mint)    { border-left-color: #059669; }
+.g-teal    { background: #cffafe; color: #155e75; } .cond-card:has(.g-teal)    { border-left-color: #0891b2; }
+.g-excellent{ background: #dbeafe; color: #1e40af; } .cond-card:has(.g-excellent){ border-left-color: #2563eb; }
+.g-verygood{ background: #e0e7ff; color: #3730a3; } .cond-card:has(.g-verygood){ border-left-color: #4f46e5; }
+.g-good    { background: #fef9c3; color: #854d0e; } .cond-card:has(.g-good)    { border-left-color: #ca8a04; }
+.g-fair    { background: #ffedd5; color: #9a3412; } .cond-card:has(.g-fair)    { border-left-color: #ea580c; }
+/* condition pill/link on product pages */
+.cond-pill { text-decoration: none; border: none !important; font-weight: 700; }
+.cond-pill.g-new, .cond-pill.g-mint { background: #dcfce7; color: #14532d; }
+.cond-pill.g-teal { background: #cffafe; color: #155e75; }
+.cond-pill.g-excellent { background: #dbeafe; color: #1e40af; }
+.cond-pill.g-verygood { background: #e0e7ff; color: #3730a3; }
+.cond-pill.g-good { background: #fef9c3; color: #854d0e; }
+.cond-pill.g-fair { background: #ffedd5; color: #9a3412; }

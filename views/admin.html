@@ -305,6 +305,23 @@
       </div>
 
       <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>Condition grades</h3><p class="muted">Defined on the <a href="/condition" target="_blank">/condition</a> page. Each grade shows as a coloured badge, and product condition tags link here.</p></div>
+          <button class="btn" id="addConditionBtn" type="button">+ Add grade</button>
+        </div>
+        <div class="grid2">
+          <div><label class="fld">Show condition page link?</label>
+            <select id="set-condition_enabled"><option value="1">Visible</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Page title</label><input type="text" id="set-condition_title" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Intro text</label>
+        <textarea id="set-condition_intro" rows="2"></textarea>
+        <div id="conditionRows" style="margin-top:14px;"></div>
+        <p class="muted" style="margin-top:8px;">Order matters — list from best (New Sealed Pack) to most worn (Fair). Badge colours are assigned automatically by grade name.</p>
+      </div>
+
+      <div class="card">
         <h3>About section</h3>
         <p class="muted">The "About Mobirapid" block. Leave a blank line between paragraphs.</p>
         <div class="grid2">
