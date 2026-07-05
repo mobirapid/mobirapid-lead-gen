@@ -39,7 +39,28 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+// Long-lived caching for static assets. Uploaded images have unique filenames and
+// CSS/JS are cache-busted with ?v=ASSET_VER, so everything is safe to cache for a year.
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,
+  setHeaders(res, filePath) {
+    if (/\.(?:jpg|jpeg|png|webp|gif|svg|ico|woff2?|ttf)$/i.test(filePath) || /[\\/]uploads[\\/]/.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (/\.(?:css|js)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
+// Cache-busting version for CSS/JS (changes whenever those files change on deploy).
+const ASSET_VER = (() => {
+  try {
+    const parts = ['styles.css', 'app.js', 'icons.js'].map((f) => {
+      try { return fs.statSync(path.join(__dirname, 'public', f)).mtimeMs; } catch { return 0; }
+    });
+    return crypto.createHash('md5').update(parts.join('|')).digest('hex').slice(0, 8);
+  } catch { return String(Date.now()); }
+})();
+function ver(p) { return p + (p.includes('?') ? '&' : '?') + 'v=' + ASSET_VER; }
 
 // ---------------------------------------------------------------------------
 // Config
@@ -309,9 +330,13 @@ function baseUrl(req) {
   const proto = req.headers['x-forwarded-proto'] === 'https' || req.secure ? 'https' : 'http';
   return `${proto}://${req.headers.host || 'mobirapid.in'}`;
 }
+const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap';
 const HEAD_COMMON =
   '<link rel="preconnect" href="https://fonts.googleapis.com">' +
   '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+  // Load fonts without blocking render (was a render-blocking @import in the CSS).
+  `<link rel="preload" as="style" href="${FONT_HREF}" onload="this.onload=null;this.rel='stylesheet'">` +
+  `<noscript><link rel="stylesheet" href="${FONT_HREF}"></noscript>` +
   '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' +
   '<link rel="icon" href="/favicon.ico" sizes="any">' +
   '<link rel="apple-touch-icon" href="/apple-touch-icon.png">';
@@ -346,12 +371,20 @@ function renderIndex(req) {
       `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga}');</script>\n`
     : '';
   head += buildJsonLd(base);
+  // Preload the hero (LCP) image so it starts downloading immediately.
+  const bannerImg = getSetting('banner_image', '');
+  if (bannerImg) head = `<link rel="preload" as="image" href="${esc(bannerImg)}" fetchpriority="high">\n` + head;
   head += getSetting('head_code', ''); // raw admin-provided code (GTM, pixel, verification…)
   const body = getSetting('body_code', '');
   let html = indexTemplate
     .replace('<!--SEO_META-->', seo)
     .replace('<!--HEAD_CODE-->', head)
-    .replace('<!--BODY_CODE-->', body);
+    .replace('<!--BODY_CODE-->', body)
+    .replace('href="/styles.css"', `href="${ver('/styles.css')}"`)
+    .replace('src="/icons.js"', `src="${ver('/icons.js')}"`)
+    .replace('src="/app.js"', `src="${ver('/app.js')}"`);
+  // Server-render the hero background so LCP paints without waiting for JS.
+  if (bannerImg) html = html.replace('<section class="hero" id="hero">', `<section class="hero has-image" id="hero" style="background-image:url('${esc(bannerImg)}')">`);
   // Server-render the above-the-fold hero text so crawlers see it without running JS.
   const eyebrow = getSetting('banner_eyebrow', '');
   const heading = getSetting('banner_heading', '');
@@ -469,7 +502,7 @@ function pageHead(req, title, desc, canonical, extra) {
 ${HEAD_COMMON}
 <meta property="og:site_name" content="${esc(getSetting('brand_name', 'Mobirapid'))}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:type" content="article">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}">
-<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="${ver('/styles.css')}">
 ${gaTag}${getSetting('head_code', '')}${extra || ''}
 </head><body>`;
 }
@@ -1070,7 +1103,7 @@ app.get('/p/:slug', (req, res) => {
 <title>${esc(page.title)} — ${brand}</title>
 <meta name="description" content="${esc(page.title)} — ${brand}">
 <link rel="canonical" href="${baseUrl(req)}/p/${esc(req.params.slug)}">
-<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="${ver('/styles.css')}">
 ${headCode}${getSetting('head_code', '')}
 </head><body>
 <header class="site-header"><div class="container header-inner">
