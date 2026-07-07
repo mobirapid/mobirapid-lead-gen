@@ -847,7 +847,18 @@ function renderProductPage(req, res, m, cat) {
     `<main class="container page-body pdp">
       <a class="back-link" href="/c/${esc(cat.slug)}">← All ${esc(cat.name)}</a>
       <div class="pdp-grid">
-        <div class="pdp-media">${m.image ? `<img src="${esc(m.image)}" alt="${esc(m.name)}">` : `<div class="pdp-media-ph"><span></span></div>`}${badge}</div>
+        ${(() => {
+          let gallery = [];
+          try { gallery = JSON.parse(m.images || '[]'); } catch { gallery = []; }
+          if (!gallery.length && m.image) gallery = [m.image];
+          gallery = gallery.filter(Boolean);
+          if (!gallery.length) return `<div class="pdp-media"><div class="pdp-media-ph"><span></span></div>${badge}</div>`;
+          const main = `<div class="pdp-media" id="pdpMain">${badge}<img id="pdpMainImg" src="${esc(gallery[0])}" alt="${esc(m.name)}"></div>`;
+          const thumbs = gallery.length > 1
+            ? `<div class="pdp-thumbs" id="pdpThumbs">${gallery.map((g, i) => `<button type="button" class="pdp-thumb${i === 0 ? ' on' : ''}" data-img="${esc(g)}"><img src="${esc(g)}" alt="${esc(m.name)} photo ${i + 1}" loading="lazy"></button>`).join('')}</div>`
+            : '';
+          return `<div class="pdp-gallery">${main}${thumbs}</div>`;
+        })()}
         <div class="pdp-info">
           <h1>${esc(m.name)}</h1>
           ${m.specs ? `<p class="pdp-specs">${esc(m.specs)}</p>` : ''}
@@ -876,7 +887,8 @@ function renderProductPage(req, res, m, cat) {
         <h2>What can this MacBook run?</h2>
         <p class="pdp-software">${esc(m.software)}</p>
       </section>` : ''}
-    </main>` +
+    </main>
+    <script>(function(){var t=document.getElementById('pdpThumbs');if(!t)return;var main=document.getElementById('pdpMainImg');t.addEventListener('click',function(e){var b=e.target.closest('.pdp-thumb');if(!b)return;main.src=b.getAttribute('data-img');t.querySelectorAll('.pdp-thumb').forEach(function(x){x.classList.toggle('on',x===b);});});})();</script>` +
     pageTail()
   );
 }
@@ -1483,12 +1495,17 @@ function modelFromBody(b) {
   const name = String(b.name || '').trim();
   const catSlug = String(b.category || 'macbooks').trim();
   const cat = db.prepare('SELECT slug FROM categories WHERE slug = ?').get(catSlug);
+  // Gallery images (JSON array). Primary image = first in the list (or the legacy `image`).
+  let gallery = Array.isArray(b.images) ? b.images.map((x) => String(x).trim()).filter(Boolean).slice(0, 12) : [];
+  const primary = String(b.image || '').trim() || gallery[0] || '';
+  if (primary && !gallery.length) gallery = [primary];
   return {
     name,
     category: cat ? cat.slug : 'macbooks',
     slug: b.slug ? slugify(b.slug) : slugify(name),
     price: String(b.price || '').trim(),
-    image: String(b.image || '').trim(),
+    image: primary,
+    images: JSON.stringify(gallery),
     specs: String(b.specs || '').trim(),
     description: String(b.description || '').trim().slice(0, 600),
     badge: String(b.badge || '').trim(),
@@ -1514,8 +1531,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, category, slug, price, image, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
-     VALUES (@name, @category, @slug, @price, @image, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, category, slug, price, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
+     VALUES (@name, @category, @slug, @price, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -1531,7 +1548,7 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, image=@image, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
      battery_health=@battery_health, colour=@colour, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });

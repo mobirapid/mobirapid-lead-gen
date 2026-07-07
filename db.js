@@ -137,6 +137,7 @@ ensureColumn('macbook_models', 'software', 'TEXT');
 ensureColumn('macbook_models', 'category', "TEXT NOT NULL DEFAULT 'macbooks'");
 ensureColumn('macbook_models', 'battery_health', 'TEXT');
 ensureColumn('macbook_models', 'colour', 'TEXT');
+ensureColumn('macbook_models', 'images', 'TEXT'); // JSON array of image paths (gallery). image = primary/first.
 // Normalise any legacy/blank category values onto the 'macbooks' category slug.
 db.exec("UPDATE macbook_models SET category = 'macbooks' WHERE category IS NULL OR category = '' OR category = 'macbook'");
 

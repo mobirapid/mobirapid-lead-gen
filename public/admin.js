@@ -27,8 +27,11 @@
   // ---------- Image upload helper ----------
   async function uploadImage(fileInput) {
     if (!fileInput.files || !fileInput.files[0]) { alert('Choose a file first.'); return null; }
+    return uploadOneFile(fileInput.files[0]);
+  }
+  async function uploadOneFile(file) {
     const fd = new FormData();
-    fd.append('image', fileInput.files[0]);
+    fd.append('image', file);
     const r = await api('/api/admin/upload', { method: 'POST', body: fd });
     const data = await r.json();
     if (!data.ok) { alert(data.error || 'Upload failed.'); return null; }
@@ -485,28 +488,46 @@
     ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'battery_health', 'colour', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
     applyCategoryFields($('m-category').value);
-    const prev = $('m-imagePrev');
-    if (m && m.image) showPrev(prev, m.image); else prev.style.display = 'none';
+    // Gallery images
+    modelImages = [];
+    if (m) {
+      try { modelImages = JSON.parse(m.images || '[]'); } catch { modelImages = []; }
+      if (!modelImages.length && m.image) modelImages = [m.image];
+    }
+    modelImages = modelImages.filter(Boolean);
+    renderGallery();
     $('m-imageFile').value = '';
-    toggleMRemove();
     dlg.showModal();
   }
-  function toggleMRemove() {
-    const btn = $('m-removeImgBtn'); if (btn) btn.hidden = !($('m-image').value || '').trim();
+  let modelImages = [];
+  function renderGallery() {
+    const wrap = $('m-gallery'); if (!wrap) return;
+    $('m-image').value = modelImages[0] || '';
+    if (!modelImages.length) { wrap.innerHTML = '<p class="muted" style="padding:8px 0;">No photos yet. Upload one or more above.</p>'; return; }
+    wrap.innerHTML = modelImages.map((src, i) => `
+      <div class="m-gitem${i === 0 ? ' main' : ''}">
+        <img src="${esc(src)}" alt="">
+        ${i === 0 ? '<span class="m-gmain">Main</span>' : `<button type="button" class="m-gset" data-gmain="${i}">Make main</button>`}
+        <button type="button" class="m-gdel" data-gdel="${i}" title="Remove">✕</button>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-gdel]').forEach((b) => b.addEventListener('click', () => { modelImages.splice(+b.dataset.gdel, 1); renderGallery(); }));
+    wrap.querySelectorAll('[data-gmain]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.gmain; const [x] = modelImages.splice(i, 1); modelImages.unshift(x); renderGallery(); }));
   }
   on('m-category', 'change', () => applyCategoryFields($('m-category').value));
   $('addModelBtn').addEventListener('click', () => openModel(null));
   $('modelCancel').addEventListener('click', () => dlg.close());
   $('m-uploadBtn').addEventListener('click', async () => {
-    const p = await uploadImage($('m-imageFile')); if (!p) return;
-    $('m-image').value = p; showPrev($('m-imagePrev'), p); toggleMRemove();
-  });
-  on('m-removeImgBtn', 'click', () => {
-    if (!confirm('Remove this photo from the product?')) return;
-    $('m-image').value = '';
-    $('m-imageFile').value = '';
-    const prev = $('m-imagePrev'); if (prev) prev.style.display = 'none';
-    toggleMRemove();
+    const input = $('m-imageFile');
+    const files = Array.from(input.files || []);
+    if (!files.length) { alert('Choose one or more image files first.'); return; }
+    const btn = $('m-uploadBtn'); btn.disabled = true; btn.textContent = 'Uploading…';
+    for (const file of files) {
+      const p = await uploadOneFile(file);
+      if (p) modelImages.push(p);
+    }
+    btn.disabled = false; btn.textContent = 'Upload photo(s)';
+    input.value = '';
+    renderGallery();
   });
   $('modelSave').addEventListener('click', async () => {
     const id = $('m-id').value;
@@ -521,7 +542,8 @@
       display: $('m-display').value.trim(), software: $('m-software').value.trim(),
       battery_health: $('m-battery_health') ? $('m-battery_health').value.trim() : '',
       colour: $('m-colour') ? $('m-colour').value.trim() : '',
-      image: $('m-image').value.trim(),
+      image: modelImages[0] || '',
+      images: modelImages.slice(),
       sort_order: parseInt($('m-sort_order').value || '0', 10), active: $('m-active').value,
     };
     if (!payload.name) { alert('Model name is required.'); return; }

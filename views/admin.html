@@ -641,13 +641,12 @@
             <div><label class="fld">Colour</label><input type="text" id="m-colour" placeholder="Midnight" /></div>
           </div>
         </div>
-        <label class="fld" style="margin-top:12px;">Image</label>
+        <label class="fld" style="margin-top:12px;">Photos <small style="color:#64748b;">(add several — the first is the main image)</small></label>
         <div class="upload-row">
-          <input type="file" id="m-imageFile" accept="image/*" />
-          <button class="btn small" id="m-uploadBtn" type="button">Upload</button>
-          <button class="btn small danger" id="m-removeImgBtn" type="button" hidden>Remove photo</button>
+          <input type="file" id="m-imageFile" accept="image/*" multiple />
+          <button class="btn small" id="m-uploadBtn" type="button">Upload photo(s)</button>
         </div>
-        <img class="img-prev" id="m-imagePrev" />
+        <div id="m-gallery" class="m-gallery"></div>
         <input type="hidden" id="m-image" />
         <div class="grid2" style="margin-top:12px;">
           <div><label class="fld">Sort order</label><input type="number" id="m-sort_order" value="0" /></div>
