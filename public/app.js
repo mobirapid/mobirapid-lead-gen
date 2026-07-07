@@ -325,7 +325,7 @@
           ${m.description ? `<p class="model-desc">${esc(m.description)}</p>` : ''}
           <div class="model-meta">
             ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
-            ${m.price && s.price_note ? `<span class="model-gst">${esc(s.price_note)}</span>` : ''}
+            ${(() => { const pn = (CAT_MAP[m.category] && CAT_MAP[m.category].price_note) || s.price_note; return m.price && pn ? `<span class="model-gst">${esc(pn)}</span>` : ''; })()}
             ${m.condition_grade ? `<a class="model-grade cond-pill ${gradeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : ''}
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
@@ -338,7 +338,7 @@
     if (note) {
       if (s.price_note) {
         note.hidden = false;
-        note.textContent = `All prices are exclusive of GST (${esc(s.price_note).replace(/[^0-9%]/g, '') || '18%'}). A GST invoice with serial number is provided with every purchase.`;
+        note.textContent = `Tax is shown next to each price. A GST invoice with the device serial number is provided with every purchase.`;
       } else { note.hidden = true; }
     }
     setupCarousel('modelsGrid');

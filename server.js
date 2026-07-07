@@ -450,7 +450,9 @@ app.get('/sitemap.xml', (req, res) => {
   const posts = db.prepare('SELECT slug, updated_at, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
   const cats = db.prepare('SELECT slug, url_prefix FROM categories WHERE active = 1').all();
   const prefixOf = {}; for (const c of cats) prefixOf[c.slug] = c.url_prefix;
-  const prods = db.prepare('SELECT slug, category FROM macbook_models WHERE active = 1 AND slug IS NOT NULL ORDER BY sort_order').all();
+  const prods = db.prepare(`SELECT m.slug, m.category FROM macbook_models m
+    LEFT JOIN categories c ON c.slug = m.category
+    WHERE m.active = 1 AND m.slug IS NOT NULL AND (c.active = 1 OR c.slug IS NULL) ORDER BY m.sort_order`).all();
   const entries = [
     { loc: '/', lastmod: today, priority: '1.0' },
     { loc: '/compare', lastmod: today, priority: '0.7' },
@@ -621,8 +623,12 @@ app.get('/api/site', (req, res) => {
   const all = getAllSettings();
   const s = {};
   for (const k of Object.keys(all)) if (!PRIVATE_KEYS.has(k)) s[k] = all[k]; // never expose secrets
+  // Only products in active categories (a hidden category hides all its products site-wide).
   const models = db
-    .prepare('SELECT * FROM macbook_models WHERE active = 1 ORDER BY sort_order ASC, id ASC')
+    .prepare(`SELECT m.* FROM macbook_models m
+              LEFT JOIN categories c ON c.slug = m.category
+              WHERE m.active = 1 AND (c.active = 1 OR c.slug IS NULL)
+              ORDER BY m.sort_order ASC, m.id ASC`)
     .all();
   const pages = db
     .prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC, title ASC')
@@ -660,7 +666,7 @@ app.get('/api/site', (req, res) => {
       budget_options: parseJsonSetting('budget_options', []),
     },
     models,
-    categories: db.prepare('SELECT slug, name, singular, url_prefix, tagline, fields, sort_order FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all(),
+    categories: db.prepare('SELECT slug, name, singular, url_prefix, tagline, fields, price_note, sort_order FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all(),
     pages,
     reviews,
     posts,
@@ -811,7 +817,7 @@ function renderProductPage(req, res, m, cat) {
   const isPhone = cat.fields === 'phone';
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
-  const priceNote = getSetting('price_note', '');
+  const priceNote = (cat.price_note || '').trim() || getSetting('price_note', '');
   const bookUrl = `/?model=${encodeURIComponent(m.slug)}#lead-form`;
   const priceNum = String(m.price || '').replace(/[^\d.]/g, '');
   const ld = {
@@ -881,7 +887,7 @@ app.get('/c/:slug', (req, res) => {
   if (!cat) return res.status(404).send('Category not found');
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
-  const priceNote = getSetting('price_note', '');
+  const priceNote = (cat.price_note || '').trim() || getSetting('price_note', '');
   const items = db.prepare('SELECT * FROM macbook_models WHERE category = ? AND active = 1 ORDER BY sort_order ASC, id ASC').all(cat.slug);
   const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: cat.name,
     itemListElement: items.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + productUrl(m, cat), name: m.name })) };
@@ -1553,8 +1559,8 @@ app.post('/api/admin/categories', requireAdmin, requireFullRole, (req, res) => {
   const slug = slugify(b.slug || name);
   const prefix = slugify(b.url_prefix || b.singular || name).replace(/s$/, '');
   if (db.prepare('SELECT id FROM categories WHERE slug = ? OR url_prefix = ?').get(slug, prefix)) return res.status(400).json({ ok: false, error: 'A category with that slug/prefix already exists.' });
-  const info = db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active) VALUES (?,?,?,?,?,?,?,?)')
-    .run(slug, name, String(b.singular || name).trim(), prefix, String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1);
+  const info = db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active, price_note) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(slug, name, String(b.singular || name).trim(), prefix, String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim());
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
 app.put('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {
@@ -1562,8 +1568,8 @@ app.put('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) =
   const id = parseInt(req.params.id, 10);
   const name = String(b.name || '').trim();
   if (!name) return res.status(400).json({ ok: false, error: 'Category name is required.' });
-  db.prepare('UPDATE categories SET name=?, singular=?, tagline=?, fields=?, sort_order=?, active=? WHERE id=?')
-    .run(name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, id);
+  db.prepare('UPDATE categories SET name=?, singular=?, tagline=?, fields=?, sort_order=?, active=?, price_note=? WHERE id=?')
+    .run(name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim(), id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {

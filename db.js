@@ -941,13 +941,28 @@ if (!already) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(SPEC_FIX_FLAG, '1');
 }
 
+// One-time: restore the global price note to "+ 18% GST" (exclusive) — only tablets are
+// GST-inclusive, handled via a per-category price note below.
+const PRICE_NOTE_FIX_FLAG = 'price_note_fix_v2';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PRICE_NOTE_FIX_FLAG)) {
+  const cur = db.prepare("SELECT value FROM settings WHERE key = 'price_note'").get();
+  if (cur && cur.value === 'incl. 18% GST') {
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('price_note', '+ 18% GST')").run();
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(PRICE_NOTE_FIX_FLAG, '1');
+}
+
+// Per-category price note override (blank = use the global note).
+ensureColumn('categories', 'price_note', 'TEXT');
+
 // One-time seed: Samsung tablet catalog into a "Refurbished Tablets" category.
 const TAB_FLAG = 'tablets_seed_v1';
 if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_FLAG)) {
   let cat = db.prepare("SELECT slug FROM categories WHERE slug = 'tablets' OR url_prefix = 'tablet'").get();
   if (!cat) {
-    db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active) VALUES (?,?,?,?,?,?,?,?)')
-      .run('tablets', 'Refurbished Tablets', 'Tablet', 'tablet', 'Samsung Galaxy Tabs · open-box · tested · warranty & GST invoice', 'phone', 3, 1);
+    // Seeded hidden — the whole category stays off the site until you verify and enable it.
+    db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active, price_note) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run('tablets', 'Refurbished Tablets', 'Tablet', 'tablet', 'Samsung Galaxy Tabs · open-box · tested · warranty & GST invoice', 'phone', 3, 0, 'incl. 18% GST');
     cat = { slug: 'tablets' };
   }
   function tab(model, ram, store, conn, colour, size, price) {
@@ -1006,6 +1021,19 @@ const TAB_COND_FLAG = 'tablets_cond_activated_v1';
 if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_COND_FLAG)) {
   db.prepare("UPDATE macbook_models SET condition_grade = 'Open Box & Activated' WHERE category = 'tablets' AND condition_grade = 'Open Box & Non-activated'").run();
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_COND_FLAG, '1');
+}
+
+// One-time: hide the Tablets category until it's verified (enable it later from the admin),
+// and mark tablet prices as GST-inclusive.
+const TAB_HIDE_FLAG = 'tablets_hidden_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_HIDE_FLAG)) {
+  db.prepare("UPDATE categories SET active = 0 WHERE slug = 'tablets'").run();
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_HIDE_FLAG, '1');
+}
+const TAB_PRICENOTE_FLAG = 'tablets_pricenote_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_PRICENOTE_FLAG)) {
+  db.prepare("UPDATE categories SET price_note = 'incl. 18% GST' WHERE slug = 'tablets' AND (price_note IS NULL OR price_note = '')").run();
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_PRICENOTE_FLAG, '1');
 }
 
 module.exports = db;
