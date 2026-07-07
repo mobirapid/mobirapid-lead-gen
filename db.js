@@ -941,4 +941,63 @@ if (!already) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(SPEC_FIX_FLAG, '1');
 }
 
+// One-time seed: Samsung tablet catalog into a "Refurbished Tablets" category.
+const TAB_FLAG = 'tablets_seed_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_FLAG)) {
+  let cat = db.prepare("SELECT slug FROM categories WHERE slug = 'tablets' OR url_prefix = 'tablet'").get();
+  if (!cat) {
+    db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active) VALUES (?,?,?,?,?,?,?,?)')
+      .run('tablets', 'Refurbished Tablets', 'Tablet', 'tablet', 'Samsung Galaxy Tabs · open-box · tested · warranty & GST invoice', 'phone', 3, 1);
+    cat = { slug: 'tablets' };
+  }
+  function tab(model, ram, store, conn, colour, size, price) {
+    const sizePart = size ? ` (${size})` : '';
+    return {
+      name: `Refurbished Samsung Galaxy Tab ${model} ${ram}/${store} ${conn} — ${colour}${sizePart}`,
+      storage: `${store}GB`,
+      colour,
+      specs: `${ram}GB RAM · ${store}GB · ${conn}${size ? ` · ${size}` : ''}`,
+      price: price ? '₹' + Number(price).toLocaleString('en-IN') : '',
+    };
+  }
+  const tabs = [
+    tab('A11', '4', '64', 'Wi-Fi', 'Silver', '8.7"', 14000),
+    tab('A11', '4', '64', 'Wi-Fi', 'Gray', '8.7"', 14000),
+    tab('A11', '8', '128', 'Wi-Fi', 'Gray', '', 16000),
+    tab('A11', '8', '128', 'Wi-Fi', 'Silver', '', 16000),
+    tab('A9+', '8', '128', 'Wi-Fi', 'Navy', '', 16000),
+    tab('A9+', '8', '128', 'Wi-Fi', 'Graphite', '', 16000),
+    tab('A9+', '8', '128', '5G', 'Graphite', '11"', 19000),
+    tab('A9+', '8', '128', '5G', 'Navy', '11"', 19000),
+    tab('A9+', '8', '128', '5G', 'Silver', '11"', 19000),
+    tab('S9 FE', '6', '128', 'Wi-Fi', 'Lavender', '10.9"', 24000),
+    tab('S9 FE', '6', '128', 'Wi-Fi', 'Silver', '10.9"', 24000),
+    tab('S9 FE', '6', '128', 'Wi-Fi', 'Mint', '10.9"', 24000),
+    tab('S9 FE', '8', '256', 'Wi-Fi', 'Gray', '', 26000),
+    tab('S9 FE', '8', '256', 'Wi-Fi', 'Lavender', '', 26000),
+    tab('S10 Lite', '6', '128', '5G', 'Gray', '10.9"', 28000),
+    tab('S9 FE+', '8', '128', 'Wi-Fi', 'Mint', '', 28000),
+    tab('S9 FE+', '8', '128', 'Wi-Fi', 'Gray', '12.4"', 28000),
+    tab('S9 FE+', '8', '128', 'Wi-Fi', 'Silver', '12.4"', 28000),
+    tab('S10 FE+', '8', '128', 'Wi-Fi', 'Blue', '13.1"', 40000),
+    tab('S9 FE+', '12', '256', 'Wi-Fi', 'Gray', '12.4"', null),
+    tab('S9', '12', '256', '5G', 'Beige', '10.9"', 44000),
+    tab('S9', '12', '256', '5G', 'Graphite', '10.9"', 44000),
+    tab('A11+', '6', '128', '5G', 'Gray', '', 21000),
+    tab('A11+', '6', '128', 'Wi-Fi', 'Gray', '', 19000),
+    tab('A11+', '6', '128', 'Wi-Fi', 'Silver', '', 19000),
+  ];
+  const usedTabSlugs = new Set(db.prepare('SELECT slug FROM macbook_models').all().map((r) => r.slug).filter(Boolean));
+  const insTab = db.prepare(`INSERT INTO macbook_models (name, category, slug, price, specs, badge, condition_grade, warranty, storage, colour, sort_order, active)
+    VALUES (@name, @category, @slug, @price, @specs, @badge, @condition_grade, @warranty, @storage, @colour, @sort_order, @active)`);
+  let so = 1;
+  for (const t of tabs) {
+    let base = slugifyModel(t.name), s = base, n = 2;
+    while (usedTabSlugs.has(s)) s = base + '-' + n++;
+    usedTabSlugs.add(s);
+    insTab.run({ name: t.name, category: cat.slug, slug: s, price: t.price, specs: t.specs, badge: '', condition_grade: 'Open Box & Non-activated', warranty: '6-month warranty', storage: t.storage, colour: t.colour, sort_order: so++, active: 1 });
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_FLAG, '1');
+}
+
 module.exports = db;
