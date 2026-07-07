@@ -475,14 +475,25 @@
     const prev = $('m-imagePrev');
     if (m && m.image) showPrev(prev, m.image); else prev.style.display = 'none';
     $('m-imageFile').value = '';
+    toggleMRemove();
     dlg.showModal();
+  }
+  function toggleMRemove() {
+    const btn = $('m-removeImgBtn'); if (btn) btn.hidden = !($('m-image').value || '').trim();
   }
   on('m-category', 'change', () => applyCategoryFields($('m-category').value));
   $('addModelBtn').addEventListener('click', () => openModel(null));
   $('modelCancel').addEventListener('click', () => dlg.close());
   $('m-uploadBtn').addEventListener('click', async () => {
     const p = await uploadImage($('m-imageFile')); if (!p) return;
-    $('m-image').value = p; showPrev($('m-imagePrev'), p);
+    $('m-image').value = p; showPrev($('m-imagePrev'), p); toggleMRemove();
+  });
+  on('m-removeImgBtn', 'click', () => {
+    if (!confirm('Remove this photo from the product?')) return;
+    $('m-image').value = '';
+    $('m-imageFile').value = '';
+    const prev = $('m-imagePrev'); if (prev) prev.style.display = 'none';
+    toggleMRemove();
   });
   $('modelSave').addEventListener('click', async () => {
     const id = $('m-id').value;
