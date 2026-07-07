@@ -398,10 +398,21 @@
     const r = await api('/api/admin/models');
     const data = await r.json();
     models = data.models || [];
+    renderModelFilter();
     renderModelsList();
     fillOfferModels();
   }
   function catName(slug) { const c = cats.find((x) => x.slug === slug); return c ? c.name : slug; }
+  let modelFilter = '';
+  function renderModelFilter() {
+    const wrap = $('modelCatFilter'); if (!wrap) return;
+    const present = [...new Set(models.map((m) => m.category))];
+    if (present.length < 2 && !modelFilter) { wrap.innerHTML = ''; return; }
+    const counts = {}; models.forEach((m) => { counts[m.category] = (counts[m.category] || 0) + 1; });
+    const chip = (val, label, n) => `<button class="mfilter${modelFilter === val ? ' on' : ''}" data-mcat="${esc(val)}">${esc(label)}${n != null ? ` (${n})` : ''}</button>`;
+    wrap.innerHTML = chip('', 'All', models.length) + cats.filter((c) => present.includes(c.slug)).map((c) => chip(c.slug, c.name, counts[c.slug] || 0)).join('');
+    wrap.querySelectorAll('[data-mcat]').forEach((b) => b.addEventListener('click', () => { modelFilter = b.dataset.mcat; renderModelFilter(); renderModelsList(); }));
+  }
   function fillOfferModels() {
     const sel = $('set-offer_model_slug');
     if (!sel) return;
@@ -417,8 +428,10 @@
     saveSettings(collectSettings(['payu_enabled', 'payu_mode', 'payu_merchant_key', 'payu_salt', 'reserve_thankyou_text', 'reserve_button_enabled', 'reserve_flat_amount', 'reserve_payment_link']), $('payuSaved'));
   });
   function renderModelsList() {
-    if (!models.length) { $('modelsList').innerHTML = '<p class="muted" style="padding:14px 0;">No models yet. Click “Add model”.</p>'; return; }
-    $('modelsList').innerHTML = models.map((m) => `
+    if (!models.length) { $('modelsList').innerHTML = '<p class="muted" style="padding:14px 0;">No products yet. Click “Add product”.</p>'; return; }
+    const shown = modelFilter ? models.filter((m) => m.category === modelFilter) : models;
+    if (!shown.length) { $('modelsList').innerHTML = '<p class="muted" style="padding:14px 0;">No products in this category yet.</p>'; return; }
+    $('modelsList').innerHTML = shown.map((m) => `
       <div class="model-row">
         <div class="model-thumb" style="${m.image ? `background-image:url('${esc(m.image)}')` : ''}"></div>
         <div class="info">
