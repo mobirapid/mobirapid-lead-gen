@@ -784,6 +784,18 @@ function catByPrefix(prefix) { return db.prepare('SELECT * FROM categories WHERE
 function catBySlug(slug) { return db.prepare('SELECT * FROM categories WHERE slug = ? AND active = 1').get(slug); }
 function catForProduct(m) { return db.prepare('SELECT * FROM categories WHERE slug = ?').get(m.category) || { slug: m.category, name: 'Products', singular: 'Product', url_prefix: 'macbook', fields: 'macbook' }; }
 function productUrl(m, cat) { return '/' + (cat || catForProduct(m)).url_prefix + '/' + m.slug; }
+// Flat "Reserve with ₹X" button. Uses a fixed PayU payment link if set, else the dynamic flow.
+function reserveButton(slug, cls) {
+  if (getSetting('reserve_button_enabled', '1') !== '1') return '';
+  const link = getSetting('reserve_payment_link', '').trim();
+  const payuOn = getSetting('payu_enabled', '0') === '1';
+  if (!link && !payuOn) return '';
+  const amt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 0;
+  if (!amt) return '';
+  const href = link || ('/reserve?model=' + encodeURIComponent(slug));
+  const ext = link ? ' target="_blank" rel="noopener"' : '';
+  return `<a class="${cls || 'pdp-reserve'}" href="${esc(href)}"${ext}>Reserve with ₹${amt.toLocaleString('en-IN')}</a>`;
+}
 
 // Product detail page (server-rendered, Product schema) — category-aware.
 // Generic route: /:prefix/:slug where :prefix matches a category url_prefix (else next()).
@@ -838,6 +850,7 @@ function renderProductPage(req, res, m, cat) {
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
           <div class="pdp-actions">
             <a class="pdp-book" href="${bookUrl}">Book Now →</a>
+            ${reserveButton(m.slug, 'pdp-reserve')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}
           </div>
           <ul class="pdp-trust">
@@ -884,6 +897,7 @@ app.get('/c/:slug', (req, res) => {
         ${sub ? `<p class="model-specs">${esc(sub)}</p>` : ''}
         ${m.price ? `<div class="model-price">${esc(m.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
         <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
+        ${reserveButton(m.slug, 'model-reserve')}
       </div>
     </article>`;
   };

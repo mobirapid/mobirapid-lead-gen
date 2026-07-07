@@ -221,6 +221,11 @@ const DEFAULT_SETTINGS = {
   payu_merchant_key: '',
   payu_salt: '',
   reserve_thankyou_text: 'Thank you! Your reservation payment was received. Our team will call you shortly to confirm your MacBook and complete the delivery.',
+  // Flat "Reserve" button shown on every product. If a fixed PayU payment link is set,
+  // the button opens it directly; otherwise it uses the dynamic PayU hosted-checkout flow.
+  reserve_button_enabled: '1',
+  reserve_flat_amount: '1999',
+  reserve_payment_link: '',
   // SEO + Analytics (injected into the page <head>/<body> from the server)
   site_url: 'https://mobirapid.in',
   meta_title: 'Mobirapid — Refurbished MacBooks with Warranty & GST Invoice',

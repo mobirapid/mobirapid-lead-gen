@@ -742,3 +742,10 @@ body.cookie-open .float-contact { bottom: 104px; }
 .cond-pill.g-verygood { background: #e0e7ff; color: #3730a3; }
 .cond-pill.g-good { background: #fef9c3; color: #854d0e; }
 .cond-pill.g-fair { background: #ffedd5; color: #9a3412; }
+
+/* Flat reserve buttons on products */
+.pdp-reserve { display: inline-block; background: rgba(37,99,235,.08); border: 1.5px solid var(--brand); color: var(--brand-dark); font-weight: 800; padding: 13px 26px; border-radius: var(--radius-sm); transition: background .18s ease, transform .18s ease; }
+.pdp-reserve:hover { background: var(--brand); color: #fff; transform: translateY(-2px); }
+.model-reserve { display: block; text-align: center; margin-top: 8px; background: var(--brand); color: #fff !important; font-weight: 700; font-size: .9rem; padding: 9px 14px; border-radius: var(--radius-xs); box-shadow: 0 6px 14px rgba(37,99,235,.25); transition: transform .15s ease; }
+.model-reserve:hover { transform: translateY(-1px); }
+.cat-grid-page .model-reserve { margin-top: 10px; }

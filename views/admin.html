@@ -248,6 +248,18 @@
         </div>
         <label class="fld" style="margin-top:12px;">Thank-you message (shown after successful payment)</label>
         <input type="text" id="set-reserve_thankyou_text" />
+
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e7eaf1;font-weight:700;font-size:0.85rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Reserve button on every product</div>
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Show Reserve button?</label>
+            <select id="set-reserve_button_enabled"><option value="1">Show on all products</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Reserve amount (₹)</label><input type="text" id="set-reserve_flat_amount" placeholder="1999" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Fixed PayU payment link (₹1999)</label>
+        <input type="text" id="set-reserve_payment_link" placeholder="https://pmny.in/… or your PayU payment page URL" />
+        <p class="muted" style="margin-top:6px;">If set, the Reserve button opens this link directly. Leave blank to use the built-in PayU checkout (which also captures the buyer's details).</p>
+
         <div style="margin-top:14px;"><button class="btn primary" id="payuSaveBtn" type="button">Save payment settings</button> <span class="saved" id="payuSaved" hidden>Saved ✓</span></div>
         <p class="muted" style="margin-top:10px;">Success/return URLs to configure in your PayU dashboard: <code>/reserve/success</code> and <code>/reserve/failure</code> (on your domain).</p>
       </div>

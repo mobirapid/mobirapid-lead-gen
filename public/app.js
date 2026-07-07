@@ -248,6 +248,17 @@
     const c = CAT_MAP[m.category];
     return m.slug ? '/' + (c ? c.url_prefix : 'macbook') + '/' + esc(m.slug) : '#lead-form';
   }
+  function reserveBtn(m, s) {
+    if (String(s.reserve_button_enabled) === '0') return '';
+    const link = (s.reserve_payment_link || '').trim();
+    const payuOn = String(s.payu_enabled) === '1';
+    if (!link && !payuOn) return '';
+    const amt = parseInt(String(s.reserve_flat_amount || '1999').replace(/[^\d]/g, ''), 10) || 0;
+    if (!amt) return '';
+    const href = link || ('/reserve?model=' + encodeURIComponent(m.slug));
+    const ext = link ? ' target="_blank" rel="noopener"' : '';
+    return `<a class="model-reserve" href="${esc(href)}"${ext}>Reserve with ₹${amt.toLocaleString('en-IN')}</a>`;
+  }
   function specLine(m, s) {
     const c = CAT_MAP[m.category];
     if (c && c.fields === 'phone') {
@@ -319,6 +330,7 @@
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
           <a class="model-cta" href="${prodUrl(m)}">View details →</a>
+          ${reserveBtn(m, s)}
         </div>
       </article>`;
     }).join('');
