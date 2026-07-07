@@ -794,7 +794,7 @@ function reserveButton(slug, cls) {
   if (!amt) return '';
   const href = link || ('/reserve?model=' + encodeURIComponent(slug));
   const ext = link ? ' target="_blank" rel="noopener"' : '';
-  return `<a class="${cls || 'pdp-reserve'}" href="${esc(href)}"${ext}>Reserve with ₹${amt.toLocaleString('en-IN')}</a>`;
+  return `<a class="${cls || 'pdp-reserve'}" href="${esc(href)}"${ext}>Reserve now — ₹${amt.toLocaleString('en-IN')}</a>`;
 }
 
 // Product detail page (server-rendered, Product schema) — category-aware.

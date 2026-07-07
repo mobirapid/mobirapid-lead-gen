@@ -257,7 +257,7 @@
     if (!amt) return '';
     const href = link || ('/reserve?model=' + encodeURIComponent(m.slug));
     const ext = link ? ' target="_blank" rel="noopener"' : '';
-    return `<a class="model-reserve" href="${esc(href)}"${ext}>Reserve with ₹${amt.toLocaleString('en-IN')}</a>`;
+    return `<a class="model-reserve" href="${esc(href)}"${ext}>Reserve now — ₹${amt.toLocaleString('en-IN')}</a>`;
   }
   function specLine(m, s) {
     const c = CAT_MAP[m.category];
