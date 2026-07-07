@@ -767,3 +767,13 @@ body.cookie-open .float-contact { bottom: 104px; }
 .m-gmain { display: block; text-align: center; font-size: .68rem; font-weight: 800; color: var(--brand-dark); margin-top: 3px; }
 .m-gset { display: block; width: 100%; margin-top: 3px; font-size: .66rem; padding: 3px 0; border: 1px solid var(--line-strong); border-radius: 6px; background: #f8fafc; cursor: pointer; }
 .m-gdel { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; background: var(--err); color: #fff; border: none; font-size: .8rem; cursor: pointer; line-height: 1; }
+
+/* Product page trust bar (returns / warranty / shipping) */
+.pdp-trustbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 28px 0 6px; background: #f4f6fb; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.pdp-tb { display: flex; align-items: center; gap: 12px; color: var(--ink); }
+.pdp-tb-ic { flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: #fff; border: 1px solid var(--line); font-size: 1.2rem; }
+.pdp-tb-tx { display: flex; flex-direction: column; line-height: 1.25; }
+.pdp-tb-tx b { font-size: .95rem; font-weight: 700; }
+.pdp-tb-tx small { color: var(--muted); font-size: .8rem; }
+a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underline; }
+@media (max-width: 640px) { .pdp-trustbar { grid-template-columns: 1fr; gap: 14px; } }

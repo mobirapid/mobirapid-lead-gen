@@ -877,6 +877,22 @@ function renderProductPage(req, res, m, cat) {
           </ul>
         </div>
       </div>
+      ${(() => {
+        const openBox = /new|sealed|open box/i.test(m.condition_grade || '');
+        const wMain = openBox ? 'Brand warranty' : '6 months warranty';
+        const wSub = openBox ? 'Manufacturer warranty' : 'Mobirapid warranty';
+        return `<div class="pdp-trustbar">
+          <a class="pdp-tb" href="/p/refund-policy">
+            <span class="pdp-tb-ic">↩</span><span class="pdp-tb-tx"><b>Easy returns</b><small>Read return policy</small></span>
+          </a>
+          <div class="pdp-tb">
+            <span class="pdp-tb-ic">🛡</span><span class="pdp-tb-tx"><b>${wMain}</b><small>${wSub}</small></span>
+          </div>
+          <div class="pdp-tb">
+            <span class="pdp-tb-ic">🚚</span><span class="pdp-tb-tx"><b>Free shipping</b><small>Across India</small></span>
+          </div>
+        </div>`;
+      })()}
       ${rows.length ? `<section class="pdp-section">
           <h2>Full configuration</h2>
           <table class="pdp-spec-table"><tbody>
