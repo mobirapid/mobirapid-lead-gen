@@ -995,9 +995,17 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_FLAG)) {
     let base = slugifyModel(t.name), s = base, n = 2;
     while (usedTabSlugs.has(s)) s = base + '-' + n++;
     usedTabSlugs.add(s);
-    insTab.run({ name: t.name, category: cat.slug, slug: s, price: t.price, specs: t.specs, badge: '', condition_grade: 'Open Box & Non-activated', warranty: '6-month warranty', storage: t.storage, colour: t.colour, sort_order: so++, active: 1 });
+    insTab.run({ name: t.name, category: cat.slug, slug: s, price: t.price, specs: t.specs, badge: '', condition_grade: 'Open Box & Activated', warranty: '6-month warranty', storage: t.storage, colour: t.colour, sort_order: so++, active: 1 });
   }
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_FLAG, '1');
+}
+
+// One-time: switch already-seeded tablets to "Open Box & Activated" (only rows still on
+// the original seeded grade — admin edits are left untouched).
+const TAB_COND_FLAG = 'tablets_cond_activated_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_COND_FLAG)) {
+  db.prepare("UPDATE macbook_models SET condition_grade = 'Open Box & Activated' WHERE category = 'tablets' AND condition_grade = 'Open Box & Non-activated'").run();
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_COND_FLAG, '1');
 }
 
 module.exports = db;
