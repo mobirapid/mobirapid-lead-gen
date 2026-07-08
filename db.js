@@ -1040,7 +1040,7 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_PRICENOTE_FL
 
 // One-time: fill in Samsung tablet MRPs (official Samsung India list/launch prices, researched Jul 2026).
 // Only fills rows whose MRP is still empty, so admin edits are preserved.
-const TAB_MRP_FLAG = 'tablets_mrp_v1';
+const TAB_MRP_FLAG = 'tablets_mrp_v2'; // v2: match by product slug only — the category slug is admin-editable (production uses 'refurbished-tablets').
 if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_MRP_FLAG)) {
   const mrps = [
     ['%tab-a11-464-wi-fi%', 12999],   // Tab A11 4/64 Wi-Fi
@@ -1057,7 +1057,7 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_MRP_FLAG)) {
     ['%tab-s10-fe-8128-wi-fi%', 52999], // Tab S10 FE+ 8/128 Wi-Fi
     ['%tab-s9-12256-5g%', 96999],       // Tab S9 12/256 5G
   ];
-  const upd = db.prepare("UPDATE macbook_models SET mrp = ? WHERE category = 'tablets' AND slug LIKE ? AND (mrp IS NULL OR mrp = '')");
+  const upd = db.prepare("UPDATE macbook_models SET mrp = ? WHERE slug LIKE ? AND (mrp IS NULL OR mrp = '')");
   for (const [pat, v] of mrps) upd.run('₹' + Number(v).toLocaleString('en-IN'), pat);
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_MRP_FLAG, '1');
 }
