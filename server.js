@@ -1331,11 +1331,13 @@ app.use('/api/admin', (req, res, next) => {
   // (only the .env admin could have logged in back then).
   const role = data.role || 'admin';
   if (role === 'admin') return next();
+  // Staff users can hold multiple roles (stored as a comma-separated list, e.g. "leads,catalog").
+  const roles = String(role).split(',').map((s) => s.trim()).filter(Boolean);
   const leadsOk = req.path === '/me' || req.path.startsWith('/leads');
   // Category uploader ('catalog') may manage products + upload images + read categories.
   const catalogOk = req.path === '/me' || req.path.startsWith('/models') || req.path === '/upload' || req.path === '/categories';
-  if (role === 'leads' && leadsOk) return next();
-  if (role === 'catalog' && catalogOk) return next();
+  if (roles.includes('leads') && leadsOk) return next();
+  if (roles.includes('catalog') && catalogOk) return next();
   return res.status(403).json({ ok: false, error: 'You do not have access to this section.' });
 });
 
@@ -1377,6 +1379,19 @@ app.get('/api/admin/me', (req, res) => res.json({ ok: true, user: req.authUser.u
 app.get('/api/admin/users', (req, res) => {
   res.json({ ok: true, users: db.prepare('SELECT id, username, role, scope, created_at FROM users ORDER BY id DESC').all() });
 });
+// Parse the requested access: roles may be an array (multi-role) or a legacy single `role` string.
+// Returns { role: 'leads,catalog', scope } or { error }. Blank catalog scope = all categories.
+function parseUserRoles(b) {
+  let roles = Array.isArray(b.roles) ? b.roles : [b.role];
+  roles = [...new Set(roles.map((r) => String(r || '').trim()).filter((r) => r === 'leads' || r === 'catalog'))];
+  if (!roles.length) return { error: 'Pick at least one access type.' };
+  let scope = null;
+  if (roles.includes('catalog')) {
+    scope = String(b.scope || '').trim() || null;
+    if (scope && !db.prepare('SELECT id FROM categories WHERE slug = ?').get(scope)) return { error: 'Pick a valid category for the uploader.' };
+  }
+  return { role: roles.join(','), scope };
+}
 app.post('/api/admin/users', (req, res) => {
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
@@ -1384,14 +1399,25 @@ app.post('/api/admin/users', (req, res) => {
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters.' });
   if (username === ADMIN_USER) return res.status(400).json({ ok: false, error: 'That username is reserved.' });
   if (db.prepare('SELECT id FROM users WHERE username = ?').get(username)) return res.status(400).json({ ok: false, error: 'That username already exists.' });
-  // role: 'leads' (lead access) or 'catalog' (category uploader, needs scope = category slug)
-  let role = req.body.role === 'catalog' ? 'catalog' : 'leads';
-  let scope = null;
-  if (role === 'catalog') {
-    scope = String(req.body.scope || '').trim();
-    if (!db.prepare('SELECT id FROM categories WHERE slug = ?').get(scope)) return res.status(400).json({ ok: false, error: 'Pick a valid category for the uploader.' });
-  }
-  db.prepare('INSERT INTO users (username, pass_hash, role, scope) VALUES (?, ?, ?, ?)').run(username, hashPassword(password), role, scope);
+  const parsed = parseUserRoles(req.body);
+  if (parsed.error) return res.status(400).json({ ok: false, error: parsed.error });
+  db.prepare('INSERT INTO users (username, pass_hash, role, scope) VALUES (?, ?, ?, ?)').run(username, hashPassword(password), parsed.role, parsed.scope);
+  res.json({ ok: true });
+});
+app.put('/api/admin/users/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const u = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  if (!u) return res.status(404).json({ ok: false, error: 'Not found.' });
+  const username = String(req.body.username || u.username).trim();
+  if (!/^[a-zA-Z0-9._@-]{3,60}$/.test(username)) return res.status(400).json({ ok: false, error: 'Username must be 3-60 chars (letters, numbers, . _ - @).' });
+  if (username === ADMIN_USER) return res.status(400).json({ ok: false, error: 'That username is reserved.' });
+  if (db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, id)) return res.status(400).json({ ok: false, error: 'That username already exists.' });
+  const parsed = parseUserRoles(req.body);
+  if (parsed.error) return res.status(400).json({ ok: false, error: parsed.error });
+  const password = String(req.body.password || '');
+  if (password && password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters.' });
+  if (password) db.prepare('UPDATE users SET username=?, role=?, scope=?, pass_hash=? WHERE id=?').run(username, parsed.role, parsed.scope, hashPassword(password), id);
+  else db.prepare('UPDATE users SET username=?, role=?, scope=? WHERE id=?').run(username, parsed.role, parsed.scope, id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/users/:id', (req, res) => {
@@ -1532,7 +1558,12 @@ app.post('/api/admin/upload/delete', requireAdmin, (req, res) => {
 });
 
 // Products (MacBooks + phones + any category) CRUD
-function userScope(req) { return (req.authUser && req.authUser.role === 'catalog') ? (req.authUser.scope || null) : null; }
+function userScope(req) {
+  const role = String((req.authUser && req.authUser.role) || '');
+  if (!role || role === 'admin') return null;
+  // A blank scope on a catalog user means "all categories" (unrestricted).
+  return role.split(',').includes('catalog') ? (req.authUser.scope || null) : null;
+}
 app.get('/api/admin/models', requireAdmin, (req, res) => {
   const scope = userScope(req);
   const rows = scope

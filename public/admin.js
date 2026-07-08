@@ -847,36 +847,83 @@
   // ========================================================================
   // USERS (lead-only staff accounts)
   // ========================================================================
+  let usersCache = [];
+  function userRoles(u) { return String(u.role || '').split(',').map((s) => s.trim()).filter(Boolean); }
+  function accessLabel(u) {
+    const roles = userRoles(u), bits = [];
+    if (roles.includes('leads')) bits.push('Leads');
+    if (roles.includes('catalog')) bits.push('Products (' + (u.scope ? (catName(u.scope) || u.scope) : 'all categories') + ')');
+    return bits.join(' + ') || 'no access';
+  }
   async function loadUsers() {
     const r = await api('/api/admin/users');
     const d = await r.json();
-    const list = d.users || [];
-    $('usersList').innerHTML = list.length
-      ? list.map((u) => {
-        const access = u.role === 'catalog' ? `${esc(catName(u.scope) || u.scope)} uploader` : 'lead access';
-        return `
+    usersCache = d.users || [];
+    $('usersList').innerHTML = usersCache.length
+      ? usersCache.map((u) => `
         <div class="model-row">
-          <div class="info"><b>${esc(u.username)} <span class="cat-tag">${esc(u.role === 'catalog' ? 'uploader' : 'leads')}</span></b><small>${esc(access)} · added ${(u.created_at || '').slice(0, 10)}</small></div>
-          <div><button class="btn small danger" data-udel="${u.id}">Remove</button></div>
-        </div>`; }).join('')
+          <div class="info"><b>${esc(u.username)} ${userRoles(u).map((x) => `<span class="cat-tag">${esc(x === 'catalog' ? 'products' : x)}</span>`).join(' ')}</b><small>${esc(accessLabel(u))} · added ${(u.created_at || '').slice(0, 10)}</small></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn small" data-uedit="${u.id}">Edit</button>
+            <button class="btn small danger" data-udel="${u.id}">Remove</button>
+          </div>
+        </div>`).join('')
       : '<p class="muted" style="padding:12px 0;">No additional users yet.</p>';
     $('usersList').querySelectorAll('[data-udel]').forEach((b) => b.addEventListener('click', () => delUser(b.dataset.udel)));
+    $('usersList').querySelectorAll('[data-uedit]').forEach((b) => b.addEventListener('click', () => openUser(b.dataset.uedit)));
   }
   function fillUserScope() {
-    const sel = $('u-scope'); if (!sel) return;
-    sel.innerHTML = cats.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
+    const opts = '<option value="">All categories</option>' + cats.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
+    if ($('u-scope')) $('u-scope').innerHTML = opts;
+    if ($('eu-scope')) $('eu-scope').innerHTML = opts;
   }
-  on('u-role', 'change', () => { $('u-scopeWrap').style.display = $('u-role').value === 'catalog' ? '' : 'none'; });
+  on('u-role-catalog', 'change', () => { $('u-scopeWrap').style.display = $('u-role-catalog').checked ? '' : 'none'; });
+  on('eu-role-catalog', 'change', () => { $('eu-scopeWrap').style.display = $('eu-role-catalog').checked ? '' : 'none'; });
+  function collectRoles(prefix) {
+    const roles = [];
+    if ($(prefix + '-role-leads') && $(prefix + '-role-leads').checked) roles.push('leads');
+    if ($(prefix + '-role-catalog') && $(prefix + '-role-catalog').checked) roles.push('catalog');
+    return roles;
+  }
   on('addUserBtn', 'click', async () => {
     const username = $('u-username').value.trim();
     const password = $('u-password').value;
-    const role = $('u-role') ? $('u-role').value : 'leads';
-    const scope = role === 'catalog' && $('u-scope') ? $('u-scope').value : undefined;
-    const r = await api('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role, scope }) });
+    const roles = collectRoles('u');
+    if (!roles.length) { showTestMsg($('userMsg'), 'Pick at least one access type.', false); return; }
+    const scope = roles.includes('catalog') && $('u-scope') ? $('u-scope').value : undefined;
+    const r = await api('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, roles, scope }) });
     const d = await r.json();
     if (!d.ok) { showTestMsg($('userMsg'), d.error || 'Failed', false); return; }
     showTestMsg($('userMsg'), 'User created ✓', true);
     $('u-username').value = ''; $('u-password').value = '';
+    loadUsers();
+  });
+  const userDlg = $('userDialog');
+  function openUser(id) {
+    const u = usersCache.find((x) => String(x.id) === String(id));
+    if (!u || !userDlg) return;
+    const roles = userRoles(u);
+    $('eu-id').value = u.id;
+    $('eu-username').value = u.username;
+    $('eu-password').value = '';
+    $('eu-role-leads').checked = roles.includes('leads');
+    $('eu-role-catalog').checked = roles.includes('catalog');
+    $('eu-scope').value = u.scope || '';
+    $('eu-scopeWrap').style.display = roles.includes('catalog') ? '' : 'none';
+    userDlg.showModal();
+  }
+  on('euCancel', 'click', () => userDlg.close());
+  on('euSave', 'click', async () => {
+    const id = $('eu-id').value;
+    const roles = collectRoles('eu');
+    if (!roles.length) { alert('Pick at least one access type.'); return; }
+    const payload = { username: $('eu-username').value.trim(), roles, scope: roles.includes('catalog') ? $('eu-scope').value : undefined };
+    const pw = $('eu-password').value;
+    if (pw) payload.password = pw;
+    const r = await api('/api/admin/users/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (!d.ok) { alert(d.error || 'Save failed.'); return; }
+    userDlg.close();
     loadUsers();
   });
   async function delUser(id) {
@@ -885,34 +932,38 @@
     loadUsers();
   }
 
-  function showOnlyTab(tab) {
-    document.querySelectorAll('.tab').forEach((t) => { if (t.dataset.tab !== tab) t.style.display = 'none'; });
+  function showOnlyTabs(tabs) {
+    document.querySelectorAll('.tab').forEach((t) => { if (!tabs.includes(t.dataset.tab)) t.style.display = 'none'; });
     document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
     document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
-    const t = document.querySelector(`.tab[data-tab="${tab}"]`); if (t) t.classList.add('active');
-    const p = $('panel-' + tab); if (p) p.classList.add('active');
+    const t = document.querySelector(`.tab[data-tab="${tabs[0]}"]`); if (t) t.classList.add('active');
+    const p = $('panel-' + tabs[0]); if (p) p.classList.add('active');
   }
 
-  // ---------- Init (role-aware) ----------
+  // ---------- Init (role-aware; staff users can hold multiple roles) ----------
   async function init() {
     let role = 'admin';
     try { const r = await api('/api/admin/me'); const d = await r.json(); role = d.role || 'admin'; userScope = d.scope || null; } catch (e) {}
     userRole = role;
 
-    if (role === 'leads') {
-      // Lead-only staff: show just the Leads tab (status editable; no edit/delete/bulk).
-      showOnlyTab('leads');
-      ['selectAll', 'bulkDeleteBtn'].forEach((id) => { const el = $(id); if (el) el.style.display = 'none'; });
-      loadLeads();
-      return;
-    }
-    if (role === 'catalog') {
-      // Category uploader: only the Products tab, limited to their category.
-      showOnlyTab('models');
-      const cc = $('categoriesCard'); if (cc) cc.style.display = 'none'; // can't manage categories
-      await loadCategories();
-      await loadConditionGrades();
-      loadModels();
+    if (role !== 'admin') {
+      const roles = String(role).split(',').map((s) => s.trim()).filter(Boolean);
+      const tabs = [];
+      if (roles.includes('leads')) tabs.push('leads');
+      if (roles.includes('catalog')) tabs.push('models');
+      showOnlyTabs(tabs.length ? tabs : ['leads']);
+      if (roles.includes('leads')) {
+        // Lead access: status editable; no edit/delete/bulk.
+        ['selectAll', 'bulkDeleteBtn'].forEach((id) => { const el = $(id); if (el) el.style.display = 'none'; });
+        loadLeads();
+      }
+      if (roles.includes('catalog')) {
+        // Product access: their category (or all), but can't manage categories.
+        const cc = $('categoriesCard'); if (cc) cc.style.display = 'none';
+        await loadCategories();
+        await loadConditionGrades();
+        loadModels();
+      }
       return;
     }
     // Full admin — each loads independently so one failure can't blank the others.
