@@ -54,7 +54,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // Cache-busting version for CSS/JS (changes whenever those files change on deploy).
 const ASSET_VER = (() => {
   try {
-    const parts = ['styles.css', 'app.js', 'icons.js'].map((f) => {
+    const parts = ['styles.css', 'app.js', 'icons.js', 'admin.js'].map((f) => {
       try { return fs.statSync(path.join(__dirname, 'public', f)).mtimeMs; } catch { return 0; }
     });
     return crypto.createHash('md5').update(parts.join('|')).digest('hex').slice(0, 8);
@@ -1346,7 +1346,13 @@ app.post(['/manage/login', '/admin/login'], (req, res) => {
   res.redirect('/manage/login?error=1');
 });
 app.post(['/manage/logout', '/admin/logout'], (req, res) => { res.clearCookie('admin_session'); res.redirect('/manage/login'); });
-app.get(['/manage', '/admin'], requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+// Serve the admin with cache-busted asset URLs so admins always get the latest admin.js/styles after a deploy.
+app.get(['/manage', '/admin'], requireAdmin, (req, res) => {
+  const html = fs.readFileSync(path.join(__dirname, 'views', 'admin.html'), 'utf8')
+    .replace('href="/styles.css"', `href="${ver('/styles.css')}"`)
+    .replace('src="/admin.js"', `src="${ver('/admin.js')}"`);
+  res.type('html').send(html);
+});
 
 // ===========================================================================
 // ADMIN API
