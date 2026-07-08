@@ -312,12 +312,13 @@
       } else { filter.hidden = true; }
     }
     $('modelsGrid').innerHTML = models.map((m) => {
-      const badge = m.badge ? `<span class="model-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
+      const so = /sold|out\s*of\s*stock/i.test(m.badge || '');
+      const badge = m.badge ? `<span class="model-badge ${so ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
       const img = m.image
         ? `<div class="model-img" style="background-image:url('${esc(m.image)}')">${badge}</div>`
         : `<div class="model-img placeholder">${badge}<span></span></div>`;
       const sl = specLine(m, s);
-      return `<article class="model-card" data-cat="${esc(m.category || '')}">
+      return `<article class="model-card${so ? ' oos' : ''}" data-cat="${esc(m.category || '')}">
         ${img}
         <div class="model-body">
           <h3>${esc(m.name)}</h3>
@@ -330,7 +331,9 @@
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
           <a class="model-cta" href="${prodUrl(m)}">View details →</a>
-          ${reserveBtn(m, s)}
+          ${so
+            ? `<a class="model-reserve model-avail" href="#lead-form" data-notify-model="${esc(m.name)}">Check future availability →</a>`
+            : reserveBtn(m, s)}
         </div>
       </article>`;
     }).join('');
@@ -342,6 +345,20 @@
       } else { note.hidden = true; }
     }
     setupCarousel('modelsGrid');
+    // "Check future availability" on homepage cards prefills the lead form
+    $('modelsGrid').querySelectorAll('.model-avail').forEach((a) => a.addEventListener('click', () => {
+      prefillDealForm(a.dataset.notifyModel, 'Future availability enquiry');
+    }));
+    // Arriving from a product/category page with ?notify=<slug> — prefill and jump to the form
+    const notifySlug = new URLSearchParams(location.search).get('notify');
+    if (notifySlug) {
+      const nm = models.find((x) => x.slug === notifySlug);
+      if (nm) {
+        prefillDealForm(nm.name, 'Future availability enquiry');
+        const form = document.getElementById('lead-form');
+        if (form) setTimeout(() => form.scrollIntoView({ behavior: 'smooth' }), 150);
+      }
+    }
   }
 
   function stars(n) {

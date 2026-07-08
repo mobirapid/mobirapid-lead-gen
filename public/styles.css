@@ -777,3 +777,12 @@ body.cookie-open .float-contact { bottom: 104px; }
 .pdp-tb-tx small { color: var(--muted); font-size: .8rem; }
 a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underline; }
 @media (max-width: 640px) { .pdp-trustbar { grid-template-columns: 1fr; gap: 14px; } }
+
+/* Out of stock — label & "Check future availability" CTA */
+.model-badge.soldout, .pdp-badge.soldout { background: #dc2626; color: #fff; }
+.model-card.oos .model-img, .model-card.oos .model-media img { filter: grayscale(0.55); opacity: .9; }
+.model-avail { background: #0f172a !important; box-shadow: 0 6px 14px rgba(15, 23, 42, .28); }
+.model-avail:hover { background: #1e293b !important; }
+.pdp-avail { background: #0f172a; }
+.pdp-avail:hover { box-shadow: 0 16px 32px rgba(15, 23, 42, .35); }
+.pdp-oos-note { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; border-radius: var(--radius-xs); padding: 10px 14px; font-size: .95rem; margin: 0 0 14px; }

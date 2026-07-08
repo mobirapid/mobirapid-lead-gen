@@ -429,7 +429,7 @@ function buildJsonLd(base) {
     if (priceNum) {
       product.offers = {
         '@type': 'Offer', price: priceNum, priceCurrency: 'INR',
-        availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        availability: isSoldOut(m) ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
         url: base + '/#lead-form', seller: { '@id': base + '/#org' },
       };
     }
@@ -803,6 +803,13 @@ function reserveButton(slug, cls) {
   return `<a class="${cls || 'pdp-reserve'}" href="${esc(href)}"${ext}>Reserve now — ₹${amt.toLocaleString('en-IN')}</a>`;
 }
 
+// A product is out of stock when its badge says "Sold out" / "Out of stock".
+function isSoldOut(m) { return /sold|out\s*of\s*stock/i.test(m.badge || ''); }
+// CTA shown on out-of-stock products — takes the visitor to the lead form with the model pre-noted.
+function availabilityButton(m, cls) {
+  return `<a class="${cls || 'pdp-avail'}" href="/?notify=${encodeURIComponent(m.slug)}#lead-form">Check future availability →</a>`;
+}
+
 // Product detail page (server-rendered, Product schema) — category-aware.
 // Generic route: /:prefix/:slug where :prefix matches a category url_prefix (else next()).
 app.get('/:prefix/:slug', (req, res, next) => {
@@ -834,10 +841,11 @@ function renderProductPage(req, res, m, cat) {
   const rows = specRows.filter((r) => r[1]);
   const props = rows.filter((r) => !/Condition|Warranty/.test(r[0]));
   if (props.length) ld.additionalProperty = props.map((p) => ({ '@type': 'PropertyValue', name: p[0], value: p[1] }));
-  if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: /sold/i.test(m.badge || '') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + productUrl(m, cat) };
+  const soldOut = isSoldOut(m);
+  if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + productUrl(m, cat) };
   const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   const desc = (m.description || m.specs || m.name).slice(0, 180);
-  const badge = m.badge ? `<span class="pdp-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
+  const badge = m.badge ? `<span class="pdp-badge ${soldOut ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
   const metaBits = isPhone
     ? [m.condition_grade ? `<a class="pdp-tag cond-pill ${gradeBadgeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : '', m.battery_health ? `<span class="pdp-tag">Battery ${esc(m.battery_health)}</span>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : '']
     : [m.condition_grade ? `<a class="pdp-tag cond-pill ${gradeBadgeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : '', m.warranty ? `<span class="pdp-tag">${esc(m.warranty)}</span>` : ''];
@@ -865,10 +873,14 @@ function renderProductPage(req, res, m, cat) {
           ${m.price ? `<div class="pdp-price">${esc(m.price)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>'}
           <div class="pdp-meta">${metaBits.filter(Boolean).join('')}</div>
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
+          ${soldOut ? '<p class="pdp-oos-note">This product is currently <strong>out of stock</strong>. Leave your details and we\'ll tell you when it\'s available again.</p>' : ''}
           <div class="pdp-actions">
-            <a class="pdp-book" href="${bookUrl}">Book Now →</a>
+            ${soldOut
+              ? `${availabilityButton(m, 'pdp-book pdp-avail')}
+            ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
+              : `<a class="pdp-book" href="${bookUrl}">Book Now →</a>
             ${reserveButton(m.slug, 'pdp-reserve')}
-            ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}
+            ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
           </div>
           <ul class="pdp-trust">
             <li>✓ 35-point quality check</li>
@@ -923,15 +935,16 @@ app.get('/c/:slug', (req, res) => {
     const sub = cat.fields === 'phone'
       ? [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.condition_grade].filter(Boolean).join(' · ')
       : [m.specs || [m.cpu, m.memory, m.storage].filter(Boolean).join(' · '), m.condition_grade].filter(Boolean).join(' · ');
-    const bd = m.badge ? `<span class="model-badge ${/sold/i.test(m.badge) ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
-    return `<article class="model-card">
+    const so = isSoldOut(m);
+    const bd = m.badge ? `<span class="model-badge ${so ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
+    return `<article class="model-card${so ? ' oos' : ''}">
       <div class="model-media">${m.image ? `<img src="${esc(m.image)}" alt="${esc(m.name)}">` : '<div class="model-ph"></div>'}${bd}</div>
       <div class="model-body">
         <h3>${esc(m.name)}</h3>
         ${sub ? `<p class="model-specs">${esc(sub)}</p>` : ''}
         ${m.price ? `<div class="model-price">${esc(m.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
         <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
-        ${reserveButton(m.slug, 'model-reserve')}
+        ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
       </div>
     </article>`;
   };
