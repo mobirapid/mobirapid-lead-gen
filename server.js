@@ -1616,9 +1616,23 @@ app.put('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) =
   const id = parseInt(req.params.id, 10);
   const name = String(b.name || '').trim();
   if (!name) return res.status(400).json({ ok: false, error: 'Category name is required.' });
-  db.prepare('UPDATE categories SET name=?, singular=?, tagline=?, fields=?, sort_order=?, active=?, price_note=? WHERE id=?')
-    .run(name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim(), id);
-  res.json({ ok: true });
+  const cur = db.prepare('SELECT slug FROM categories WHERE id = ?').get(id);
+  if (!cur) return res.status(404).json({ ok: false, error: 'Not found.' });
+  // Optional slug change — cascades to the products and uploader accounts that reference it.
+  let slug = cur.slug;
+  if (b.slug !== undefined && String(b.slug).trim()) {
+    const next = slugify(String(b.slug));
+    if (!next) return res.status(400).json({ ok: false, error: 'Slug cannot be empty.' });
+    if (next !== cur.slug) {
+      if (db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(next, id)) return res.status(400).json({ ok: false, error: 'A category with that slug already exists.' });
+      db.prepare('UPDATE macbook_models SET category = ? WHERE category = ?').run(next, cur.slug);
+      db.prepare('UPDATE users SET scope = ? WHERE scope = ?').run(next, cur.slug);
+      slug = next;
+    }
+  }
+  db.prepare('UPDATE categories SET slug=?, name=?, singular=?, tagline=?, fields=?, sort_order=?, active=?, price_note=? WHERE id=?')
+    .run(slug, name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim(), id);
+  res.json({ ok: true, slug });
 });
 app.delete('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {
   const id = parseInt(req.params.id, 10);
