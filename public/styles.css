@@ -798,3 +798,16 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 .off-tag { display: inline-block; background: #dcfce7; color: #15803d; font-weight: 700; font-size: .68em; padding: 2px 8px; border-radius: 999px; margin-left: 4px; vertical-align: middle; }
 .pdp-price .mrp-strike { font-size: .6em; }
 .pdp-price .off-tag { font-size: .45em; padding: 3px 10px; }
+
+/* Card pricing — price + MRP + % off on one wrapping row; GST note + condition pill on the next */
+.model-pricerow { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 3px; }
+.model-pricerow .mrp-strike { margin-left: 0; white-space: nowrap; }
+.model-pricerow .off-tag { margin-left: 0; white-space: nowrap; align-self: center; }
+.model-meta { flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.model-gst { white-space: nowrap; }
+.model-grade { white-space: nowrap; }
+/* Server-rendered category cards: let the price line wrap the same way */
+.cat-grid-page .model-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.cat-grid-page .model-price .mrp-strike { margin-left: 0; white-space: nowrap; }
+.cat-grid-page .model-price .off-tag { margin-left: 0; white-space: nowrap; align-self: center; }
+.cat-grid-page .model-price .model-gst { white-space: nowrap; }
