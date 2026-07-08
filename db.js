@@ -956,6 +956,8 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PRICE_NOTE_FIX_F
 
 // Per-category price note override (blank = use the global note).
 ensureColumn('categories', 'price_note', 'TEXT');
+// Per-category homepage visibility (0 = keep off the homepage; category page still works). NULL/1 = shown.
+ensureColumn('categories', 'show_home', 'INTEGER');
 
 // One-time seed: Samsung tablet catalog into a "Refurbished Tablets" category.
 const TAB_FLAG = 'tablets_seed_v1';
@@ -1060,6 +1062,14 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_MRP_FLAG)) {
   const upd = db.prepare("UPDATE macbook_models SET mrp = ? WHERE slug LIKE ? AND (mrp IS NULL OR mrp = '')");
   for (const [pat, v] of mrps) upd.run('₹' + Number(v).toLocaleString('en-IN'), pat);
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_MRP_FLAG, '1');
+}
+
+// One-time: keep phones & tablets off the homepage (their category pages stay live).
+// Re-enable any time from the admin: Categories → edit → "Show on homepage?".
+const HOME_CATS_FLAG = 'home_cats_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(HOME_CATS_FLAG)) {
+  db.prepare("UPDATE categories SET show_home = 0 WHERE url_prefix IN ('phone', 'tablet')").run();
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(HOME_CATS_FLAG, '1');
 }
 
 module.exports = db;

@@ -571,7 +571,7 @@
     wrap.innerHTML = cats.map((c) => `
       <div class="model-row">
         <div class="info">
-          <b>${esc(c.name)} <span class="cat-tag">/${esc(c.url_prefix)}</span> ${c.active ? '' : '<span class="inactive-tag">(hidden)</span>'}</b>
+          <b>${esc(c.name)} <span class="cat-tag">/${esc(c.url_prefix)}</span> ${c.active ? '' : '<span class="inactive-tag">(hidden)</span>'} ${c.show_home === 0 ? '<span class="inactive-tag">(off homepage)</span>' : ''}</b>
           <small>${esc(c.fields === 'phone' ? 'Phone specs' : 'Laptop specs')} · ${counts[c.slug] || 0} product(s) · <a href="/c/${esc(c.slug)}" target="_blank">/c/${esc(c.slug)} ↗</a></small>
         </div>
         <div style="display:flex;gap:8px;">
@@ -594,6 +594,7 @@
     if ($('c-price_note')) $('c-price_note').value = c ? (c.price_note || '') : '';
     $('c-sort_order').value = c ? c.sort_order : cats.length + 1;
     $('c-active').value = c ? String(c.active) : '1';
+    if ($('c-show_home')) $('c-show_home').value = c && c.show_home === 0 ? '0' : '1';
     $('c-urlnote').textContent = c ? `Page: /c/${c.slug} · Product URLs: /${c.url_prefix}/… — changing the slug changes the category page URL (old links stop working).` : 'Leave the slug blank to generate it from the name.';
     catDlg.showModal();
   }
@@ -601,7 +602,7 @@
   on('catCancel', 'click', () => catDlg.close());
   on('catSave', 'click', async () => {
     const id = $('c-id').value;
-    const payload = { name: $('c-name').value.trim(), slug: $('c-slug') ? $('c-slug').value.trim() : '', singular: $('c-singular').value.trim(), fields: $('c-fields').value, tagline: $('c-tagline').value.trim(), price_note: $('c-price_note') ? $('c-price_note').value.trim() : '', sort_order: parseInt($('c-sort_order').value || '0', 10), active: $('c-active').value };
+    const payload = { name: $('c-name').value.trim(), slug: $('c-slug') ? $('c-slug').value.trim() : '', singular: $('c-singular').value.trim(), fields: $('c-fields').value, tagline: $('c-tagline').value.trim(), price_note: $('c-price_note') ? $('c-price_note').value.trim() : '', sort_order: parseInt($('c-sort_order').value || '0', 10), active: $('c-active').value, show_home: $('c-show_home') ? $('c-show_home').value : '1' };
     if (!payload.name) { alert('Category name is required.'); return; }
     const r = await api(id ? '/api/admin/categories/' + id : '/api/admin/categories', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await r.json();

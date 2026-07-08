@@ -666,7 +666,7 @@ app.get('/api/site', (req, res) => {
       budget_options: parseJsonSetting('budget_options', []),
     },
     models,
-    categories: db.prepare('SELECT slug, name, singular, url_prefix, tagline, fields, price_note, sort_order FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all(),
+    categories: db.prepare('SELECT slug, name, singular, url_prefix, tagline, fields, price_note, sort_order, CASE WHEN show_home = 0 THEN 0 ELSE 1 END AS show_home FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all(),
     pages,
     reviews,
     posts,
@@ -1657,8 +1657,8 @@ app.post('/api/admin/categories', requireAdmin, requireFullRole, (req, res) => {
   const slug = slugify(b.slug || name);
   const prefix = slugify(b.url_prefix || b.singular || name).replace(/s$/, '');
   if (db.prepare('SELECT id FROM categories WHERE slug = ? OR url_prefix = ?').get(slug, prefix)) return res.status(400).json({ ok: false, error: 'A category with that slug/prefix already exists.' });
-  const info = db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active, price_note) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(slug, name, String(b.singular || name).trim(), prefix, String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim());
+  const info = db.prepare('INSERT INTO categories (slug, name, singular, url_prefix, tagline, fields, sort_order, active, price_note, show_home) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run(slug, name, String(b.singular || name).trim(), prefix, String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim(), b.show_home === '0' || b.show_home === 0 ? 0 : 1);
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
 app.put('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {
@@ -1680,8 +1680,8 @@ app.put('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) =
       slug = next;
     }
   }
-  db.prepare('UPDATE categories SET slug=?, name=?, singular=?, tagline=?, fields=?, sort_order=?, active=?, price_note=? WHERE id=?')
-    .run(slug, name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim(), id);
+  db.prepare('UPDATE categories SET slug=?, name=?, singular=?, tagline=?, fields=?, sort_order=?, active=?, price_note=?, show_home=? WHERE id=?')
+    .run(slug, name, String(b.singular || name).trim(), String(b.tagline || '').trim(), b.fields === 'phone' ? 'phone' : 'macbook', parseInt(b.sort_order || '0', 10) || 0, b.active === '0' || b.active === 0 ? 0 : 1, String(b.price_note || '').trim(), b.show_home === '0' || b.show_home === 0 ? 0 : 1, id);
   res.json({ ok: true, slug });
 });
 app.delete('/api/admin/categories/:id', requireAdmin, requireFullRole, (req, res) => {

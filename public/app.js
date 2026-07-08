@@ -270,7 +270,7 @@
   function renderCategoryCards(categories, models) {
     const wrap = $('catCards');
     if (!wrap) return;
-    const cats = (categories || []).filter((c) => true);
+    const cats = (categories || []).filter((c) => c.show_home !== 0);
     if (cats.length < 2) { const sec = $('catCardsSection'); if (sec) sec.hidden = true; return; }
     buildCatMap(categories);
     const counts = {};
@@ -285,10 +285,23 @@
     const sec = $('catCardsSection'); if (sec) sec.hidden = false;
   }
 
-  function renderModels(models, s, categories) {
+  function renderModels(allModels, s, categories) {
     const section = $('modelsSection');
-    if (!models || !models.length) { section.hidden = true; return; }
     buildCatMap(categories);
+    // Arriving from a product/category page with ?notify=<slug> — prefill the lead form.
+    // Uses the full list so it also works for products whose category is hidden from the homepage.
+    const notifyPrefill = () => {
+      const notifySlug = new URLSearchParams(location.search).get('notify');
+      if (!notifySlug) return;
+      const nm = (allModels || []).find((x) => x.slug === notifySlug);
+      if (!nm) return;
+      prefillDealForm(nm.name, 'Future availability enquiry');
+      const form = document.getElementById('lead-form');
+      if (form) setTimeout(() => form.scrollIntoView({ behavior: 'smooth' }), 150);
+    };
+    // Homepage shows only categories with "Show on homepage" on; their pages at /c/<slug> stay live.
+    const models = (allModels || []).filter((m) => !CAT_MAP[m.category] || CAT_MAP[m.category].show_home !== 0);
+    if (!models.length) { section.hidden = true; notifyPrefill(); return; }
     section.hidden = false;
     if (s.models_title) $('modelsTitle').textContent = s.models_title;
     $('modelsSubtitle').textContent = s.models_subtitle || '';
@@ -354,16 +367,7 @@
     $('modelsGrid').querySelectorAll('.model-avail').forEach((a) => a.addEventListener('click', () => {
       prefillDealForm(a.dataset.notifyModel, 'Future availability enquiry');
     }));
-    // Arriving from a product/category page with ?notify=<slug> — prefill and jump to the form
-    const notifySlug = new URLSearchParams(location.search).get('notify');
-    if (notifySlug) {
-      const nm = models.find((x) => x.slug === notifySlug);
-      if (nm) {
-        prefillDealForm(nm.name, 'Future availability enquiry');
-        const form = document.getElementById('lead-form');
-        if (form) setTimeout(() => form.scrollIntoView({ behavior: 'smooth' }), 150);
-      }
-    }
+    notifyPrefill();
   }
 
   function stars(n) {
