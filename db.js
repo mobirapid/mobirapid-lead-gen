@@ -1038,4 +1038,28 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_PRICENOTE_FL
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_PRICENOTE_FLAG, '1');
 }
 
+// One-time: fill in Samsung tablet MRPs (official Samsung India list/launch prices, researched Jul 2026).
+// Only fills rows whose MRP is still empty, so admin edits are preserved.
+const TAB_MRP_FLAG = 'tablets_mrp_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(TAB_MRP_FLAG)) {
+  const mrps = [
+    ['%tab-a11-464-wi-fi%', 12999],   // Tab A11 4/64 Wi-Fi
+    ['%tab-a11-8128-wi-fi%', 17999],  // Tab A11 8/128 Wi-Fi
+    ['%tab-a11-6128-wi-fi%', 22999],  // Tab A11+ 6/128 Wi-Fi
+    ['%tab-a11-6128-5g%', 26999],     // Tab A11+ 6/128 5G
+    ['%tab-a9-8128-wi-fi%', 20999],   // Tab A9+ 8/128 Wi-Fi
+    ['%tab-a9-8128-5g%', 29999],      // Tab A9+ 8/128 5G
+    ['%tab-s9-fe-6128-wi-fi%', 36999],  // Tab S9 FE 6/128 Wi-Fi
+    ['%tab-s9-fe-8256-wi-fi%', 40999],  // Tab S9 FE 8/256 Wi-Fi
+    ['%tab-s9-fe-8128-wi-fi%', 46999],  // Tab S9 FE+ 8/128 Wi-Fi
+    ['%tab-s9-fe-12256-wi-fi%', 52999], // Tab S9 FE+ 12/256 Wi-Fi
+    ['%tab-s10-lite-6128-5g%', 35999],  // Tab S10 Lite 6/128 5G
+    ['%tab-s10-fe-8128-wi-fi%', 52999], // Tab S10 FE+ 8/128 Wi-Fi
+    ['%tab-s9-12256-5g%', 96999],       // Tab S9 12/256 5G
+  ];
+  const upd = db.prepare("UPDATE macbook_models SET mrp = ? WHERE category = 'tablets' AND slug LIKE ? AND (mrp IS NULL OR mrp = '')");
+  for (const [pat, v] of mrps) upd.run('₹' + Number(v).toLocaleString('en-IN'), pat);
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(TAB_MRP_FLAG, '1');
+}
+
 module.exports = db;
