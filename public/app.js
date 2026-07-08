@@ -42,6 +42,7 @@
       const data = await r.json();
       if (!data.ok) return;
       applySettings(data.settings);
+      renderHeaderNav(data.categories);
       renderUsps(data.settings);
       renderDeal(data.settings, data.models);
       renderCategoryCards(data.categories, data.models);
@@ -265,6 +266,16 @@
       return [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.colour].filter(Boolean).join(' · ');
     }
     return m.specs || '';
+  }
+
+  // Header nav: one link per active category (matches the server-rendered pages' header).
+  function renderHeaderNav(categories) {
+    const nav = $('headerNav');
+    if (!nav) return;
+    const links = (categories || []).map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`);
+    links.push('<a href="/compare">Compare</a>', '<a href="/condition">Condition</a>', '<a href="/blog">Blog</a>');
+    nav.innerHTML = links.join('');
+    nav.hidden = false;
   }
 
   function renderCategoryCards(categories, models) {

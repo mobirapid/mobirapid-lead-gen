@@ -478,7 +478,7 @@ function siteHeaderHtml() {
   const logo = getSetting('logo_path', '');
   return `<header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
-  <nav class="header-nav"><a href="/#modelsSection">Shop</a><a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
+  <nav class="header-nav">${db.prepare('SELECT slug, name FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all().map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`).join('')}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
   <a class="header-cta" href="/#lead-form">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
 </div></header>`;
 }
