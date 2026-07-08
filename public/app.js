@@ -330,10 +330,12 @@
             ${m.condition_grade ? `<a class="model-grade cond-pill ${gradeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : ''}
           </div>
           ${m.warranty ? `<p class="model-warranty">${esc(m.warranty)}</p>` : ''}
-          <a class="model-cta" href="${prodUrl(m)}">View details →</a>
-          ${so
-            ? `<a class="model-reserve model-avail" href="#lead-form" data-notify-model="${esc(m.name)}">Check future availability →</a>`
-            : reserveBtn(m, s)}
+          <div class="model-foot">
+            ${so
+              ? `<a class="model-reserve model-avail" href="#lead-form" data-notify-model="${esc(m.name)}">Check future availability →</a>`
+              : reserveBtn(m, s)}
+            <a class="model-cta" href="${prodUrl(m)}">View details →</a>
+          </div>
         </div>
       </article>`;
     }).join('');

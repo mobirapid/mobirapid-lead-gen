@@ -943,8 +943,10 @@ app.get('/c/:slug', (req, res) => {
         <h3>${esc(m.name)}</h3>
         ${sub ? `<p class="model-specs">${esc(sub)}</p>` : ''}
         ${m.price ? `<div class="model-price">${esc(m.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
-        <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
-        ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
+        <div class="model-foot">
+          ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
+          <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
+        </div>
       </div>
     </article>`;
   };

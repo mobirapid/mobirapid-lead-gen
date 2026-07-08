@@ -786,3 +786,9 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 .pdp-avail { background: #0f172a; }
 .pdp-avail:hover { box-shadow: 0 16px 32px rgba(15, 23, 42, .35); }
 .pdp-oos-note { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; border-radius: var(--radius-xs); padding: 10px 14px; font-size: .95rem; margin: 0 0 14px; }
+
+/* Card footer — keeps "View details" aligned across all cards; buttons stack above it */
+.model-foot { margin-top: auto; padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.model-foot .model-cta { margin-top: 0; padding-top: 0; }
+.model-foot .model-reserve { margin-top: 0; }
+.cat-grid-page .model-foot .model-reserve { margin-top: 0; }
