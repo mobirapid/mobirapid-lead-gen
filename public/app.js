@@ -270,7 +270,8 @@
   function renderCategoryCards(categories, models) {
     const wrap = $('catCards');
     if (!wrap) return;
-    const cats = (categories || []).filter((c) => c.show_home !== 0);
+    // All active categories get a card here — the "products on homepage" toggle only affects the showcase below.
+    const cats = categories || [];
     if (cats.length < 2) { const sec = $('catCardsSection'); if (sec) sec.hidden = true; return; }
     buildCatMap(categories);
     const counts = {};

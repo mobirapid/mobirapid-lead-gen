@@ -571,7 +571,7 @@
     wrap.innerHTML = cats.map((c) => `
       <div class="model-row">
         <div class="info">
-          <b>${esc(c.name)} <span class="cat-tag">/${esc(c.url_prefix)}</span> ${c.active ? '' : '<span class="inactive-tag">(hidden)</span>'} ${c.show_home === 0 ? '<span class="inactive-tag">(off homepage)</span>' : ''}</b>
+          <b>${esc(c.name)} <span class="cat-tag">/${esc(c.url_prefix)}</span> ${c.active ? '' : '<span class="inactive-tag">(hidden)</span>'} ${c.show_home === 0 ? '<span class="inactive-tag">(products off homepage)</span>' : ''}</b>
           <small>${esc(c.fields === 'phone' ? 'Phone specs' : 'Laptop specs')} · ${counts[c.slug] || 0} product(s) · <a href="/c/${esc(c.slug)}" target="_blank">/c/${esc(c.slug)} ↗</a></small>
         </div>
         <div style="display:flex;gap:8px;">
