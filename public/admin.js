@@ -485,7 +485,7 @@
     $('m-id').value = m ? m.id : '';
     fillCategorySelect($('m-category'), m ? m.category : (userScope || (cats[0] && cats[0].slug)));
     fillGradeSelect(m ? (m.condition_grade || '') : '');
-    ['name', 'slug', 'price', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'battery_health', 'colour', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
+    ['name', 'slug', 'price', 'mrp', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'battery_health', 'colour', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
     applyCategoryFields($('m-category').value);
     // Gallery images
@@ -533,7 +533,7 @@
     const id = $('m-id').value;
     const payload = {
       category: $('m-category') ? $('m-category').value : 'macbooks',
-      name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), specs: $('m-specs').value.trim(),
+      name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), mrp: $('m-mrp') ? $('m-mrp').value.trim() : '', specs: $('m-specs').value.trim(),
       description: $('m-description').value.trim(),
       badge: $('m-badge').value, condition_grade: $('m-condition_grade').value.trim(),
       warranty: $('m-warranty').value.trim(),

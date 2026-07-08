@@ -792,3 +792,9 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 .model-foot .model-cta { margin-top: 0; padding-top: 0; }
 .model-foot .model-reserve { margin-top: 0; }
 .cat-grid-page .model-foot .model-reserve { margin-top: 0; }
+
+/* MRP strikethrough + auto % off tag */
+.mrp-strike { color: var(--muted); text-decoration: line-through; font-weight: 500; font-size: .82em; margin-left: 6px; }
+.off-tag { display: inline-block; background: #dcfce7; color: #15803d; font-weight: 700; font-size: .68em; padding: 2px 8px; border-radius: 999px; margin-left: 4px; vertical-align: middle; }
+.pdp-price .mrp-strike { font-size: .6em; }
+.pdp-price .off-tag { font-size: .45em; padding: 3px 10px; }

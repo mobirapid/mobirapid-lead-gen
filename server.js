@@ -705,7 +705,7 @@ app.get('/compare', (req, res) => {
     <tbody>${fallbackRows}</tbody></table></div>`;
 
   const data = models.map((m) => ({
-    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', badge: m.badge || '',
+    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', mrp: m.mrp || '', badge: m.badge || '',
     cpu: m.cpu || '', gpu: m.gpu || '', memory: m.memory || '', storage: m.storage || '',
     display: m.display || '', condition_grade: m.condition_grade || '', warranty: m.warranty || '',
   }));
@@ -805,6 +805,18 @@ function reserveButton(slug, cls) {
 
 // A product is out of stock when its badge says "Sold out" / "Out of stock".
 function isSoldOut(m) { return /sold|out\s*of\s*stock/i.test(m.badge || ''); }
+// Strike-through MRP + auto "% off" tag when the MRP is higher than the selling price.
+function discountInfo(m) {
+  const num = (s) => parseFloat(String(s || '').replace(/[^\d.]/g, '')) || 0;
+  const mrp = num(m.mrp), price = num(m.price);
+  if (!mrp || !price || mrp <= price) return null;
+  const pct = Math.round(((mrp - price) / mrp) * 100);
+  return { mrp: '₹' + Math.round(mrp).toLocaleString('en-IN'), pct };
+}
+function discountHtml(m) {
+  const d = discountInfo(m);
+  return d ? ` <span class="mrp-strike">${esc(d.mrp)}</span> <span class="off-tag">${d.pct}% off</span>` : '';
+}
 // CTA shown on out-of-stock products — takes the visitor to the lead form with the model pre-noted.
 function availabilityButton(m, cls) {
   return `<a class="${cls || 'pdp-avail'}" href="/?notify=${encodeURIComponent(m.slug)}#lead-form">Check future availability →</a>`;
@@ -870,7 +882,7 @@ function renderProductPage(req, res, m, cat) {
         <div class="pdp-info">
           <h1>${esc(m.name)}</h1>
           ${m.specs ? `<p class="pdp-specs">${esc(m.specs)}</p>` : ''}
-          ${m.price ? `<div class="pdp-price">${esc(m.price)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>'}
+          ${m.price ? `<div class="pdp-price">${esc(m.price)}${discountHtml(m)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>'}
           <div class="pdp-meta">${metaBits.filter(Boolean).join('')}</div>
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
           ${soldOut ? '<p class="pdp-oos-note">This product is currently <strong>out of stock</strong>. Leave your details and we\'ll tell you when it\'s available again.</p>' : ''}
@@ -942,7 +954,7 @@ app.get('/c/:slug', (req, res) => {
       <div class="model-body">
         <h3>${esc(m.name)}</h3>
         ${sub ? `<p class="model-specs">${esc(sub)}</p>` : ''}
-        ${m.price ? `<div class="model-price">${esc(m.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
+        ${m.price ? `<div class="model-price">${esc(m.price)}${discountHtml(m)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
         <div class="model-foot">
           ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
           <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
@@ -1541,6 +1553,7 @@ function modelFromBody(b) {
     category: cat ? cat.slug : 'macbooks',
     slug: b.slug ? slugify(b.slug) : slugify(name),
     price: String(b.price || '').trim(),
+    mrp: String(b.mrp || '').trim(),
     image: primary,
     images: JSON.stringify(gallery),
     specs: String(b.specs || '').trim(),
@@ -1568,8 +1581,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, category, slug, price, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
-     VALUES (@name, @category, @slug, @price, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, category, slug, price, mrp, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
+     VALUES (@name, @category, @slug, @price, @mrp, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -1585,7 +1598,7 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
      battery_health=@battery_health, colour=@colour, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });

@@ -326,6 +326,7 @@
           ${m.description ? `<p class="model-desc">${esc(m.description)}</p>` : ''}
           <div class="model-meta">
             ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
+            ${(() => { const pn = (v) => parseFloat(String(v || '').replace(/[^\d.]/g, '')) || 0; const mv = pn(m.mrp), pv = pn(m.price); return mv && pv && mv > pv ? `<span class="mrp-strike">₹${Math.round(mv).toLocaleString('en-IN')}</span> <span class="off-tag">${Math.round(((mv - pv) / mv) * 100)}% off</span>` : ''; })()}
             ${(() => { const pn = (CAT_MAP[m.category] && CAT_MAP[m.category].price_note) || s.price_note; return m.price && pn ? `<span class="model-gst">${esc(pn)}</span>` : ''; })()}
             ${m.condition_grade ? `<a class="model-grade cond-pill ${gradeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : ''}
           </div>
