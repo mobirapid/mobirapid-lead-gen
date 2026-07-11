@@ -811,3 +811,13 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 .cat-grid-page .model-price .mrp-strike { margin-left: 0; white-space: nowrap; }
 .cat-grid-page .model-price .off-tag { margin-left: 0; white-space: nowrap; align-self: center; }
 .cat-grid-page .model-price .model-gst { white-space: nowrap; }
+
+/* Header nav alignment — single line, no wrapping/collisions with brand or CTA */
+.header-inner { gap: 18px; }
+.brand { flex-shrink: 0; }
+.brand-name { white-space: nowrap; }
+.header-nav { align-items: center; flex-wrap: nowrap; gap: 18px; margin-left: 10px; margin-right: 10px; min-width: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.header-nav::-webkit-scrollbar { display: none; }
+.header-nav a { white-space: nowrap; line-height: 1; }
+.header-cta { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 860px) { .header-nav { display: none; } }
