@@ -42,6 +42,17 @@
   // LEADS
   // ========================================================================
   let allLeads = [];
+  let leadStatusList = ['New', 'Contacted', 'Converted', 'Lost'];
+  // Fill the status filter + lead-dialog dropdowns from the configured status list.
+  function fillStatusSelects() {
+    const filter = $('filterStatus');
+    if (filter) {
+      const cur = filter.value;
+      filter.innerHTML = '<option value="">All statuses</option>' + leadStatusList.map((s) => `<option>${esc(s)}</option>`).join('');
+      filter.value = cur && leadStatusList.includes(cur) ? cur : '';
+    }
+    if ($('l-status')) $('l-status').innerHTML = leadStatusList.map((s) => `<option>${esc(s)}</option>`).join('');
+  }
   function fmtDate(s) { if (!s) return ''; const d = new Date(s.replace(' ', 'T') + 'Z'); return isNaN(d) ? s : d.toLocaleString(); }
   function renderLeads() {
     const q = $('search').value.toLowerCase();
@@ -54,11 +65,12 @@
       return true;
     });
     $('emptyState').hidden = rows.length > 0;
-    const statuses = ['New', 'Contacted', 'Converted', 'Lost'];
+    const statuses = leadStatusList;
     const edit = canEditLeads();
     $('rows').innerHTML = rows.map((l) => {
       const st = l.status || 'New';
-      const opts = statuses.map((s) => `<option ${s === st ? 'selected' : ''}>${s}</option>`).join('');
+      // Keep a lead's current status selectable even if it was removed from the configured list.
+      const opts = (statuses.includes(st) ? statuses : [st].concat(statuses)).map((s) => `<option ${s === st ? 'selected' : ''}>${esc(s)}</option>`).join('');
       // Status is editable by any logged-in staff (admin or lead-only user); edit/delete stay admin-only.
       const statusCell = `<select class="status-sel st-${esc(st.toLowerCase())}" data-lstatus="${l.id}">${opts}</select>`;
       const actionsCell = edit
@@ -73,17 +85,20 @@
         <td>${esc(l.phone)} ${l.phone_verified ? '<span class="verified" title="Verified">✓</span>' : ''}</td>
         <td>${l.client_type ? `<span class="pill type">${esc(l.client_type)}</span>` : '—'}</td>
         <td>${l.company_name ? `${esc(l.company_name)}<br><small>${esc(l.company_email || '')}</small>` : '—'}</td>
-        <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}${l.interested_model ? `<br><small title="Interested model">🖥 ${esc(l.interested_model)}</small>` : ''}</td>
+        <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}</td>
+        <td>${l.interested_model ? `🖥 ${esc(l.interested_model)}` : '—'}</td>
         <td>${esc(l.budget) || '—'}</td>
         <td>${esc(l.best_time) || '—'}${l.call_type ? `<br><span class="pill ${/video/i.test(l.call_type) ? 'req' : 'type'}">${esc(l.call_type)}</span>` : ''}</td>
         <td>${statusCell}</td>
+        <td class="msg"><span class="remark-tx">${esc(l.remark) || '—'}</span> <button class="btn small" data-lremark="${l.id}" title="Edit remark">✎</button></td>
         <td class="msg">${esc(l.message) || '—'}</td>
         <td>${fmtDate(l.created_at)}</td>
         ${actionsCell}
       </tr>`;
     }).join('');
-    // Status dropdown works for every staff role.
+    // Status dropdown and remark work for every staff role.
     $('rows').querySelectorAll('[data-lstatus]').forEach((sel) => sel.addEventListener('change', () => changeStatus(sel.dataset.lstatus, sel.value, sel)));
+    $('rows').querySelectorAll('[data-lremark]').forEach((b) => b.addEventListener('click', () => changeRemark(b.dataset.lremark)));
     // Edit / delete / bulk-select are admin-only.
     if (edit) {
       $('rows').querySelectorAll('[data-ledit]').forEach((b) => b.addEventListener('click', () => openLead(b.dataset.ledit)));
@@ -92,6 +107,17 @@
       if ($('selectAll')) $('selectAll').checked = false;
       updateSelection();
     }
+  }
+
+  async function changeRemark(id) {
+    const lead = allLeads.find((x) => String(x.id) === String(id));
+    if (!lead) return;
+    const remark = prompt('Remark for ' + (lead.name || 'this lead') + ':', lead.remark || '');
+    if (remark === null) return;
+    const r = await api('/api/admin/leads/' + id + '/remark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ remark: remark.trim() }) });
+    const d = await r.json();
+    if (d.ok) { lead.remark = remark.trim(); renderLeads(); }
+    else alert(d.error || 'Could not save the remark.');
   }
 
   async function changeStatus(id, status, sel) {
@@ -114,17 +140,20 @@
     const l = allLeads.find((x) => String(x.id) === String(id));
     if (!l) return;
     $('l-id').value = l.id;
-    ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'interested_model', 'message'].forEach((f) => { if ($('l-' + f)) $('l-' + f).value = l[f] ?? ''; });
+    ['name', 'phone', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'interested_model', 'message', 'remark'].forEach((f) => { if ($('l-' + f)) $('l-' + f).value = l[f] ?? ''; });
     $('l-client_type').value = l.client_type || '';
     $('l-call_type').value = l.call_type || '';
-    $('l-status').value = l.status || 'New';
+    const st = l.status || 'New';
+    if (!leadStatusList.includes(st)) $('l-status').innerHTML = `<option>${esc(st)}</option>` + leadStatusList.map((s) => `<option>${esc(s)}</option>`).join('');
+    else fillStatusSelects();
+    $('l-status').value = st;
     leadDlg.showModal();
   }
   $('leadCancel').addEventListener('click', () => leadDlg.close());
   $('leadSave').addEventListener('click', async () => {
     const id = $('l-id').value;
     const payload = {};
-    ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'interested_model', 'message'].forEach((f) => { if ($('l-' + f)) payload[f] = $('l-' + f).value.trim(); });
+    ['name', 'phone', 'client_type', 'company_name', 'company_email', 'requirement', 'budget', 'best_time', 'interested_model', 'message', 'remark'].forEach((f) => { if ($('l-' + f)) payload[f] = $('l-' + f).value.trim(); });
     payload.call_type = $('l-call_type').value;
     payload.status = $('l-status').value;
     if (!payload.name) { alert('Name is required.'); return; }
@@ -149,10 +178,17 @@
     const r = await api('/api/admin/leads');
     const data = await r.json();
     allLeads = data.leads || [];
+    if (Array.isArray(data.statuses) && data.statuses.length) leadStatusList = data.statuses;
+    fillStatusSelects();
+    if ($('set-lead_statuses') && !$('set-lead_statuses').value) $('set-lead_statuses').value = leadStatusList.join(', ');
     updateStats(); renderLeads();
   }
   // Safe listener helper — never crashes the script if an element is missing.
   const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+  on('saveLeadStatuses', 'click', async () => {
+    await saveSettings(collectSettings(['lead_statuses']), $('leadStatusesSaved'));
+    loadLeads(); // refresh dropdowns with the new list
+  });
   on('search', 'input', renderLeads);
   on('filterReq', 'change', renderLeads);
   on('filterType', 'change', renderLeads);
@@ -185,6 +221,8 @@
       }
       el.value = val;
     });
+    // Show the effective status list when none has been saved yet.
+    if ($('set-lead_statuses') && !$('set-lead_statuses').value) $('set-lead_statuses').value = leadStatusList.join(', ');
     // populate leads requirement filter from options
     let reqs = [];
     try { reqs = JSON.parse(settings.requirement_options || '[]'); } catch {}
@@ -955,7 +993,7 @@
       showOnlyTabs(tabs.length ? tabs : ['leads']);
       if (roles.includes('leads')) {
         // Lead access: status editable; no edit/delete/bulk.
-        ['selectAll', 'bulkDeleteBtn'].forEach((id) => { const el = $(id); if (el) el.style.display = 'none'; });
+        ['selectAll', 'bulkDeleteBtn', 'statusConfigCard'].forEach((id) => { const el = $(id); if (el) el.style.display = 'none'; });
         loadLeads();
       }
       if (roles.includes('catalog')) {

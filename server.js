@@ -1426,10 +1426,14 @@ app.delete('/api/admin/users/:id', (req, res) => {
 });
 
 // Leads
+// Status options are configurable in the admin (Leads tab). Comma-separated setting; falls back to the defaults.
+function leadStatuses() {
+  const list = String(getSetting('lead_statuses', '')).split(',').map((s) => s.trim()).filter(Boolean);
+  return list.length ? list.slice(0, 20) : ['New', 'Contacted', 'Converted', 'Lost'];
+}
 app.get('/api/admin/leads', requireAdmin, (req, res) => {
-  res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all() });
+  res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all(), statuses: leadStatuses() });
 });
-const LEAD_STATUSES = ['New', 'Contacted', 'Converted', 'Lost'];
 app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
   const b = req.body || {};
   const lead = {
@@ -1445,13 +1449,14 @@ app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
     call_type: String(b.call_type || '').trim(),
     interested_model: String(b.interested_model || '').trim().slice(0, 200),
     message: String(b.message || '').trim().slice(0, 2000),
-    status: LEAD_STATUSES.includes(b.status) ? b.status : 'New',
+    remark: String(b.remark || '').trim().slice(0, 1000),
+    status: leadStatuses().includes(b.status) ? b.status : 'New',
   };
   if (!lead.name) return res.status(400).json({ ok: false, error: 'Name is required.' });
   db.prepare(
     `UPDATE leads SET name=@name, phone=@phone, client_type=@client_type, company_name=@company_name,
      company_email=@company_email, requirement=@requirement, budget=@budget, best_time=@best_time,
-     call_type=@call_type, interested_model=@interested_model, message=@message, status=@status WHERE id=@id`
+     call_type=@call_type, interested_model=@interested_model, message=@message, remark=@remark, status=@status WHERE id=@id`
   ).run(lead);
   res.json({ ok: true });
 });
@@ -1459,8 +1464,14 @@ app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
 // Both admin and lead-only staff may change a lead's status (but not edit/delete the lead).
 app.post('/api/admin/leads/:id/status', requireAdmin, (req, res) => {
   const status = req.body.status;
-  if (!LEAD_STATUSES.includes(status)) return res.status(400).json({ ok: false, error: 'Invalid status.' });
+  if (!leadStatuses().includes(status)) return res.status(400).json({ ok: false, error: 'Invalid status.' });
   db.prepare('UPDATE leads SET status = ? WHERE id = ?').run(status, parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+// Quick remark edit (inline) — any staff with lead access may add/update a remark.
+app.post('/api/admin/leads/:id/remark', requireAdmin, (req, res) => {
+  const remark = String(req.body.remark || '').trim().slice(0, 1000);
+  db.prepare('UPDATE leads SET remark = ? WHERE id = ?').run(remark, parseInt(req.params.id, 10));
   res.json({ ok: true });
 });
 app.delete('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
@@ -1479,7 +1490,7 @@ app.post('/api/admin/leads/bulk-delete', requireAdmin, requireFullRole, (req, re
 });
 app.get('/api/admin/leads.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM leads ORDER BY id DESC').all();
-  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'interested_model', 'budget', 'call_type', 'best_time', 'status', 'message', 'created_at'];
+  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'interested_model', 'budget', 'call_type', 'best_time', 'status', 'remark', 'message', 'created_at'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv');

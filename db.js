@@ -125,6 +125,7 @@ ensureColumn('leads', 'status', "TEXT DEFAULT 'New'");
 ensureColumn('blog_posts', 'tags', 'TEXT');
 ensureColumn('leads', 'call_type', 'TEXT');
 ensureColumn('leads', 'interested_model', 'TEXT');
+ensureColumn('leads', 'remark', 'TEXT'); // Internal staff note per lead (shown only in the admin).
 ensureColumn('macbook_models', 'slug', 'TEXT');
 ensureColumn('macbook_models', 'cpu', 'TEXT');
 ensureColumn('macbook_models', 'gpu', 'TEXT');

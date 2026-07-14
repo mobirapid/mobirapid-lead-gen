@@ -115,7 +115,7 @@
         <input type="text" id="search" placeholder="Search name, phone, company, message…" />
         <select id="filterReq"><option value="">All requirements</option></select>
         <select id="filterType"><option value="">All types</option><option>Individual</option><option>Company</option></select>
-        <select id="filterStatus"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Converted</option><option>Lost</option></select>
+        <select id="filterStatus"><option value="">All statuses</option></select>
         <a class="btn" href="/api/admin/leads.csv">Export CSV</a>
         <button class="btn" id="refreshLeads">Refresh</button>
         <button class="btn danger" id="bulkDeleteBtn" hidden>Delete selected (<span id="selCount">0</span>)</button>
@@ -125,11 +125,20 @@
           <thead><tr>
             <th><input type="checkbox" id="selectAll" title="Select all" /></th>
             <th>#</th><th>Name</th><th>Phone</th><th>Type</th><th>Company</th><th>Requirement</th>
-            <th>Budget</th><th>Best time</th><th>Status</th><th>Message</th><th>Received</th><th>Actions</th>
+            <th>Product required</th><th>Budget</th><th>Best time</th><th>Status</th><th>Remark</th><th>Message</th><th>Received</th><th>Actions</th>
           </tr></thead>
           <tbody id="rows"></tbody>
         </table>
         <div class="empty" id="emptyState" hidden>No leads yet.</div>
+      </div>
+      <div class="card" id="statusConfigCard" style="margin-top:16px;">
+        <h3>Lead status options</h3>
+        <p class="muted">Comma separated — these become the choices in every lead's Status dropdown. Leads already set to a removed status keep it until changed.</p>
+        <div class="upload-row">
+          <input type="text" id="set-lead_statuses" placeholder="New, Contacted, Converted, Lost" style="flex:1;min-width:260px;" />
+          <button class="btn small" id="saveLeadStatuses" type="button">Save statuses</button>
+          <span class="saved-msg" id="leadStatusesSaved" hidden>Saved ✓</span>
+        </div>
       </div>
     </section>
 
@@ -894,16 +903,18 @@
           <div><label class="fld">Requirement</label><input type="text" id="l-requirement" /></div>
           <div><label class="fld">Budget</label><input type="text" id="l-budget" /></div>
           <div><label class="fld">Best time</label><input type="text" id="l-best_time" /></div>
-          <div><label class="fld">Interested model</label><input type="text" id="l-interested_model" /></div>
+          <div><label class="fld">Product required</label><input type="text" id="l-interested_model" /></div>
           <div><label class="fld">Call type</label>
             <select id="l-call_type"><option value="">—</option><option>Phone call</option><option>Video call</option></select>
           </div>
           <div><label class="fld">Status</label>
-            <select id="l-status"><option>New</option><option>Contacted</option><option>Converted</option><option>Lost</option></select>
+            <select id="l-status"></select>
           </div>
         </div>
         <label class="fld" style="margin-top:12px;">Message</label>
         <textarea id="l-message" rows="3"></textarea>
+        <label class="fld" style="margin-top:12px;">Remark (internal note — not visible to the customer)</label>
+        <textarea id="l-remark" rows="2" placeholder="e.g. Called twice, wants delivery after Aug 1"></textarea>
       </div>
       <div class="dlg-foot">
         <button class="btn" type="button" id="leadCancel">Cancel</button>
