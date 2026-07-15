@@ -126,6 +126,7 @@ ensureColumn('blog_posts', 'tags', 'TEXT');
 ensureColumn('leads', 'call_type', 'TEXT');
 ensureColumn('leads', 'interested_model', 'TEXT');
 ensureColumn('leads', 'remark', 'TEXT'); // Internal staff note per lead (shown only in the admin).
+ensureColumn('leads', 'consent', 'TEXT'); // DPDP consent record: consent-text version + ISO timestamp.
 ensureColumn('macbook_models', 'slug', 'TEXT');
 ensureColumn('macbook_models', 'cpu', 'TEXT');
 ensureColumn('macbook_models', 'gpu', 'TEXT');
@@ -1108,6 +1109,29 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(RUPEE_FLAG)) {
     if (np !== (r.price || '') || nm !== (r.mrp || '') || cp !== (r.condition_prices || '')) upd.run(np, nm, cp, r.id);
   }
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(RUPEE_FLAG, '1');
+}
+
+// One-time: append a DPDP Act, 2023 rights section to the Privacy Policy page
+// (skipped if the page already mentions the DPDP Act — admin edits are preserved).
+const DPDP_FLAG = 'privacy_dpdp_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(DPDP_FLAG)) {
+  const page = db.prepare("SELECT slug, content FROM content_pages WHERE slug = 'privacy-policy'").get();
+  if (page && !/DPDP/i.test(page.content || '')) {
+    const dpdp = `
+<h2>Your rights under the Digital Personal Data Protection Act, 2023 (DPDP Act)</h2>
+<p>We process the personal data you provide on this site — such as your name, phone number, email address and enquiry details — solely to respond to your enquiry, arrange consultations, process reservations and provide related support. We process this data on the basis of the <strong>consent</strong> you give via the consent checkbox on our forms, and we keep a record of when that consent was given.</p>
+<ul>
+<li><strong>Withdraw consent:</strong> you may withdraw your consent at any time by contacting us using the details below. After withdrawal we will stop processing your data and delete it, unless a law requires us to retain it.</li>
+<li><strong>Access &amp; correction:</strong> you may ask for a summary of the personal data we hold about you and have inaccuracies corrected or incomplete data updated.</li>
+<li><strong>Erasure:</strong> you may ask us to delete your personal data once it is no longer needed for the purpose it was collected for.</li>
+<li><strong>Grievance redressal:</strong> concerns are handled by our Grievance Officer (contact details on this page and the Grievance Redressal page). We acknowledge and resolve grievances within the timelines prescribed under the DPDP Act.</li>
+<li><strong>Escalation:</strong> if you are not satisfied with our response, you may complain to the Data Protection Board of India.</li>
+<li><strong>Nomination:</strong> you may nominate another individual to exercise these rights on your behalf in case of death or incapacity.</li>
+</ul>
+<p>We collect only the data needed for the purposes above, retain it only as long as necessary, never sell personal data, and restrict access to authorised staff. Data is stored on secure servers and requests for access, correction or erasure are honoured free of charge.</p>`;
+    db.prepare("UPDATE content_pages SET content = content || ?, updated_at = datetime('now') WHERE slug = ?").run(dpdp, page.slug);
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(DPDP_FLAG, '1');
 }
 
 module.exports = db;

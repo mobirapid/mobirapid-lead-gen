@@ -1311,6 +1311,10 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
 
   if (!name) return res.status(400).json({ ok: false, error: 'Name is required.' });
   if (!phone) return res.status(400).json({ ok: false, error: 'A valid phone number is required.' });
+  // DPDP Act, 2023: processing requires explicit, recorded consent.
+  const consented = b.consent === true || b.consent === 'true' || b.consent === '1' || b.consent === 'on';
+  if (!consented) return res.status(400).json({ ok: false, error: 'Please tick the consent box so we can process your enquiry.' });
+  const consentRecord = 'v1 · ' + new Date().toISOString(); // consent-text version + timestamp (audit trail)
 
   if (clientType === 'Company') {
     if (!companyName) return res.status(400).json({ ok: false, error: 'Company name is required.' });
@@ -1321,9 +1325,9 @@ app.post('/api/lead', submitLimiter, async (req, res) => {
   if (!otp || otp.verified !== 1) return res.status(400).json({ ok: false, error: 'Please verify your phone number first.' });
 
   const info = db.prepare(
-    `INSERT INTO leads (name, phone, phone_verified, client_type, company_name, company_email, requirement, budget, best_time, call_type, interested_model, message)
-     VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(name, phone, clientType, companyName, companyEmail, requirement, budget, bestTime, callType, interestedModel, message);
+    `INSERT INTO leads (name, phone, phone_verified, client_type, company_name, company_email, requirement, budget, best_time, call_type, interested_model, message, consent)
+     VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(name, phone, clientType, companyName, companyEmail, requirement, budget, bestTime, callType, interestedModel, message, consentRecord);
 
   const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(Number(info.lastInsertRowid));
   db.prepare('DELETE FROM otps WHERE phone = ?').run(phone);
@@ -1560,7 +1564,7 @@ app.post('/api/admin/leads/bulk-delete', requireAdmin, requireFullRole, (req, re
 });
 app.get('/api/admin/leads.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM leads ORDER BY id DESC').all();
-  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'interested_model', 'budget', 'call_type', 'best_time', 'status', 'remark', 'message', 'created_at'];
+  const cols = ['id', 'name', 'phone', 'phone_verified', 'client_type', 'company_name', 'company_email', 'requirement', 'interested_model', 'budget', 'call_type', 'best_time', 'status', 'remark', 'message', 'consent', 'created_at'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv');

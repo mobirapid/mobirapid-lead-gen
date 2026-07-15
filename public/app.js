@@ -699,6 +699,7 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!phoneVerified) { setStatus('Please verify your phone number first.', 'err'); return; }
+    if ($('consent') && !$('consent').checked) { setStatus('Please tick the consent box so we can process your enquiry (required under the DPDP Act).', 'err'); $('consent').focus(); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
 
     const getCookie = (n) => { const m = document.cookie.match('(^|;)\\s*' + n + '\\s*=\\s*([^;]+)'); return m ? m.pop() : ''; };
@@ -719,6 +720,7 @@
       event_id: eventId,
       fbp: getCookie('_fbp'),
       fbc: getCookie('_fbc'),
+      consent: $('consent') ? $('consent').checked : false,
     };
 
     submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; setStatus('', '');

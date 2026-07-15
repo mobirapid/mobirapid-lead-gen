@@ -919,3 +919,8 @@ main section, .page-body { scroll-margin-top: 84px; }
 @media (min-width: 900px) {
   .section-pad, main > section { padding-top: 8px; padding-bottom: 8px; }
 }
+
+/* DPDP consent checkbox on the lead form */
+.consent-row { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 12px; font-size: .82rem; color: var(--muted); line-height: 1.5; cursor: pointer; }
+.consent-row input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--brand); flex-shrink: 0; cursor: pointer; }
+.consent-row a { text-decoration: underline; }
