@@ -140,6 +140,7 @@ ensureColumn('macbook_models', 'battery_health', 'TEXT');
 ensureColumn('macbook_models', 'colour', 'TEXT');
 ensureColumn('macbook_models', 'images', 'TEXT'); // JSON array of image paths (gallery). image = primary/first.
 ensureColumn('macbook_models', 'mrp', 'TEXT'); // Actual MRP — shown struck-through with an auto "% off" tag when higher than the selling price.
+ensureColumn('macbook_models', 'condition_prices', 'TEXT'); // JSON [{grade, price, mrp}] — per-condition price variations pickable on the product page.
 // Normalise any legacy/blank category values onto the 'macbooks' category slug.
 db.exec("UPDATE macbook_models SET category = 'macbooks' WHERE category IS NULL OR category = '' OR category = 'macbook'");
 

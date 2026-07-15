@@ -141,11 +141,14 @@
     if (!slug) return;
     const m = (models || []).find((x) => x.slug === slug);
     if (!m) return;
+    // Chosen condition (from the product page's condition selector) rides along in ?cond=
+    const cond = new URLSearchParams(location.search).get('cond');
+    const label = m.name + (cond ? ' — Condition: ' + cond : '');
     const hidden = $('interested_model');
-    if (hidden) hidden.value = m.name;
+    if (hidden) hidden.value = label;
     const note = $('modelNote');
     if (note) {
-      note.innerHTML = 'Enquiring about: <strong>' + esc(m.name) + '</strong>';
+      note.innerHTML = 'Enquiring about: <strong>' + esc(label) + '</strong>';
       note.hidden = false;
     }
     const form = document.getElementById('lead-form') || document.getElementById('leadForm');
@@ -350,8 +353,18 @@
           ${sl ? `<p class="model-specs">${esc(sl)}</p>` : ''}
           ${m.description ? `<p class="model-desc">${esc(m.description)}</p>` : ''}
           <div class="model-pricerow">
-            ${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}
-            ${(() => { const pn = (v) => parseFloat(String(v || '').replace(/[^\d.]/g, '')) || 0; const mv = pn(m.mrp), pv = pn(m.price); return mv && pv && mv > pv ? `<span class="mrp-strike">₹${Math.round(mv).toLocaleString('en-IN')}</span><span class="off-tag">${Math.round(((mv - pv) / mv) * 100)}% off</span>` : ''; })()}
+            ${(() => {
+              const pn = (v) => parseFloat(String(v || '').replace(/[^\d.]/g, '')) || 0;
+              let variants = [];
+              try { variants = JSON.parse(m.condition_prices || '[]') || []; } catch { variants = []; }
+              variants = variants.filter((v) => v && v.grade && v.price);
+              if (variants.length) {
+                const low = variants.reduce((a, b) => (pn(b.price) < pn(a.price) ? b : a));
+                return `<span class="model-price"><span class="from-tag">From</span> ${esc(low.price)}</span>`;
+              }
+              const mv = pn(m.mrp), pv = pn(m.price);
+              return `${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}${mv && pv && mv > pv ? `<span class="mrp-strike">₹${Math.round(mv).toLocaleString('en-IN')}</span><span class="off-tag">${Math.round(((mv - pv) / mv) * 100)}% off</span>` : ''}`;
+            })()}
           </div>
           <div class="model-meta">
             ${(() => { const pn = (CAT_MAP[m.category] && CAT_MAP[m.category].price_note) || s.price_note; return m.price && pn ? `<span class="model-gst">${esc(pn)}</span>` : ''; })()}

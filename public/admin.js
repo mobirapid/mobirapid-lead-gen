@@ -517,12 +517,38 @@
     sel.innerHTML = opts.join('');
     sel.value = current || '';
   }
+  // ---- Condition-based pricing rows (product dialog) ----
+  let condPriceRows = [];
+  function condGradeOpts(current) {
+    const opts = ['<option value="">— condition —</option>'].concat(gradeList.map((g) => `<option value="${esc(g.grade)}"${g.grade === current ? ' selected' : ''}>${esc(g.grade)}</option>`));
+    if (current && !gradeList.some((g) => g.grade === current)) opts.push(`<option value="${esc(current)}" selected>${esc(current)}</option>`);
+    return opts.join('');
+  }
+  function renderCondPriceRows() {
+    const wrap = $('condPriceRows'); if (!wrap) return;
+    wrap.innerHTML = condPriceRows.map((r, i) => `
+      <div class="upload-row" style="margin-bottom:8px;">
+        <select data-cpg="${i}" style="min-width:150px;">${condGradeOpts(r.grade)}</select>
+        <input type="text" data-cpp="${i}" placeholder="Price e.g. ₹1,15,000" value="${esc(r.price || '')}" style="width:150px;" />
+        <input type="text" data-cpm="${i}" placeholder="MRP (optional)" value="${esc(r.mrp || '')}" style="width:130px;" />
+        <button class="btn small danger" type="button" data-cpx="${i}" title="Remove">✕</button>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-cpg]').forEach((el) => el.addEventListener('change', () => { condPriceRows[+el.dataset.cpg].grade = el.value; }));
+    wrap.querySelectorAll('[data-cpp]').forEach((el) => el.addEventListener('input', () => { condPriceRows[+el.dataset.cpp].price = el.value; }));
+    wrap.querySelectorAll('[data-cpm]').forEach((el) => el.addEventListener('input', () => { condPriceRows[+el.dataset.cpm].mrp = el.value; }));
+    wrap.querySelectorAll('[data-cpx]').forEach((el) => el.addEventListener('click', () => { condPriceRows.splice(+el.dataset.cpx, 1); renderCondPriceRows(); }));
+  }
+  on('addCondPrice', 'click', () => { condPriceRows.push({ grade: '', price: '', mrp: '' }); renderCondPriceRows(); });
+
   function openModel(id) {
     const m = id ? models.find((x) => String(x.id) === String(id)) : null;
     $('modelDlgTitle').textContent = m ? 'Edit product' : 'Add product';
     $('m-id').value = m ? m.id : '';
     fillCategorySelect($('m-category'), m ? m.category : (userScope || (cats[0] && cats[0].slug)));
     fillGradeSelect(m ? (m.condition_grade || '') : '');
+    try { condPriceRows = m && m.condition_prices ? (JSON.parse(m.condition_prices) || []) : []; } catch { condPriceRows = []; }
+    if (!Array.isArray(condPriceRows)) condPriceRows = [];
+    renderCondPriceRows();
     ['name', 'slug', 'price', 'mrp', 'specs', 'description', 'badge', 'condition_grade', 'warranty', 'cpu', 'gpu', 'memory', 'storage', 'display', 'software', 'battery_health', 'colour', 'image', 'sort_order'].forEach((f) => { if ($('m-' + f)) $('m-' + f).value = m ? (m[f] ?? '') : (f === 'sort_order' ? models.length + 1 : ''); });
     $('m-active').value = m ? String(m.active) : '1';
     applyCategoryFields($('m-category').value);
@@ -572,6 +598,7 @@
     const payload = {
       category: $('m-category') ? $('m-category').value : 'macbooks',
       name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), mrp: $('m-mrp') ? $('m-mrp').value.trim() : '', specs: $('m-specs').value.trim(),
+      condition_prices: condPriceRows.filter((r) => (r.grade || '').trim() && (r.price || '').trim()),
       description: $('m-description').value.trim(),
       badge: $('m-badge').value, condition_grade: $('m-condition_grade').value.trim(),
       warranty: $('m-warranty').value.trim(),

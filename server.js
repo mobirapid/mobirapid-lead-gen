@@ -705,7 +705,7 @@ app.get('/compare', (req, res) => {
     <tbody>${fallbackRows}</tbody></table></div>`;
 
   const data = models.map((m) => ({
-    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', mrp: m.mrp || '', badge: m.badge || '',
+    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', mrp: m.mrp || '', condition_prices: m.condition_prices || '', badge: m.badge || '',
     cpu: m.cpu || '', gpu: m.gpu || '', memory: m.memory || '', storage: m.storage || '',
     display: m.display || '', condition_grade: m.condition_grade || '', warranty: m.warranty || '',
   }));
@@ -805,6 +805,17 @@ function reserveButton(slug, cls) {
 
 // A product is out of stock when its badge says "Sold out" / "Out of stock".
 function isSoldOut(m) { return /sold|out\s*of\s*stock/i.test(m.badge || ''); }
+// Per-condition price variations: JSON [{grade, price, mrp}] on the model row (empty = single price).
+function condPrices(m) {
+  try { const v = JSON.parse(m.condition_prices || '[]'); return Array.isArray(v) ? v.filter((r) => r && r.grade && r.price) : []; } catch { return []; }
+}
+const priceNum2 = (s) => parseFloat(String(s || '').replace(/[^\d.]/g, '')) || 0;
+// Lowest-priced variant (for "From ₹X" on cards); null when the product has no variations.
+function lowestVariant(m) {
+  const v = condPrices(m);
+  if (!v.length) return null;
+  return v.reduce((a, b) => (priceNum2(b.price) < priceNum2(a.price) ? b : a));
+}
 // Strike-through MRP + auto "% off" tag when the MRP is higher than the selling price.
 function discountInfo(m) {
   const num = (s) => parseFloat(String(s || '').replace(/[^\d.]/g, '')) || 0;
@@ -854,7 +865,14 @@ function renderProductPage(req, res, m, cat) {
   const props = rows.filter((r) => !/Condition|Warranty/.test(r[0]));
   if (props.length) ld.additionalProperty = props.map((p) => ({ '@type': 'PropertyValue', name: p[0], value: p[1] }));
   const soldOut = isSoldOut(m);
-  if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', url: base + productUrl(m, cat) };
+  // Condition-based price variations (if configured) — buyer picks the condition on the page.
+  const variants = condPrices(m);
+  const defVariant = variants.length ? (variants.find((v) => v.grade === m.condition_grade) || variants[0]) : null;
+  const availLd = soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
+  if (variants.length) {
+    const nums = variants.map((v) => priceNum2(v.price)).filter(Boolean);
+    ld.offers = { '@type': 'AggregateOffer', lowPrice: Math.min(...nums), highPrice: Math.max(...nums), priceCurrency: 'INR', offerCount: variants.length, availability: availLd, url: base + productUrl(m, cat) };
+  } else if (priceNum) ld.offers = { '@type': 'Offer', price: priceNum, priceCurrency: 'INR', availability: availLd, url: base + productUrl(m, cat) };
   const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   const desc = (m.description || m.specs || m.name).slice(0, 180);
   const badge = m.badge ? `<span class="pdp-badge ${soldOut ? 'soldout' : /hot/i.test(m.badge) ? 'hot' : 'avail'}">${esc(m.badge)}</span>` : '';
@@ -882,7 +900,15 @@ function renderProductPage(req, res, m, cat) {
         <div class="pdp-info">
           <h1>${esc(m.name)}</h1>
           ${m.specs ? `<p class="pdp-specs">${esc(m.specs)}</p>` : ''}
-          ${m.price ? `<div class="pdp-price">${esc(m.price)}${discountHtml(m)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>'}
+          ${(() => {
+            if (!defVariant) return m.price ? `<div class="pdp-price">${esc(m.price)}${discountHtml(m)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>';
+            const dm = priceNum2(defVariant.mrp), dp = priceNum2(defVariant.price), hasD = dm > dp;
+            return `<div class="pdp-price"><span id="pdpPriceVal">${esc(defVariant.price)}</span> <span class="mrp-strike" id="pdpStrike"${hasD ? '' : ' hidden'}>${hasD ? '₹' + Math.round(dm).toLocaleString('en-IN') : ''}</span> <span class="off-tag" id="pdpOff"${hasD ? '' : ' hidden'}>${hasD ? Math.round(((dm - dp) / dm) * 100) + '% off' : ''}</span> ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>
+            <div class="pdp-cond-label">Condition <a href="/condition" title="What do these grades mean?">ⓘ</a></div>
+            <div class="pdp-cond-opts" id="condOpts">
+              ${variants.map((v) => `<button type="button" class="pdp-cond-opt${v === defVariant ? ' on' : ''}" data-grade="${esc(v.grade)}" data-price="${esc(v.price)}" data-mrp="${esc(v.mrp || '')}"><b>${esc(v.grade)}</b><small>${esc(v.price)}</small></button>`).join('')}
+            </div>`;
+          })()}
           <div class="pdp-meta">${metaBits.filter(Boolean).join('')}</div>
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
           ${soldOut ? '<p class="pdp-oos-note">This product is currently <strong>out of stock</strong>. Leave your details and we\'ll tell you when it\'s available again.</p>' : ''}
@@ -890,7 +916,7 @@ function renderProductPage(req, res, m, cat) {
             ${soldOut
               ? `${availabilityButton(m, 'pdp-book pdp-avail')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
-              : `<a class="pdp-book" href="${bookUrl}">Book Now →</a>
+              : `<a class="pdp-book" id="pdpBookBtn" data-base="/?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book Now →</a>
             ${reserveButton(m.slug, 'pdp-reserve')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
           </div>
@@ -928,7 +954,18 @@ function renderProductPage(req, res, m, cat) {
         <p class="pdp-software">${esc(m.software)}</p>
       </section>` : ''}
     </main>
-    <script>(function(){var t=document.getElementById('pdpThumbs');if(!t)return;var main=document.getElementById('pdpMainImg');t.addEventListener('click',function(e){var b=e.target.closest('.pdp-thumb');if(!b)return;main.src=b.getAttribute('data-img');t.querySelectorAll('.pdp-thumb').forEach(function(x){x.classList.toggle('on',x===b);});});})();</script>` +
+    <script>(function(){var t=document.getElementById('pdpThumbs');if(!t)return;var main=document.getElementById('pdpMainImg');t.addEventListener('click',function(e){var b=e.target.closest('.pdp-thumb');if(!b)return;main.src=b.getAttribute('data-img');t.querySelectorAll('.pdp-thumb').forEach(function(x){x.classList.toggle('on',x===b);});});})();</script>
+    <script>(function(){var w=document.getElementById('condOpts');if(!w)return;
+      var pv=document.getElementById('pdpPriceVal'),st=document.getElementById('pdpStrike'),off=document.getElementById('pdpOff'),book=document.getElementById('pdpBookBtn');
+      var num=function(s){return parseFloat(String(s||'').replace(/[^\\d.]/g,''))||0;};
+      w.addEventListener('click',function(e){var b=e.target.closest('.pdp-cond-opt');if(!b)return;
+        w.querySelectorAll('.pdp-cond-opt').forEach(function(x){x.classList.toggle('on',x===b);});
+        if(pv)pv.textContent=b.dataset.price;
+        var mv=num(b.dataset.mrp),p=num(b.dataset.price),has=mv>p;
+        if(st){st.hidden=!has;if(has)st.textContent='₹'+Math.round(mv).toLocaleString('en-IN');}
+        if(off){off.hidden=!has;if(has)off.textContent=Math.round(((mv-p)/mv)*100)+'% off';}
+        if(book&&book.dataset.base)book.href=book.dataset.base+'&cond='+encodeURIComponent(b.dataset.grade)+'#lead-form';
+      });})();</script>` +
     pageTail()
   );
 }
@@ -954,7 +991,11 @@ app.get('/c/:slug', (req, res) => {
       <div class="model-body">
         <h3>${esc(m.name)}</h3>
         ${sub ? `<p class="model-specs">${esc(sub)}</p>` : ''}
-        ${m.price ? `<div class="model-price">${esc(m.price)}${discountHtml(m)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : ''}
+        ${(() => {
+          const lv = lowestVariant(m);
+          if (lv) return `<div class="model-price"><span class="from-tag">From</span> ${esc(lv.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>`;
+          return m.price ? `<div class="model-price">${esc(m.price)}${discountHtml(m)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : '';
+        })()}
         <div class="model-foot">
           ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
           <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
@@ -1596,6 +1637,12 @@ function modelFromBody(b) {
     slug: b.slug ? slugify(b.slug) : slugify(name),
     price: String(b.price || '').trim(),
     mrp: String(b.mrp || '').trim(),
+    condition_prices: JSON.stringify(
+      (Array.isArray(b.condition_prices) ? b.condition_prices : [])
+        .map((r) => ({ grade: String((r && r.grade) || '').trim().slice(0, 60), price: String((r && r.price) || '').trim().slice(0, 30), mrp: String((r && r.mrp) || '').trim().slice(0, 30) }))
+        .filter((r) => r.grade && r.price)
+        .slice(0, 8)
+    ),
     image: primary,
     images: JSON.stringify(gallery),
     specs: String(b.specs || '').trim(),
@@ -1623,8 +1670,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, category, slug, price, mrp, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
-     VALUES (@name, @category, @slug, @price, @mrp, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, category, slug, price, mrp, condition_prices, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
+     VALUES (@name, @category, @slug, @price, @mrp, @condition_prices, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -1640,7 +1687,7 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, condition_prices=@condition_prices, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
      battery_health=@battery_health, colour=@colour, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });

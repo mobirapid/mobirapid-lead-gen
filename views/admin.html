@@ -618,6 +618,12 @@
         <div class="grid2" style="margin-top:12px;">
           <div><label class="fld">Selling price</label><input type="text" id="m-price" placeholder="₹1,29,000" /></div>
           <div><label class="fld">Actual MRP (optional — shows a "% off" tag)</label><input type="text" id="m-mrp" placeholder="₹1,59,000" /></div>
+          <div style="grid-column:1 / -1;">
+            <label class="fld">Condition-based pricing (optional)</label>
+            <p class="muted" style="margin:4px 0 8px;">One row per condition with its own price (and optional MRP). When set, buyers pick the condition on the product page and the price switches — cards show "From ₹lowest". The single price above is ignored on the product page.</p>
+            <div id="condPriceRows"></div>
+            <button class="btn small" type="button" id="addCondPrice">+ Add condition price</button>
+          </div>
           <div><label class="fld">Badge</label>
             <select id="m-badge"><option value="">None</option><option>Hot</option><option>Available</option><option>Out of stock</option><option>Sold out</option></select>
           </div>
