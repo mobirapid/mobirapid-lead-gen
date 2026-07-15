@@ -843,3 +843,62 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 .bestfor-label { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
 .bestfor-tag { background: #eef2ff; color: #3730a3; font-weight: 600; font-size: .78rem; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .pdp .bestfor { margin: 12px 0 4px; }
+
+/* ============================================================
+   UI/UX polish pass (guided by ui-ux-pro-max checklist):
+   SVG icons, visible focus states, consistent hover motion,
+   pressed states, refined depth, accessible contrast.
+   ============================================================ */
+
+/* Keyboard focus — clearly visible without affecting mouse users */
+:focus { outline: none; }
+:focus-visible { outline: 3px solid rgba(37, 99, 235, .55); outline-offset: 2px; border-radius: 6px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--brand) !important; box-shadow: var(--ring); }
+
+/* Every interactive element behaves like one */
+button, [role="button"], .btn, .pdp-thumb, .pdp-cond-opt, .mfilter, .status-sel { cursor: pointer; }
+a, button, .btn { -webkit-tap-highlight-color: rgba(37, 99, 235, .12); }
+
+/* Consistent, calm motion (200ms) + gentle press feedback */
+.model-card, .pdp-card, .shopcat-card, .stat, .card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.model-card:hover, .shopcat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(15, 23, 42, .05), 0 18px 40px rgba(15, 23, 42, .10); }
+.pdp-book:active, .pdp-reserve:active, .model-reserve:active, .header-cta:active, .btn:active, .deal-book:active, .deal-reserve:active { transform: translateY(1px) scale(.99); }
+
+/* Product imagery: subtle zoom on hover (desktop only) */
+@media (hover: hover) {
+  .model-media { overflow: hidden; }
+  .model-media img, .pdp-media img { transition: transform .35s ease; }
+  .model-card:hover .model-media img, .pdp-media:hover img { transform: scale(1.035); }
+  .model-img { transition: background-size .35s ease; }
+}
+
+/* Header nav: smooth underline indicator */
+.header-nav a { position: relative; padding: 4px 0; }
+.header-nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -2px; height: 2px; background: var(--brand); transition: right .2s ease; }
+.header-nav a:hover::after { right: 0; }
+
+/* Inline SVG icon sizing (replaces emoji icons) */
+.pdp-tb-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--brand-soft); color: var(--brand); flex-shrink: 0; }
+.pdp-tb-ic svg { width: 21px; height: 21px; }
+.pdp-video svg, .deal-book .ic { width: 18px; height: 18px; vertical-align: -3.5px; margin-right: 6px; }
+
+/* Depth refinement: softer two-layer shadows on key surfaces */
+.model-card { box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 28px rgba(15, 23, 42, .07); }
+.pdp-media img { border-radius: inherit; }
+
+/* Price hierarchy: make the selling price unmistakably primary */
+.model-price { font-variant-numeric: tabular-nums; }
+.pdp-price { font-variant-numeric: tabular-nums; }
+
+/* Better text selection + anchor scroll offset below sticky header */
+::selection { background: rgba(37, 99, 235, .18); }
+[id] { scroll-margin-top: 84px; }
+
+/* Form inputs: calmer borders, clear focus */
+input, select, textarea { transition: border-color .15s ease, box-shadow .15s ease; }
+
+/* Status pills & chips: no jarring color pops */
+.pill, .cat-tag, .off-tag, .bestfor-tag, .model-badge, .pdp-badge { transition: none; }
+
+/* Ensure muted text keeps ≥4.5:1 contrast on white cards */
+.model-specs, .pdp-specs { color: #55637a; }

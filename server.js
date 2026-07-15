@@ -933,7 +933,7 @@ function renderProductPage(req, res, m, cat) {
               ? `${availabilityButton(m, 'pdp-book pdp-avail')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
               : `<a class="pdp-book" id="pdpBookBtn" data-base="/?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book Now →</a>
-            <a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}">📹 Schedule video call</a>
+            <a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>
             ${reserveButton(m.slug, 'pdp-reserve')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
           </div>
@@ -950,13 +950,13 @@ function renderProductPage(req, res, m, cat) {
         const wSub = openBox ? 'Manufacturer warranty' : 'Mobirapid warranty';
         return `<div class="pdp-trustbar">
           <a class="pdp-tb" href="/p/refund-policy">
-            <span class="pdp-tb-ic">↩</span><span class="pdp-tb-tx"><b>Easy returns</b><small>Read return policy</small></span>
+            <span class="pdp-tb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></span><span class="pdp-tb-tx"><b>Easy returns</b><small>Read return policy</small></span>
           </a>
           <div class="pdp-tb">
-            <span class="pdp-tb-ic">🛡</span><span class="pdp-tb-tx"><b>${wMain}</b><small>${wSub}</small></span>
+            <span class="pdp-tb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span><span class="pdp-tb-tx"><b>${wMain}</b><small>${wSub}</small></span>
           </div>
           <div class="pdp-tb">
-            <span class="pdp-tb-ic">🚚</span><span class="pdp-tb-tx"><b>Free shipping</b><small>Across India</small></span>
+            <span class="pdp-tb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="pdp-tb-tx"><b>Free shipping</b><small>Across India</small></span>
           </div>
         </div>`;
       })()}
