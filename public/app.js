@@ -371,6 +371,10 @@
               return `${m.price ? `<span class="model-price">${esc(m.price)}</span>` : ''}${mv && pv && mv > pv ? `<span class="mrp-strike">₹${Math.round(mv).toLocaleString('en-IN')}</span><span class="off-tag">${Math.round(((mv - pv) / mv) * 100)}% off</span>` : ''}`;
             })()}
           </div>
+          ${(() => {
+            const tags = String(m.best_for || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3);
+            return tags.length ? `<div class="bestfor"><span class="bestfor-label">Best for:</span>${tags.map((t) => `<span class="bestfor-tag">${esc(t)}</span>`).join('')}</div>` : '';
+          })()}
           <div class="model-meta">
             ${(() => { const pn = (CAT_MAP[m.category] && CAT_MAP[m.category].price_note) || s.price_note; return m.price && pn ? `<span class="model-gst">${esc(pn)}</span>` : ''; })()}
             ${m.condition_grade ? `<a class="model-grade cond-pill ${gradeClass(m.condition_grade)}" href="/condition" title="What does this grade mean?">${esc(m.condition_grade)} ⓘ</a>` : ''}

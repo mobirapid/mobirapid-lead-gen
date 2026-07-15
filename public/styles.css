@@ -837,3 +837,9 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 /* Schedule video call CTA on the product page */
 .pdp-video { background: #fff; color: var(--brand); border: 2px solid var(--brand); box-shadow: none; }
 .pdp-video:hover { background: rgba(37, 99, 235, .06); box-shadow: none; }
+
+/* "Best for" use-case tags under the price */
+.bestfor { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.bestfor-label { color: var(--muted); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+.bestfor-tag { background: #eef2ff; color: #3730a3; font-weight: 600; font-size: .78rem; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.pdp .bestfor { margin: 12px 0 4px; }

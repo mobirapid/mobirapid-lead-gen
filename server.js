@@ -705,7 +705,7 @@ app.get('/compare', (req, res) => {
     <tbody>${fallbackRows}</tbody></table></div>`;
 
   const data = models.map((m) => ({
-    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', mrp: m.mrp || '', condition_prices: m.condition_prices || '', badge: m.badge || '',
+    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', mrp: m.mrp || '', condition_prices: m.condition_prices || '', best_for: m.best_for || '', badge: m.badge || '',
     cpu: m.cpu || '', gpu: m.gpu || '', memory: m.memory || '', storage: m.storage || '',
     display: m.display || '', condition_grade: m.condition_grade || '', warranty: m.warranty || '',
   }));
@@ -805,6 +805,21 @@ function reserveButton(slug, cls) {
 
 // A product is out of stock when its badge says "Sold out" / "Out of stock".
 function isSoldOut(m) { return /sold|out\s*of\s*stock/i.test(m.badge || ''); }
+// Bare numbers entered as prices get the ₹ symbol and Indian grouping automatically
+// ("14000" -> "₹14,000"). Values that already have ₹ or contain text pass through unchanged.
+function normalizePrice(s) {
+  const t = String(s || '').trim();
+  if (!t || t.includes('₹')) return t;
+  const numeric = t.replace(/(?:rs\.?|inr)/i, '').replace(/[,\s]/g, '');
+  if (/^\d+(\.\d+)?$/.test(numeric)) return '₹' + Number(numeric).toLocaleString('en-IN');
+  return t;
+}
+// "Best for" use-case tags shown under the price (comma-separated on the model row).
+function bestForHtml(m, max) {
+  const tags = String(m.best_for || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, max || 6);
+  if (!tags.length) return '';
+  return `<div class="bestfor"><span class="bestfor-label">Best for:</span>${tags.map((t) => `<span class="bestfor-tag">${esc(t)}</span>`).join('')}</div>`;
+}
 // Per-condition price variations: JSON [{grade, price, mrp}] on the model row (empty = single price).
 function condPrices(m) {
   try { const v = JSON.parse(m.condition_prices || '[]'); return Array.isArray(v) ? v.filter((r) => r && r.grade && r.price) : []; } catch { return []; }
@@ -909,6 +924,7 @@ function renderProductPage(req, res, m, cat) {
               ${variants.map((v) => `<button type="button" class="pdp-cond-opt${v === defVariant ? ' on' : ''}" data-grade="${esc(v.grade)}" data-price="${esc(v.price)}" data-mrp="${esc(v.mrp || '')}"><b>${esc(v.grade)}</b><small>${esc(v.price)}</small></button>`).join('')}
             </div>`;
           })()}
+          ${bestForHtml(m)}
           <div class="pdp-meta">${metaBits.filter(Boolean).join('')}</div>
           ${m.description ? `<p class="pdp-desc">${esc(m.description)}</p>` : ''}
           ${soldOut ? '<p class="pdp-oos-note">This product is currently <strong>out of stock</strong>. Leave your details and we\'ll tell you when it\'s available again.</p>' : ''}
@@ -997,6 +1013,7 @@ app.get('/c/:slug', (req, res) => {
           if (lv) return `<div class="model-price"><span class="from-tag">From</span> ${esc(lv.price)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>`;
           return m.price ? `<div class="model-price">${esc(m.price)}${discountHtml(m)}${priceNote ? ` <span class="model-gst">${esc(priceNote)}</span>` : ''}</div>` : '';
         })()}
+        ${bestForHtml(m, 3)}
         <div class="model-foot">
           ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
           <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
@@ -1646,11 +1663,12 @@ function modelFromBody(b) {
     name,
     category: cat ? cat.slug : 'macbooks',
     slug: b.slug ? slugify(b.slug) : slugify(name),
-    price: String(b.price || '').trim(),
-    mrp: String(b.mrp || '').trim(),
+    price: normalizePrice(String(b.price || '').trim()),
+    mrp: normalizePrice(String(b.mrp || '').trim()),
+    best_for: String(b.best_for || '').trim().slice(0, 300),
     condition_prices: JSON.stringify(
       (Array.isArray(b.condition_prices) ? b.condition_prices : [])
-        .map((r) => ({ grade: String((r && r.grade) || '').trim().slice(0, 60), price: String((r && r.price) || '').trim().slice(0, 30), mrp: String((r && r.mrp) || '').trim().slice(0, 30) }))
+        .map((r) => ({ grade: String((r && r.grade) || '').trim().slice(0, 60), price: normalizePrice(String((r && r.price) || '').trim().slice(0, 30)), mrp: normalizePrice(String((r && r.mrp) || '').trim().slice(0, 30)) }))
         .filter((r) => r.grade && r.price)
         .slice(0, 8)
     ),
@@ -1681,8 +1699,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, category, slug, price, mrp, condition_prices, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
-     VALUES (@name, @category, @slug, @price, @mrp, @condition_prices, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, category, slug, price, mrp, best_for, condition_prices, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
+     VALUES (@name, @category, @slug, @price, @mrp, @best_for, @condition_prices, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -1698,7 +1716,7 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, condition_prices=@condition_prices, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, best_for=@best_for, condition_prices=@condition_prices, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
      battery_health=@battery_health, colour=@colour, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });
