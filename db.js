@@ -1085,4 +1085,29 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(HOME_CATS_FLAG))
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(HOME_CATS_FLAG, '1');
 }
 
+// One-time: add the ₹ symbol + Indian grouping to existing bare-number prices
+// ("14000" -> "₹14,000") across price, MRP and condition-based variations.
+const RUPEE_FLAG = 'prices_rupee_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(RUPEE_FLAG)) {
+  const norm = (s) => {
+    const t = String(s || '').trim();
+    if (!t || t.includes('₹')) return t;
+    const numeric = t.replace(/(?:rs\.?|inr)/i, '').replace(/[,\s]/g, '');
+    if (/^\d+(\.\d+)?$/.test(numeric)) return '₹' + Number(numeric).toLocaleString('en-IN');
+    return t;
+  };
+  const rows = db.prepare('SELECT id, price, mrp, condition_prices FROM macbook_models').all();
+  const upd = db.prepare('UPDATE macbook_models SET price = ?, mrp = ?, condition_prices = ? WHERE id = ?');
+  for (const r of rows) {
+    let cp = r.condition_prices || '';
+    try {
+      const v = JSON.parse(cp || '[]');
+      if (Array.isArray(v) && v.length) cp = JSON.stringify(v.map((x) => ({ ...x, price: norm(x.price), mrp: norm(x.mrp) })));
+    } catch { /* leave as-is */ }
+    const np = norm(r.price), nm = norm(r.mrp);
+    if (np !== (r.price || '') || nm !== (r.mrp || '') || cp !== (r.condition_prices || '')) upd.run(np, nm, cp, r.id);
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(RUPEE_FLAG, '1');
+}
+
 module.exports = db;
