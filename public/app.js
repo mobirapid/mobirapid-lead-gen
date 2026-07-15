@@ -142,6 +142,11 @@
     const m = (models || []).find((x) => x.slug === slug);
     if (!m) return;
     // Chosen condition (from the product page's condition selector) rides along in ?cond=
+    // ?call=video (from the "Schedule video call" button) preselects the video-call option.
+    if (new URLSearchParams(location.search).get('call') === 'video') {
+      const v = document.querySelector('input[name="call_type"][value="Video call"]');
+      if (v) v.checked = true;
+    }
     const cond = new URLSearchParams(location.search).get('cond');
     const label = m.name + (cond ? ' — Condition: ' + cond : '');
     const hidden = $('interested_model');

@@ -917,6 +917,7 @@ function renderProductPage(req, res, m, cat) {
               ? `${availabilityButton(m, 'pdp-book pdp-avail')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
               : `<a class="pdp-book" id="pdpBookBtn" data-base="/?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book Now →</a>
+            <a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}">📹 Schedule video call</a>
             ${reserveButton(m.slug, 'pdp-reserve')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
           </div>
@@ -1466,6 +1467,15 @@ app.delete('/api/admin/users/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Trackable CTA: records the click server-side, then lands on the lead form with
+// the model + video call preselected. UTM params make it visible in Google Analytics too.
+app.get('/track/video-call', (req, res) => {
+  const model = String(req.query.model || '').slice(0, 120);
+  try { db.prepare('INSERT INTO click_events (kind, model) VALUES (?, ?)').run('video-call', model); } catch (e) { console.error('click_events insert failed:', e.message); }
+  const q = new URLSearchParams({ ...(model ? { model } : {}), call: 'video', utm_source: 'site', utm_medium: 'pdp', utm_campaign: 'schedule_video_call' });
+  res.redirect('/?' + q.toString() + '#lead-form');
+});
+
 // Leads
 // Status options are configurable in the admin (Leads tab). Comma-separated setting; falls back to the defaults.
 function leadStatuses() {
@@ -1473,7 +1483,8 @@ function leadStatuses() {
   return list.length ? list.slice(0, 20) : ['New', 'Contacted', 'Converted', 'Lost'];
 }
 app.get('/api/admin/leads', requireAdmin, (req, res) => {
-  res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all(), statuses: leadStatuses() });
+  const videoClicks = db.prepare("SELECT COUNT(*) AS n FROM click_events WHERE kind = 'video-call'").get().n;
+  res.json({ ok: true, leads: db.prepare('SELECT * FROM leads ORDER BY id DESC').all(), statuses: leadStatuses(), video_clicks: videoClicks });
 });
 app.put('/api/admin/leads/:id', requireAdmin, requireFullRole, (req, res) => {
   const b = req.body || {};

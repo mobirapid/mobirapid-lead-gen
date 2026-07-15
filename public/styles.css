@@ -833,3 +833,7 @@ a.pdp-tb:hover .pdp-tb-tx b { color: var(--brand-dark); text-decoration: underli
 .pdp-cond-opt.on { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
 .pdp-cond-opt.on b { color: var(--brand); }
 .from-tag { font-size: .68em; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-right: 2px; }
+
+/* Schedule video call CTA on the product page */
+.pdp-video { background: #fff; color: var(--brand); border: 2px solid var(--brand); box-shadow: none; }
+.pdp-video:hover { background: rgba(37, 99, 235, .06); box-shadow: none; }

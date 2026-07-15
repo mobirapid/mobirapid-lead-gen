@@ -178,6 +178,7 @@
     const r = await api('/api/admin/leads');
     const data = await r.json();
     allLeads = data.leads || [];
+    if ($('statVideo')) $('statVideo').textContent = data.video_clicks ?? '—';
     if (Array.isArray(data.statuses) && data.statuses.length) leadStatusList = data.statuses;
     fillStatusSelects();
     if ($('set-lead_statuses') && !$('set-lead_statuses').value) $('set-lead_statuses').value = leadStatusList.join(', ');

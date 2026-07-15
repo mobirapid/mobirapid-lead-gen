@@ -178,6 +178,16 @@ db.exec(`
 // scope = category slug a "catalog" uploader is limited to (e.g. 'phones'); NULL for others.
 ensureColumn('users', 'scope', 'TEXT');
 
+// Click tracking for site CTAs (e.g. the product page "Schedule video call" button).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS click_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind       TEXT NOT NULL,
+    model      TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 // --- Seed default settings (only inserts missing keys) ---
 const DEFAULT_SETTINGS = {
   brand_name: 'Mobirapid',
