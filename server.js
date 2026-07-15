@@ -330,7 +330,8 @@ function baseUrl(req) {
   const proto = req.headers['x-forwarded-proto'] === 'https' || req.secure ? 'https' : 'http';
   return `${proto}://${req.headers.host || 'mobirapid.in'}`;
 }
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap';
+// E-commerce pairing (ui-ux-pro-max): Rubik for headings/prices, Nunito Sans for body text.
+const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&family=Rubik:wght@500;600;700;800&display=swap';
 const HEAD_COMMON =
   '<link rel="preconnect" href="https://fonts.googleapis.com">' +
   '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +

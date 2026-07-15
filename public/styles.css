@@ -902,3 +902,20 @@ input, select, textarea { transition: border-color .15s ease, box-shadow .15s ea
 
 /* Ensure muted text keeps ≥4.5:1 contrast on white cards */
 .model-specs, .pdp-specs { color: #55637a; }
+
+/* ============================================================
+   Typography upgrade (ui-ux-pro-max e-commerce pairing):
+   Rubik = headings, prices, buttons · Nunito Sans = body text
+   ============================================================ */
+body { font-family: "Nunito Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+h1, h2, h3, h4, h5, h6, .brand-name, .deal-title, .model-price, .pdp-price, .deal-price, .stat b,
+.header-cta, .pdp-book, .pdp-reserve, .model-reserve, .deal-book, .deal-reserve, .hero-button, .btn.primary {
+  font-family: "Rubik", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+h1, h2 { letter-spacing: -0.02em; }
+
+/* Showcase rhythm: generous, consistent vertical space between homepage sections */
+main section, .page-body { scroll-margin-top: 84px; }
+@media (min-width: 900px) {
+  .section-pad, main > section { padding-top: 8px; padding-bottom: 8px; }
+}
