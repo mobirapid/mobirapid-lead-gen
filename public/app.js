@@ -47,7 +47,7 @@
       renderBannerSlider(data.settings);
       renderRibbon(data.settings);
       renderUsps(data.settings);
-      renderDeal(data.settings, data.models);
+      renderDeal(data.settings, data.models, data.categories);
       renderCategoryCards(data.categories, data.models);
       renderModels(data.models, data.settings, data.categories);
       renderReviews(data.reviews, data.settings);
@@ -165,9 +165,51 @@
     }
   }
 
-  function renderDeal(s, models) {
+  // Multi-deal grid: one compact card per deal (e.g. one per category). When the
+  // admin's deals list is empty, the classic single-deal banner below is used instead.
+  function renderDealsGrid(s, models, categories) {
+    let deals = [];
+    try { deals = JSON.parse(s.deals_list || '[]') || []; } catch { deals = []; }
+    deals = deals.map((d) => ({ ...d, m: (models || []).find((x) => x.slug === d.model_slug) })).filter((d) => d.m);
+    if (!deals.length) return false;
+    buildCatMap(categories);
+    const section = $('dealSection');
+    const num = (v) => parseFloat(String(v || '').replace(/[^\d.]/g, '')) || 0;
+    const cards = deals.map((d) => {
+      const m = d.m;
+      const cat = CAT_MAP[m.category];
+      const label = (d.label || '').trim() || ((cat ? String(cat.name).replace(/^Refurbished\s+/i, '') : 'Today') + ' deal');
+      const price = (d.price || '').trim() || (m.price || '').trim();
+      const mrp = (d.mrp || '').trim() || (m.mrp || '').trim();
+      const pv = num(price), mv = num(mrp);
+      const off = pv && mv > pv ? Math.round(((mv - pv) / mv) * 100) : 0;
+      const qty = String(d.qty ?? '').trim();
+      const qn = qty === '' ? null : parseInt(qty, 10);
+      const stock = qn === 0 ? '<span class="dealg-stock out">Sold out</span>'
+        : (qn && qn <= 5 ? `<span class="dealg-stock">Only ${qn} left</span>` : '');
+      return `<a class="dealg-card" href="${prodUrl(m)}">
+        <span class="dealg-media">${m.image ? `<img src="${esc(m.image)}" alt="${esc(m.name)}" loading="lazy">` : '<span class="dealg-ph"></span>'}${off ? `<span class="dealg-off">${off}% off</span>` : ''}</span>
+        <span class="dealg-chip">${esc(label)}</span>
+        <span class="dealg-name">${esc(m.name)}</span>
+        <span class="dealg-price">${esc(price || 'Price on request')}${mv > pv ? ` <span class="mrp-strike">${esc(mrp)}</span>` : ''}</span>
+        ${stock}
+        <span class="dealg-cta">View deal →</span>
+      </a>`;
+    }).join('');
+    $('dealInner').innerHTML = `
+      <div class="dealg-head">
+        <span class="deal-badge"><span class="dot"></span> ${esc(s.offer_label || 'Deals of the Day')}</span>
+        <h2 class="dealg-title">One hot deal per category</h2>
+      </div>
+      <div class="dealg-grid">${cards}</div>`;
+    section.hidden = false;
+    return true;
+  }
+
+  function renderDeal(s, models, categories) {
     const section = $('dealSection');
     if (!section) return;
+    if (renderDealsGrid(s, models, categories)) return;
     const on = String(s.offer_enabled) === '1';
     const m = on ? (models || []).find((x) => x.slug === s.offer_model_slug) : null;
     if (!on || !m) { section.hidden = true; return; }

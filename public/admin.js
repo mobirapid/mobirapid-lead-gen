@@ -242,7 +242,37 @@
     renderConditionRows();
     try { sliderItems = JSON.parse(settings.slider_banners || '[]'); } catch { sliderItems = []; }
     renderSliderRows();
+    try { dealItems = JSON.parse(settings.deals_list || '[]'); } catch { dealItems = []; }
+    renderDealRows();
   }
+
+  // ---- Deals grid editor (one card per deal) ----
+  let dealItems = [];
+  function dealModelOpts(current) {
+    return '<option value="">— Select product —</option>' + (models || []).map((m) => `<option value="${esc(m.slug)}"${m.slug === current ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+  }
+  function renderDealRows() {
+    const wrap = $('dealRows'); if (!wrap) return;
+    wrap.innerHTML = dealItems.length ? dealItems.map((d, i) => `
+      <div class="upload-row" style="margin-bottom:8px;">
+        <select data-dgm="${i}" style="min-width:190px;flex:1;">${dealModelOpts(d.model_slug)}</select>
+        <input type="text" data-dgl="${i}" placeholder="Label (e.g. MacBook deal)" value="${esc(d.label || '')}" style="width:150px;" />
+        <input type="text" data-dgp="${i}" placeholder="Deal price (opt.)" value="${esc(d.price || '')}" style="width:110px;" />
+        <input type="text" data-dgr="${i}" placeholder="MRP (opt.)" value="${esc(d.mrp || '')}" style="width:100px;" />
+        <input type="number" data-dgq="${i}" placeholder="Qty" value="${esc(d.qty ?? '')}" min="0" style="width:70px;" title="Units left (shows 'Only X left')" />
+        <button class="btn small danger" type="button" data-dgx="${i}">✕</button>
+      </div>`).join('') : '<p class="muted" style="padding:6px 0;">No deals in the grid yet.</p>';
+    wrap.querySelectorAll('[data-dgm]').forEach((el) => el.addEventListener('change', () => { dealItems[+el.dataset.dgm].model_slug = el.value; }));
+    wrap.querySelectorAll('[data-dgl]').forEach((el) => el.addEventListener('input', () => { dealItems[+el.dataset.dgl].label = el.value; }));
+    wrap.querySelectorAll('[data-dgp]').forEach((el) => el.addEventListener('input', () => { dealItems[+el.dataset.dgp].price = el.value; }));
+    wrap.querySelectorAll('[data-dgr]').forEach((el) => el.addEventListener('input', () => { dealItems[+el.dataset.dgr].mrp = el.value; }));
+    wrap.querySelectorAll('[data-dgq]').forEach((el) => el.addEventListener('input', () => { dealItems[+el.dataset.dgq].qty = el.value; }));
+    wrap.querySelectorAll('[data-dgx]').forEach((el) => el.addEventListener('click', () => { dealItems.splice(+el.dataset.dgx, 1); renderDealRows(); }));
+  }
+  on('addDealBtn', 'click', () => { dealItems.push({ model_slug: '', label: '', price: '', mrp: '', qty: '' }); renderDealRows(); });
+  on('saveDeals', 'click', () => {
+    saveSettings({ deals_list: JSON.stringify(dealItems.filter((d) => d.model_slug)) }, $('dealsSaved'));
+  });
 
   // ---- Sliding banners editor ----
   let sliderItems = [];
@@ -470,6 +500,7 @@
     renderModelFilter();
     renderModelsList();
     fillOfferModels();
+    renderDealRows(); // product dropdowns need the models list
   }
   function catName(slug) { const c = cats.find((x) => x.slug === slug); return c ? c.name : slug; }
   let modelFilter = '';
