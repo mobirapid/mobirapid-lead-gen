@@ -1053,3 +1053,17 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
   .cat-chip { min-width: 78px; }
   .cat-chip-ring { width: 62px; height: 62px; }
 }
+
+/* ============ Consultation form moved to its own /book page ============ */
+/* Homepage: hero is clean single-column messaging (form hidden, lives at /book) */
+body:not(.page-book) .hero .form-card { display: none; }
+body:not(.page-book) .hero-grid { grid-template-columns: 1fr; max-width: 820px; }
+body:not(.page-book) .hero { min-height: 480px; }
+/* /book: only header + form + footer; everything else on the document is hidden */
+.page-book main > * { display: none !important; }
+.page-book main > .hero { display: flex !important; }
+.page-book .hero-copy { display: none; }
+.page-book .hero-grid { grid-template-columns: 1fr; max-width: 640px; }
+.page-book .hero { min-height: auto; padding: 44px 0 72px; }
+.page-book .form-card { display: block; }
+@media (max-width: 640px) { .page-book .hero { padding: 20px 0 48px; } }

@@ -431,7 +431,7 @@ function buildJsonLd(base) {
       product.offers = {
         '@type': 'Offer', price: priceNum, priceCurrency: 'INR',
         availability: isSoldOut(m) ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-        url: base + '/#lead-form', seller: { '@id': base + '/#org' },
+        url: base + '/book', seller: { '@id': base + '/#org' },
       };
     }
     graph.push(product);
@@ -440,6 +440,17 @@ function buildJsonLd(base) {
   return `<script type="application/ld+json">${json}</script>\n`;
 }
 app.get('/', (req, res) => res.type('html').send(renderIndex(req)));
+
+// Dedicated consultation page — the same homepage document scoped down (via the
+// page-book body class + CSS) to header, form and footer. All prefill params
+// (?model, ?cond, ?call, ?notify) work here exactly as they did on the homepage.
+app.get('/book', (req, res) => {
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const html = renderIndex(req)
+    .replace('<body', '<body class="page-book"')
+    .replace(/<title>[^<]*<\/title>/, `<title>Book a Free Consultation — ${esc(brand)}</title>`);
+  res.type('html').send(html);
+});
 
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /manage\nDisallow: /api/\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
@@ -480,7 +491,7 @@ function siteHeaderHtml() {
   return `<header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
   <nav class="header-nav">${db.prepare('SELECT slug, name FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all().map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`).join('')}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
-  <a class="header-cta" href="/#lead-form">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
+  <a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
 </div></header>`;
 }
 function siteFooterHtml() {
@@ -608,7 +619,7 @@ app.get('/blog/:slug', (req, res) => {
     ${post.cover_image ? `<img class="blog-hero-img" src="${esc(post.cover_image)}" alt="${esc(post.title)}">` : ''}
     <div class="page-content blog-content">${post.content || ''}</div>
     ${tagsHtml}
-    <div class="blog-cta"><a class="hero-button" href="/#lead-form">Book a free consultation →</a></div>
+    <div class="blog-cta"><a class="hero-button" href="/book">Book a free consultation →</a></div>
     ${relatedHtml}
     </main>` +
     pageTail()
@@ -761,7 +772,7 @@ app.get('/compare', (req, res) => {
           }).join('')+'</tr>';
         }).join('');
         var cta='<tr><th scope="row"></th>'+models.map(function(m){
-          return '<td><a class="cmp-book" href="/?model='+encodeURIComponent(m.slug)+'#lead-form">Book Now →</a></td>';
+          return '<td><a class="cmp-book" href="/book?model='+encodeURIComponent(m.slug)+'#lead-form">Book Now →</a></td>';
         }).join('')+'</tr>';
         app.innerHTML='<div class="cmp-scroll"><table class="cmp-table cmp-live"><thead>'+head+'</thead><tbody>'+body+cta+'</tbody></table></div>';
       }
@@ -846,7 +857,7 @@ function discountHtml(m) {
 }
 // CTA shown on out-of-stock products — takes the visitor to the lead form with the model pre-noted.
 function availabilityButton(m, cls) {
-  return `<a class="${cls || 'pdp-avail'}" href="/?notify=${encodeURIComponent(m.slug)}#lead-form">Check future availability →</a>`;
+  return `<a class="${cls || 'pdp-avail'}" href="/book?notify=${encodeURIComponent(m.slug)}#lead-form">Check future availability →</a>`;
 }
 
 // Product detail page (server-rendered, Product schema) — category-aware.
@@ -864,7 +875,7 @@ function renderProductPage(req, res, m, cat) {
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
   const priceNote = (cat.price_note || '').trim() || getSetting('price_note', '');
-  const bookUrl = `/?model=${encodeURIComponent(m.slug)}#lead-form`;
+  const bookUrl = `/book?model=${encodeURIComponent(m.slug)}#lead-form`;
   const priceNum = String(m.price || '').replace(/[^\d.]/g, '');
   const ld = {
     '@context': 'https://schema.org', '@type': 'Product', name: m.name,
@@ -933,7 +944,7 @@ function renderProductPage(req, res, m, cat) {
             ${soldOut
               ? `${availabilityButton(m, 'pdp-book pdp-avail')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
-              : `<a class="pdp-book" id="pdpBookBtn" data-base="/?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book Now →</a>
+              : `<a class="pdp-book" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book Now →</a>
             <a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>
             ${reserveButton(m.slug, 'pdp-reserve')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
@@ -1030,7 +1041,7 @@ app.get('/c/:slug', (req, res) => {
       <h1>${esc(cat.name)}</h1>
       ${cat.tagline ? `<p class="cat-tagline">${esc(cat.tagline)}</p>` : ''}
       ${items.length ? `<div class="models-grid cat-grid-page">${items.map(card).join('')}</div>` : '<p class="muted">New stock coming soon. Please check back or book a consultation.</p>'}
-      <p style="margin-top:26px;"><a class="pdp-book" href="/#lead-form">Book a free consultation →</a></p>
+      <p style="margin-top:26px;"><a class="pdp-book" href="/book">Book a free consultation →</a></p>
     </main>` +
     pageTail()
   );
@@ -1186,7 +1197,7 @@ app.post('/reserve/failure', (req, res) => {
   res.send(reservePage(req, 'Payment not completed', `<div class="reserve-result fail">
     <h1>Payment not completed</h1>
     <p>Your payment was not completed${req.body.txnid ? ` (Txn ID: <strong>${esc(String(req.body.txnid))}</strong>)` : ''}. No amount has been reserved. You can try again or book a free video call instead.</p>
-    <a class="pdp-book" href="/#lead-form">Book a video call</a>
+    <a class="pdp-book" href="/book">Book a video call</a>
   </div>`));
 });
 
@@ -1243,7 +1254,7 @@ ${headCode}${getSetting('head_code', '')}
 </head><body>
 <header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
-  <a class="header-cta" href="/#lead-form">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
+  <a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
 </div></header>
 <main class="container page-body">
   <a class="back-link" href="/">← Back to home</a>
@@ -1495,7 +1506,7 @@ app.get('/track/video-call', (req, res) => {
   const model = String(req.query.model || '').slice(0, 120);
   try { db.prepare('INSERT INTO click_events (kind, model) VALUES (?, ?)').run('video-call', model); } catch (e) { console.error('click_events insert failed:', e.message); }
   const q = new URLSearchParams({ ...(model ? { model } : {}), call: 'video', utm_source: 'site', utm_medium: 'pdp', utm_campaign: 'schedule_video_call' });
-  res.redirect('/?' + q.toString() + '#lead-form');
+  res.redirect('/book?' + q.toString() + '#lead-form');
 });
 
 // Leads
