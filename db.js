@@ -1158,4 +1158,74 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(HOW_FLAG)) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(HOW_FLAG, '1');
 }
 
+// One-time: add the "Open Box Delivery" policy page (editable in the admin afterwards).
+const OBD_FLAG = 'open_box_page_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(OBD_FLAG)) {
+  if (!db.prepare("SELECT slug FROM content_pages WHERE slug = 'open-box-delivery'").get()) {
+    db.prepare('INSERT INTO content_pages (slug, title, content, sort_order) VALUES (?, ?, ?, ?)').run(
+      'open-box-delivery',
+      'Open Box Delivery',
+      `<p>Buying a refurbished device online usually means paying first and hoping for the best. <strong>Open Box Delivery turns that around.</strong> A Mobirapid representative brings your device to you, opens it in front of you, and lets you test it thoroughly — <strong>before you pay a single rupee of the balance</strong>. If it isn't right, you simply hand it back on the spot.</p>
+<p>Open Box Delivery is available in selected cities where we have a representative. We confirm availability for your PIN code during your consultation call, before you reserve.</p>
+
+<h2>How Open Box Delivery works</h2>
+
+<h3>Step 1 — Verify the device on a video call</h3>
+<p>Before anything ships, we show you the exact unit on a live video call: its serial number, cosmetic condition, display, keyboard, ports and performance. You see the actual device you are buying — not a stock photo, and not "a similar unit". Ask us to check anything you like; this is the stage where cosmetic condition should be examined closely.</p>
+
+<h3>Step 2 — Reserve your device</h3>
+<p>Once you are satisfied, you reserve the unit with a small booking amount. This takes the device off the market and blocks it exclusively for you, so nobody else can buy it while it travels to you. <strong>The booking amount is adjusted in full against your final invoice</strong> — it is not an extra charge.</p>
+
+<h3>Step 3 — We dispatch it to our representative in your city</h3>
+<p>We send the reserved device to our Mobirapid representative covering your city. The unit is inspected and sealed before dispatch, and its serial number is recorded so the device you verified on the call is the exact device that reaches you.</p>
+
+<h3>Step 4 — The representative visits you</h3>
+<p>Our representative contacts you to fix a convenient time and comes to your home or office. The box is opened in front of you — you are the first person to use the device after our quality checks.</p>
+
+<h3>Step 5 — Inspect and test it yourself, at your own pace</h3>
+<p>Take your time. We encourage you to check:</p>
+<ul>
+<li>Power-on, boot and overall performance</li>
+<li>Display — brightness, colour and pixels</li>
+<li>Keyboard, trackpad and all keys</li>
+<li>Speakers, microphone and camera</li>
+<li>All ports, Wi-Fi and Bluetooth</li>
+<li>Battery health and charging</li>
+<li>Serial number — matching what you saw on your video call</li>
+</ul>
+
+<h3>Step 6 — Accept and pay, or hand it back</h3>
+<p><strong>If everything is in order:</strong> you pay the balance amount to Mobirapid (company account, GST invoice with the serial number provided) and the device is yours, along with your warranty.</p>
+<p><strong>If you find a functional issue:</strong> hand the device straight back to the representative. You do not pay the balance, and there is no courier to arrange or paperwork to chase. Your booking amount is protected as explained below.</p>
+
+<h2>What you can reject the device for</h2>
+<p>At the doorstep you may decline the device for any <strong>functional</strong> problem — something that does not work as it should. Examples include a fault in the display, keyboard, trackpad, battery, speakers, camera, ports, Wi-Fi, or performance that does not match what was described.</p>
+
+<h3>Cosmetic condition is agreed before dispatch</h3>
+<p>Every device we sell is refurbished and is sold under a clearly stated condition grade (for example Excellent, Very Good, or Open Box). Its cosmetic condition — minor marks, scuffs or signs of use consistent with that grade — is shown to you on the video call and described on the product page <em>before</em> you reserve.</p>
+<p>For this reason, <strong>once the device has been accepted at Open Box Delivery, returns based on cosmetic condition are not accepted.</strong> The video call exists precisely so that cosmetic condition is settled in advance, with nothing left to surprise you. If any aspect of the appearance matters to you, please raise it on the call and ask us to show that area in detail — we are always happy to.</p>
+
+<h2>If a functional issue appears</h2>
+<p>Whether the issue is spotted at the doorstep or reported afterwards within your warranty, we follow the same order:</p>
+<ol>
+<li><strong>Replacement first.</strong> We replace the unit with another piece of the same model and configuration.</li>
+<li><strong>Alternative unit.</strong> If that exact configuration is not in stock, we offer you a comparable alternative, and discuss any price difference openly with you.</li>
+<li><strong>Refund.</strong> If no suitable replacement is available — or if you would simply prefer your money back — we refund you. Refunds are processed to your original payment method.</li>
+</ol>
+<p>You are never left holding a faulty device.</p>
+
+<h2>Payment</h2>
+<p>The balance is paid <strong>only after</strong> you have inspected and accepted the device. Payment is made to Mobirapid, not to the representative personally, and every purchase includes a GST invoice carrying the device's serial number. Please never pay into a personal account — if anyone asks you to, contact us immediately using the details below.</p>
+
+<h2>Availability</h2>
+<p>Open Box Delivery depends on a representative being available in your city. Where it isn't offered, your device ships securely to your address instead, and our standard warranty, replacement and refund terms apply — we will explain exactly which option applies to you before you reserve.</p>
+
+<h2>Questions?</h2>
+<p>If anything here isn't clear, ask us on your consultation call or get in touch — we would much rather answer a question in advance than have you feel uncertain at your doorstep. Please also read our <a href="/p/refund-policy">Refund &amp; Cancellation Policy</a> and <a href="/condition">Condition grades</a> pages, which work alongside this one.</p>`,
+      4
+    );
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(OBD_FLAG, '1');
+}
+
 module.exports = db;
