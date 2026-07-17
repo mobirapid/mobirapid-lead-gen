@@ -1086,14 +1086,16 @@ body:not(.page-book) .hero { min-height: 480px; }
 .bslider-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 18px; scrollbar-width: none; -ms-overflow-style: none; }
 .bslider-track::-webkit-scrollbar { display: none; }
 .bslide { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; display: block; }
-.bslide img { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; display: block; }
+.bslide img { width: 100%; height: auto; display: block; }
 .bslider-dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 7px; }
 .bdot { width: 8px; height: 8px; border-radius: 999px; border: none; background: rgba(255, 255, 255, .55); padding: 0; transition: width .2s ease, background .2s ease; }
 .bdot.on { width: 22px; background: #fff; }
 @media (max-width: 640px) {
   .bslider-section { padding: 10px 0 0; }
-  .bslide img { aspect-ratio: 16 / 8; }
   .bslider-track { border-radius: 14px; }
+  .bslider-dots { bottom: 6px; }
+  .bdot { width: 6px; height: 6px; }
+  .bdot.on { width: 16px; }
 }
 
 /* Homepage: hero text block removed — banners, category strip and products lead the page.
