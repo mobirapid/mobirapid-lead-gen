@@ -924,3 +924,23 @@ main section, .page-body { scroll-margin-top: 84px; }
 .consent-row { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 12px; font-size: .82rem; color: var(--muted); line-height: 1.5; cursor: pointer; }
 .consent-row input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--brand); flex-shrink: 0; cursor: pointer; }
 .consent-row a { text-decoration: underline; }
+
+/* ============ Category icon strip (homepage) ============ */
+.cat-strip-section { background: #fff; border-bottom: 1px solid var(--line); }
+.cat-strip { display: flex; gap: 8px; overflow-x: auto; padding: 14px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: none; -ms-overflow-style: none; }
+.cat-strip::-webkit-scrollbar { display: none; }
+.cat-chip { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 86px; scroll-snap-align: start; color: var(--ink); text-align: center; }
+.cat-chip-ring { width: 68px; height: 68px; border-radius: 50%; padding: 3px; background: linear-gradient(135deg, #4f46e5, #2563eb 55%, #06b6d4); display: grid; place-items: center; transition: transform .2s ease, box-shadow .2s ease; }
+.cat-chip-ring img, .cat-chip-letter { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; border: 2px solid #fff; }
+.cat-chip-letter { display: grid; place-items: center; font-weight: 800; font-size: 1.4rem; color: var(--brand); }
+.cat-chip:hover .cat-chip-ring { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 22px rgba(37, 99, 235, .25); }
+.cat-chip-name { font-size: .78rem; font-weight: 700; line-height: 1.2; max-width: 92px; }
+@media (min-width: 900px) { .cat-strip { justify-content: center; gap: 26px; } .cat-chip-ring { width: 76px; height: 76px; } }
+
+/* ============ Auto-scrolling trust ribbon ============ */
+.ribbon { overflow: hidden; background: var(--grad-primary); color: #fff; padding: 10px 0; }
+.ribbon-track { display: inline-flex; gap: 44px; white-space: nowrap; will-change: transform; animation: ribbon-scroll 26s linear infinite; padding-right: 44px; }
+.ribbon-item { font-weight: 700; font-size: .95rem; letter-spacing: .02em; }
+@keyframes ribbon-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (max-width: 640px) { .ribbon-item { font-size: .85rem; } .ribbon-track { gap: 30px; padding-right: 30px; } }
+@media (prefers-reduced-motion: reduce) { .ribbon-track { animation: none; } }

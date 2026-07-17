@@ -43,6 +43,8 @@
       if (!data.ok) return;
       applySettings(data.settings);
       renderHeaderNav(data.categories);
+      renderCategoryStrip(data.categories, data.models);
+      renderRibbon(data.settings);
       renderUsps(data.settings);
       renderDeal(data.settings, data.models);
       renderCategoryCards(data.categories, data.models);
@@ -274,6 +276,39 @@
       return [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.colour].filter(Boolean).join(' · ');
     }
     return m.specs || '';
+  }
+
+  // Circular category icons under the header (horizontally scrollable on mobile).
+  // Icon: admin-uploaded per category, else the first product photo in it, else the initial letter.
+  function renderCategoryStrip(categories, models) {
+    const wrap = $('catStrip');
+    if (!wrap) return;
+    const cats = (categories || []);
+    if (cats.length < 2) return;
+    wrap.innerHTML = cats.map((c) => {
+      const short = String(c.name).replace(/^Refurbished\s+/i, '');
+      const img = c.icon_image || ((models || []).find((m) => m.category === c.slug && m.image) || {}).image || '';
+      return `<a class="cat-chip" href="/c/${esc(c.slug)}">
+        <span class="cat-chip-ring">${img ? `<img src="${esc(img)}" alt="${esc(short)}" loading="lazy">` : `<span class="cat-chip-letter">${esc(short.charAt(0))}</span>`}</span>
+        <span class="cat-chip-name">${esc(short)}</span>
+      </a>`;
+    }).join('');
+    $('catStripSection').hidden = false;
+  }
+
+  // Auto-scrolling trust ribbon (e.g. "6-Month Warranty · Easy Returns"). Items are a
+  // comma-separated setting; the track is duplicated for a seamless loop.
+  function renderRibbon(s) {
+    const bar = $('ribbonBar'), track = $('ribbonTrack');
+    if (!bar || !track) return;
+    if (String(s.ribbon_enabled ?? '1') === '0') return;
+    const items = String(s.ribbon_items || '6-Month Warranty, Easy Returns, GST Invoice, Free Shipping')
+      .split(',').map((x) => x.trim()).filter(Boolean);
+    if (!items.length) return;
+    const seq = items.map((t) => `<span class="ribbon-item">✦ ${esc(t)}</span>`).join('');
+    const half = seq.repeat(Math.max(1, Math.ceil(8 / items.length)));
+    track.innerHTML = half + half; // two identical halves -> -50% translate loops cleanly
+    bar.hidden = false;
   }
 
   // Header nav: one link per active category (matches the server-rendered pages' header).

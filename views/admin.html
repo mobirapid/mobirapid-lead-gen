@@ -153,6 +153,10 @@
             <select id="set-announce_enabled"><option value="1">Visible</option><option value="0">Hidden</option></select>
           </div>
           <div><label class="fld">Announcement text</label><input type="text" id="set-announce_text" /></div>
+          <div><label class="fld">Scrolling trust ribbon?</label>
+            <select id="set-ribbon_enabled"><option value="1">Visible</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Ribbon items (comma separated)</label><input type="text" id="set-ribbon_items" placeholder="6-Month Warranty, Easy Returns, GST Invoice, Free Shipping" /></div>
         </div>
       </div>
 
@@ -698,6 +702,13 @@
         </div>
         <label class="fld" style="margin-top:12px;">Tagline (shown on the category card &amp; page)</label>
         <input type="text" id="c-tagline" placeholder="iPhone & Android · tested · warranty" />
+        <label class="fld" style="margin-top:12px;">Circle icon (homepage category strip — square image works best)</label>
+        <div class="upload-row">
+          <input type="file" id="c-iconFile" accept="image/*" />
+          <button class="btn small" id="c-iconUpload" type="button">Upload</button>
+          <button class="btn small danger" id="c-iconRemove" type="button">Remove</button>
+        </div>
+        <img class="img-prev" id="c-iconPrev" style="max-width:72px;border-radius:50%;" />
         <label class="fld" style="margin-top:12px;">Price note (blank = use global). e.g. "incl. 18% GST" or "+ 18% GST"</label>
         <input type="text" id="c-price_note" placeholder="Leave blank to use the site default" />
         <div class="grid2" style="margin-top:12px;">

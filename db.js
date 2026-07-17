@@ -972,6 +972,7 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PRICE_NOTE_FIX_F
 ensureColumn('categories', 'price_note', 'TEXT');
 // Per-category homepage visibility (0 = keep off the homepage; category page still works). NULL/1 = shown.
 ensureColumn('categories', 'show_home', 'INTEGER');
+ensureColumn('categories', 'icon_image', 'TEXT'); // Circle icon for the homepage category strip.
 
 // One-time seed: Samsung tablet catalog into a "Refurbished Tablets" category.
 const TAB_FLAG = 'tablets_seed_v1';

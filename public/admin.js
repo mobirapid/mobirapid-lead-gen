@@ -368,7 +368,7 @@
 
   // Branding save (all branding keys + uploaded image paths)
   $('saveBranding').addEventListener('click', () => {
-    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'announce_enabled', 'announce_text', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'qc_enabled', 'qc_title', 'qc_subtitle', 'qc_video_enabled', 'qc_video_text', 'faq_enabled', 'faq_title', 'condition_enabled', 'condition_title', 'condition_intro', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
+    const keys = ['brand_name', 'header_cta_text', 'cta_text', 'announce_enabled', 'announce_text', 'ribbon_enabled', 'ribbon_items', 'banner_eyebrow', 'banner_heading', 'banner_subtext', 'trust_points', 'models_title', 'models_subtitle', 'price_note', 'usps_enabled', 'usps_title', 'qc_enabled', 'qc_title', 'qc_subtitle', 'qc_video_enabled', 'qc_video_text', 'faq_enabled', 'faq_title', 'condition_enabled', 'condition_title', 'condition_intro', 'about_enabled', 'about_title', 'about_text', 'contact_enabled', 'contact_title', 'contact_subtitle', 'contact_address', 'google_maps_url', 'google_maps_embed', 'footer_tagline', 'legal_name', 'gstin', 'registered_address', 'customer_care_email', 'customer_care_phone', 'grievance_officer_name', 'grievance_officer_email', 'grievance_officer_phone', 'social_instagram', 'social_facebook', 'social_linkedin', 'social_email', 'social_phone', 'social_whatsapp', 'footer_text', 'footer_email'];
     const payload = collectSettings(keys);
     payload.logo_path = settings.logo_path || '';
     payload.banner_image = settings.banner_image || '';
@@ -648,8 +648,21 @@
     wrap.querySelectorAll('[data-cedit]').forEach((b) => b.addEventListener('click', () => openCategory(b.dataset.cedit)));
     wrap.querySelectorAll('[data-cdel]').forEach((b) => b.addEventListener('click', () => delCategory(b.dataset.cdel)));
   }
+  let catIconPath = '';
+  function setCatIconPreview() {
+    const prev = $('c-iconPrev');
+    if (prev) { prev.src = catIconPath || ''; prev.style.display = catIconPath ? '' : 'none'; }
+  }
+  on('c-iconUpload', 'click', async () => {
+    const p = await uploadImage($('c-iconFile'));
+    if (p) { catIconPath = p; setCatIconPreview(); }
+  });
+  on('c-iconRemove', 'click', () => { catIconPath = ''; if ($('c-iconFile')) $('c-iconFile').value = ''; setCatIconPreview(); });
   function openCategory(id) {
     const c = id ? cats.find((x) => String(x.id) === String(id)) : null;
+    catIconPath = c ? (c.icon_image || '') : '';
+    if ($('c-iconFile')) $('c-iconFile').value = '';
+    setCatIconPreview();
     $('catDlgTitle').textContent = c ? 'Edit category' : 'Add category';
     $('c-id').value = c ? c.id : '';
     $('c-name').value = c ? c.name : '';
@@ -668,7 +681,7 @@
   on('catCancel', 'click', () => catDlg.close());
   on('catSave', 'click', async () => {
     const id = $('c-id').value;
-    const payload = { name: $('c-name').value.trim(), slug: $('c-slug') ? $('c-slug').value.trim() : '', singular: $('c-singular').value.trim(), fields: $('c-fields').value, tagline: $('c-tagline').value.trim(), price_note: $('c-price_note') ? $('c-price_note').value.trim() : '', sort_order: parseInt($('c-sort_order').value || '0', 10), active: $('c-active').value, show_home: $('c-show_home') ? $('c-show_home').value : '1' };
+    const payload = { name: $('c-name').value.trim(), slug: $('c-slug') ? $('c-slug').value.trim() : '', singular: $('c-singular').value.trim(), fields: $('c-fields').value, tagline: $('c-tagline').value.trim(), price_note: $('c-price_note') ? $('c-price_note').value.trim() : '', sort_order: parseInt($('c-sort_order').value || '0', 10), active: $('c-active').value, show_home: $('c-show_home') ? $('c-show_home').value : '1', icon_image: catIconPath };
     if (!payload.name) { alert('Category name is required.'); return; }
     const r = await api(id ? '/api/admin/categories/' + id : '/api/admin/categories', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await r.json();
