@@ -1015,7 +1015,9 @@ body { font-size: 16.5px; line-height: 1.65; letter-spacing: .002em; }
 /* Buttons: flat, confident, no gradients */
 .pdp-book, .submit-btn, .hero-button, .deal-book, .deal-reserve, .btn.primary { background: var(--brand); border-radius: 12px; box-shadow: none; }
 .pdp-book:hover, .submit-btn:hover { background: var(--brand-dark); box-shadow: 0 14px 30px rgba(29, 78, 216, .28); transform: translateY(-1px); }
-.pdp-video { border-width: 1.5px; }
+/* Outlined video-call CTA — must win over the .pdp-book fill rule above */
+.pdp-book.pdp-video { background: #fff; color: var(--brand); border: 1.5px solid var(--brand); box-shadow: none; }
+.pdp-book.pdp-video:hover { background: rgba(29, 78, 216, .06); color: var(--brand-dark); border-color: var(--brand-dark); box-shadow: none; transform: translateY(-1px); }
 .pdp-avail, .model-avail { background: #0b1220 !important; }
 
 /* Product page: gallery breathes, panel-like info */
