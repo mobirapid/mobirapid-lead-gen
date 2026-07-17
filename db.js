@@ -279,6 +279,14 @@ const DEFAULT_SETTINGS = {
     { icon: 'camera', title: 'Camera & mic', note: 'Audio & video' },
     { icon: 'storage', title: 'Storage & speed', note: 'SSD & performance' },
   ]),
+  // "How it works" steps (editable in the admin)
+  how_enabled: '1',
+  how_title: 'How it works',
+  how_steps: JSON.stringify([
+    { title: 'Schedule a video call', note: 'See the exact device live on a video call and verify its condition before you commit.' },
+    { title: 'Reserve the device', note: 'Book it with a small reservation amount — adjusted in your final invoice.' },
+    { title: 'Open-box delivery', note: 'Delivered open-box to your doorstep (prepaid), or collect it from our office.' },
+  ]),
   qc_video_enabled: '1',
   qc_video_text: 'Prefer to see it yourself? Book a free video-call verification and inspect your exact device — serial number, condition and performance — live before you pay.',
   // FAQ section
@@ -1133,6 +1141,21 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(DPDP_FLAG)) {
     db.prepare("UPDATE content_pages SET content = content || ?, updated_at = datetime('now') WHERE slug = ?").run(dpdp, page.slug);
   }
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(DPDP_FLAG, '1');
+}
+
+// One-time: seed the "How it works" steps into existing installs (settings rows are
+// only inserted on first run, so upgrades need this).
+const HOW_FLAG = 'how_steps_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(HOW_FLAG)) {
+  const put = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+  put.run('how_enabled', '1');
+  put.run('how_title', 'How it works');
+  put.run('how_steps', JSON.stringify([
+    { title: 'Schedule a video call', note: 'See the exact device live on a video call and verify its condition before you commit.' },
+    { title: 'Reserve the device', note: 'Book it with a small reservation amount — adjusted in your final invoice.' },
+    { title: 'Open-box delivery', note: 'Delivered open-box to your doorstep (prepaid), or collect it from our office.' },
+  ]));
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(HOW_FLAG, '1');
 }
 
 module.exports = db;

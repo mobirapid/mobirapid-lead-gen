@@ -310,6 +310,21 @@
 
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h3>"How it works" steps</h3><p class="muted">The numbered steps on the homepage. Numbers are added automatically in order.</p></div>
+          <button class="btn" id="addStepBtn" type="button">+ Add step</button>
+        </div>
+        <div class="grid2">
+          <div><label class="fld">Show section?</label>
+            <select id="set-how_enabled"><option value="1">Visible</option><option value="0">Hidden</option></select>
+          </div>
+          <div><label class="fld">Section title</label><input type="text" id="set-how_title" placeholder="How it works" /></div>
+        </div>
+        <div id="stepRows" style="margin-top:14px;"></div>
+        <div class="save-row"><button class="btn" id="saveSteps">Save steps</button><span class="saved-msg" id="stepsSaved" hidden>Saved ✓</span></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
           <div><h3>"How we test" (QC) section</h3><p class="muted">Quality-check items with icons, plus the video-call verification callout.</p></div>
           <button class="btn" id="addQcBtn" type="button">+ Add item</button>
         </div>

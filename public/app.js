@@ -51,6 +51,7 @@
       renderCategoryCards(data.categories, data.models);
       renderModels(data.models, data.settings, data.categories);
       renderReviews(data.reviews, data.settings);
+      renderSteps(data.settings);
       renderQc(data.settings);
       renderFaq(data.settings);
       renderBlog(data.settings, data.posts);
@@ -553,6 +554,20 @@
         </div>
       </article>`).join('');
     setupCarousel('reviewsGrid');
+  }
+
+  // "How it works" steps — editable in the admin (Homepage tab).
+  function renderSteps(s) {
+    const section = $('howSection'), grid = $('stepsGrid');
+    if (!section || !grid) return;
+    let items = [];
+    try { items = typeof s.how_steps === 'string' ? JSON.parse(s.how_steps || '[]') : (s.how_steps || []); } catch { items = []; }
+    items = (items || []).filter((x) => x && (x.title || '').trim());
+    if (String(s.how_enabled ?? '1') === '0' || !items.length) { section.hidden = true; return; }
+    section.hidden = false;
+    if (s.how_title) $('howTitle').textContent = s.how_title;
+    grid.innerHTML = items.map((x, i) => `
+      <div class="step"><span class="step-num">${i + 1}</span><h3>${esc(x.title)}</h3>${x.note ? `<p>${esc(x.note)}</p>` : ''}</div>`).join('');
   }
 
   function renderQc(s) {

@@ -244,7 +244,35 @@
     renderSliderRows();
     try { dealItems = JSON.parse(settings.deals_list || '[]'); } catch { dealItems = []; }
     renderDealRows();
+    try { stepItems = JSON.parse(settings.how_steps || '[]'); } catch { stepItems = []; }
+    renderStepRows();
   }
+
+  // ---- "How it works" steps editor ----
+  let stepItems = [];
+  function renderStepRows() {
+    const wrap = $('stepRows'); if (!wrap) return;
+    wrap.innerHTML = stepItems.length ? stepItems.map((x, i) => `
+      <div class="upload-row" style="margin-bottom:8px;align-items:center;">
+        <span class="cat-tag" style="min-width:26px;text-align:center;">${i + 1}</span>
+        <input type="text" data-stt="${i}" placeholder="Step title" value="${esc(x.title || '')}" style="width:210px;" />
+        <input type="text" data-stn="${i}" placeholder="Short description" value="${esc(x.note || '')}" style="flex:1;min-width:220px;" />
+        <button class="btn small" type="button" data-stu="${i}" ${i === 0 ? 'disabled' : ''} title="Move up">↑</button>
+        <button class="btn small danger" type="button" data-stx="${i}">✕</button>
+      </div>`).join('') : '<p class="muted" style="padding:6px 0;">No steps yet.</p>';
+    wrap.querySelectorAll('[data-stt]').forEach((el) => el.addEventListener('input', () => { stepItems[+el.dataset.stt].title = el.value; }));
+    wrap.querySelectorAll('[data-stn]').forEach((el) => el.addEventListener('input', () => { stepItems[+el.dataset.stn].note = el.value; }));
+    wrap.querySelectorAll('[data-stu]').forEach((el) => el.addEventListener('click', () => {
+      const i = +el.dataset.stu; if (i > 0) { [stepItems[i - 1], stepItems[i]] = [stepItems[i], stepItems[i - 1]]; renderStepRows(); }
+    }));
+    wrap.querySelectorAll('[data-stx]').forEach((el) => el.addEventListener('click', () => { stepItems.splice(+el.dataset.stx, 1); renderStepRows(); }));
+  }
+  on('addStepBtn', 'click', () => { stepItems.push({ title: '', note: '' }); renderStepRows(); });
+  on('saveSteps', 'click', () => {
+    const payload = collectSettings(['how_enabled', 'how_title']);
+    payload.how_steps = JSON.stringify(stepItems.filter((x) => (x.title || '').trim()).map((x) => ({ title: x.title.trim(), note: (x.note || '').trim() })));
+    saveSettings(payload, $('stepsSaved'));
+  });
 
   // ---- Deals grid editor (one card per deal) ----
   let dealItems = [];
