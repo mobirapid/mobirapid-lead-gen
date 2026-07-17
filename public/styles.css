@@ -1067,3 +1067,15 @@ body:not(.page-book) .hero { min-height: 480px; }
 .page-book .hero { min-height: auto; padding: 44px 0 72px; }
 .page-book .form-card { display: block; }
 @media (max-width: 640px) { .page-book .hero { padding: 20px 0 48px; } }
+
+/* ============ Homepage conversion flow: hero dual CTA + final CTA band ============ */
+.hero-cta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.hero-button-ghost { background: transparent; border: 1.5px solid rgba(255, 255, 255, .55); color: #fff; box-shadow: none; }
+.hero-button-ghost:hover { background: rgba(255, 255, 255, .1); border-color: #fff; box-shadow: none; }
+.cta-band { padding: 26px 0 8px; }
+.cta-band-inner { background: var(--grad-primary); color: #fff; border-radius: 22px; padding: 44px 46px; display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; box-shadow: 0 24px 56px rgba(29, 78, 216, .28); }
+.cta-band h2 { margin: 0 0 6px; font-size: 1.7rem; letter-spacing: -0.02em; }
+.cta-band p { margin: 0; opacity: .92; max-width: 560px; }
+.cta-band-btn { background: #fff; color: var(--brand); flex-shrink: 0; }
+.cta-band-btn:hover { background: #f1f5ff; color: var(--brand-dark); }
+@media (max-width: 640px) { .cta-band-inner { padding: 30px 24px; } .cta-band h2 { font-size: 1.35rem; } }
