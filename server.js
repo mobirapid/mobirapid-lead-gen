@@ -702,7 +702,9 @@ function siteHeaderHtml() {
   })()}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a><a class="nav-partner" href="/partner">Partner with us</a></nav>
   <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
-</div></header>`;
+</div>
+<div class="cta-bar"><a class="cta-bar-btn ghost" href="/partner">Partner with us</a><a class="cta-bar-btn" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></div>
+</header>`;
 }
 function siteFooterHtml() {
   const legal = esc(getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid'));
@@ -1469,7 +1471,9 @@ ${headCode}${getSetting('head_code', '')}
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
   <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
-</div></header>
+</div>
+<div class="cta-bar"><a class="cta-bar-btn ghost" href="/partner">Partner with us</a><a class="cta-bar-btn" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></div>
+</header>
 <main class="container page-body">
   <a class="back-link" href="/">← Back to home</a>
   <h1>${esc(page.title)}</h1>

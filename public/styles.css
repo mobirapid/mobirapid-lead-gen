@@ -1252,6 +1252,7 @@ body:not(.page-book) .hero { display: none; }
    Compare, Condition, Blog, Partner with us — lives in the drawer. */
 .nav-partner { display: none; }
 .nav-toggle { display: none; }
+.cta-bar { display: none; }
 @media (max-width: 860px) {
   .nav-toggle {
     display: flex; flex-direction: column; justify-content: center; gap: 5px; order: 3;
@@ -1263,9 +1264,18 @@ body:not(.page-book) .hero { display: none; }
   .nav-toggle.on span:nth-child(2) { opacity: 0; }
   .nav-toggle.on span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
   .header-inner { gap: 8px; }
-  .header-ctas { order: 2; margin-left: auto; }
-  .header-cta-ghost { display: none; }        /* lives in the drawer instead */
-  .header-cta { padding: 10px 14px; font-size: .85rem; }
+  .header-ctas { display: none; }             /* replaced by the CTA bar below the header */
+  .nav-toggle { margin-left: auto; }
+  /* CTA bar: both actions side by side, full width, directly under the header */
+  .cta-bar { display: flex; gap: 8px; padding: 8px 18px 10px; background: #fff; border-top: 1px solid var(--line); }
+  .cta-bar-btn {
+    flex: 1; text-align: center; padding: 12px 8px; border-radius: 11px;
+    background: var(--brand); color: #fff; font-weight: 700; font-size: .88rem;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .cta-bar-btn:active { transform: scale(.98); }
+  .cta-bar-btn.ghost { background: #fff; color: var(--brand); border: 1.5px solid var(--line-strong); }
+  .nav-partner { display: none; }             /* it's in the CTA bar now */
   /* The nav becomes a full-width drawer under the header */
   .header-nav {
     display: block; position: absolute; top: 100%; left: 0; right: 0; margin: 0;
