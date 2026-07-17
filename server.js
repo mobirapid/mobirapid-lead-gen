@@ -460,139 +460,34 @@ app.get('/book', (req, res) => {
 app.get('/partner', (req, res) => {
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
-  const title = `Partner With Us — Become a ${brand} City Partner`;
+  // Page copy lives in the admin (Compliance Pages → "Partner With Us"), so it can
+  // be edited without a deploy. The application form below stays in code.
+  const page = db.prepare("SELECT title, content FROM content_pages WHERE slug = 'partner'").get();
+  const title = `${page ? page.title : 'Partner With Us'} — ${brand}`;
   const desc = `Represent ${brand} in your city: handle open-box deliveries and warranty support. Earn ₹2,000 per device — up to ₹1 lakh a month.`;
+  const eyebrow = esc(getSetting('partner_eyebrow', 'Partner programme'));
+  const heading = esc(getSetting('partner_heading', `Become a ${brand} City Partner`));
+  const sub = getSetting('partner_subheading', `Represent ${brand} in your city. Handle open-box deliveries and warranty support.<br><strong>Earn ₹2,000 per device — up to ₹1 lakh a month.</strong>`);
   res.send(
     pageHead(req, title, desc, base + '/partner') +
     siteHeaderHtml() +
     `<main class="partner">
       <section class="pt-hero">
         <div class="container pt-hero-in">
-          <p class="pt-eyebrow">Partner programme</p>
-          <h1>Become a ${esc(brand)} City Partner</h1>
-          <p class="pt-lead">Represent ${esc(brand)} in your city. Handle open-box deliveries and warranty support.<br><strong>Earn ₹2,000 per device — up to ₹1 lakh a month.</strong></p>
-          <a class="pt-cta" href="#apply">Apply to partner →</a>
+          <p class="pt-eyebrow">${eyebrow}</p>
+          <h1>${heading}</h1>
+          <p class="pt-lead">${sub}</p>
+          <a class="pt-cta" href="#apply">${esc(getSetting('partner_cta_text', 'Apply to partner →'))}</a>
         </div>
       </section>
 
       <div class="container page-body">
-        <section class="pt-sec">
-          <p class="pt-intro">${esc(brand)} sells certified refurbished MacBooks, phones and tablets across India. What makes us different is <a href="/p/open-box-delivery"><strong>Open Box Delivery</strong></a> — our customers don't pay until they've inspected their device in person. That promise only works if we have a trusted representative in each city. <strong>That representative could be you.</strong></p>
-        </section>
-
-        <section class="pt-sec">
-          <h2>What a City Partner does</h2>
-          <ul class="pt-list">
-            <li><strong>Receive and hold devices</strong> dispatched to you for customers in your city</li>
-            <li><strong>Visit the customer</strong> at a scheduled time — home or office</li>
-            <li><strong>Conduct the open-box handover</strong>: open the sealed device in front of the customer and let them inspect and test it</li>
-            <li><strong>Collect payment to ${esc(brand)}</strong> (never into a personal account) and hand over the device</li>
-            <li><strong>Accept returns on the spot</strong> if the customer finds a functional issue</li>
-            <li><strong>Provide first-line warranty support</strong> — collect devices needing service and coordinate with our team</li>
-          </ul>
-          <p class="pt-note">No shop required. No repair skills required. We train you.</p>
-        </section>
-
-        <section class="pt-sec pt-earn">
-          <h2>What you earn</h2>
-          <p class="pt-big">₹2,000 per device, or 2% of its value — whichever is higher.</p>
-          <p>Every delivery pays you a minimum of ₹2,000, and high-value devices pay more (a ₹1,80,000 MacBook Pro pays ₹3,600).</p>
-          <div class="pt-tiers">
-            <div class="pt-tier"><b>5</b><span>devices / month</span><i>₹10,000</i></div>
-            <div class="pt-tier"><b>15</b><span>devices / month</span><i>₹30,000</i></div>
-            <div class="pt-tier"><b>30</b><span>devices / month</span><i>₹60,000</i></div>
-            <div class="pt-tier on"><b>50</b><span>devices / month</span><i>₹1,00,000</i></div>
-          </div>
-          <p>That's roughly <strong>two deliveries a day</strong> to reach ₹1 lakh a month. Paid monthly, against a statement of every delivery you completed.</p>
-          <p class="pt-disclaim">Earnings depend on order volume in your city and the deliveries you complete. ${esc(brand)} does not guarantee a minimum income — new partners usually start in the lower tiers and grow as their city's demand builds.</p>
-        </section>
-
-        <section class="pt-sec">
-          <h2>Who this suits</h2>
-          <ul class="pt-list">
-            <li><strong>Students</strong> with flexible hours between classes</li>
-            <li><strong>Homemakers</strong> wanting meaningful income around family commitments</li>
-            <li><strong>Part-time job seekers</strong> and gig workers looking for a stable second income</li>
-            <li><strong>Existing mobile/laptop retailers</strong> who want an additional revenue line</li>
-            <li>Anyone presentable, reliable and <strong>honest with high-value assets</strong></li>
-          </ul>
-          <p class="pt-note"><strong>You'll need:</strong> a smartphone, a two-wheeler or reliable local transport, a secure place to store devices, a few hours on weekdays, and the ability to speak politely and clearly with customers.</p>
-        </section>
-
-        <section class="pt-sec">
-          <h2>Partner fees — stated plainly</h2>
-          <div class="pt-fees">
-            <div class="pt-fee">
-              <span class="pt-fee-label">Partner fee (one-time)</span>
-              <b>₹25,000</b>
-              <span class="pt-fee-tag no">Non-refundable</span>
-              <p>Covers onboarding and training, your welcome kit, partner ID and authorisation, access to our partner systems, branding material and ongoing support.</p>
-            </div>
-            <div class="pt-fee">
-              <span class="pt-fee-label">Security deposit</span>
-              <b>₹2,00,000</b>
-              <span class="pt-fee-tag yes">Fully refundable</span>
-              <p>You will personally hold devices worth several lakhs at a time. This deposit secures those assets while they're in your custody. It is <strong>not an investment and earns no return</strong>, and is refunded in full within <strong>15 days</strong> of your partnership ending, once all devices and materials are returned and accounts are settled. Deductions are made only for devices lost, damaged or unaccounted for while in your custody.</p>
-            </div>
-          </div>
-          <p class="pt-warn"><strong>Important:</strong> these amounts are payable only to ${esc(brand)}'s company account, after your partner agreement is signed. Never pay any individual. Please read the agreement carefully — and have it reviewed independently — before you commit.</p>
-        </section>
-
-        <section class="pt-sec">
-          <h2>Your welcome kit</h2>
-          <ul class="pt-list pt-cols">
-            <li>Partner ID card and authorisation letter</li>
-            <li>Branded carry case for device transport</li>
-            <li>Branded T-shirt and lanyard</li>
-            <li>Open-box checklist and handover documentation</li>
-            <li>Full training on process, inspection and customer handling</li>
-            <li>Partner handbook</li>
-            <li>Direct line to your ${esc(brand)} support manager</li>
-          </ul>
-        </section>
-
-        <section class="pt-sec">
-          <h2>How to become a partner</h2>
-          <ol class="pt-steps">
-            <li><b>Apply</b><span>Fill in the short form below — name, number and city.</span></li>
-            <li><b>Interview</b><span>We call you, discuss the role in full and assess suitability. Selection is on merit, and we appoint a limited number of partners per city.</span></li>
-            <li><b>Verification</b><span>Basic KYC and address verification (Aadhaar/PAN).</span></li>
-            <li><b>Agreement</b><span>A formal partner agreement covering responsibilities, commission, deposit terms and exit conditions. You get a copy and time to review it.</span></li>
-            <li><b>Onboarding</b><span>Pay the fees, complete training, receive your welcome kit.</span></li>
-            <li><b>Start earning</b><span>Your first delivery is supervised, and support stays with you.</span></li>
-          </ol>
-        </section>
-
-        <section class="pt-sec">
-          <h2>Why partner with ${esc(brand)}</h2>
-          <ul class="pt-list pt-cols">
-            <li><strong>Established brand</strong> with GST-compliant operations</li>
-            <li><strong>Genuine demand</strong> — refurbished Apple devices are a fast-growing category in India</li>
-            <li><strong>No inventory investment</strong> — you never buy stock; devices remain ${esc(brand)}'s property</li>
-            <li><strong>Work on your own schedule</strong> around studies, family or other work</li>
-            <li><strong>Transparent commission</strong> — ₹2,000 minimum per device, paid monthly with a statement</li>
-            <li><strong>Real training and support</strong>, not a leave-you-to-it arrangement</li>
-            <li><strong>Grow with your city</strong> — strong partners get first refusal on expanded territory</li>
-          </ul>
-        </section>
-
-        <section class="pt-sec pt-honest">
-          <h2>Honest expectations</h2>
-          <p>We'd rather you succeed than simply sign up. So please note:</p>
-          <ul class="pt-list">
-            <li>Income is <strong>variable</strong> and depends on order volume in your city — there is <strong>no guaranteed minimum</strong></li>
-            <li>Early months are usually slower while demand builds</li>
-            <li>This is a <strong>responsibility-heavy role</strong>: you handle valuable assets and represent our brand</li>
-            <li>The ₹25,000 partner fee is <strong>not refundable</strong> if you later leave</li>
-            <li>This is a <strong>partnership, not employment</strong> — no salary, PF or employee benefits apply</li>
-          </ul>
-          <p>If that sounds fair, we'd love to hear from you.</p>
-        </section>
+        <div class="pt-content">${page ? page.content : ''}</div>
 
         <section class="pt-sec" id="apply">
           <div class="pt-form-card">
-            <h2>Apply to become a partner</h2>
-            <p class="form-sub">Takes under a minute. We'll verify your number and call you for a short interview.</p>
+            <h2>${esc(getSetting('partner_form_title', 'Apply to become a partner'))}</h2>
+            <p class="form-sub">${esc(getSetting('partner_form_sub', "Takes under a minute. We'll verify your number and call you for a short interview."))}</p>
             <form id="partnerForm" novalidate>
               <div class="field">
                 <label for="p-name">Full name <span class="req">*</span></label>
@@ -628,21 +523,8 @@ app.get('/partner', (req, res) => {
               </label>
               <button type="submit" id="p-submit" class="submit-btn" disabled>Submit application</button>
               <p class="form-status" id="p-status" role="status"></p>
-              <p class="privacy">Applications are reviewed city by city. If we're not currently expanding in your city, we'll keep your details on file and contact you when we are.</p>
+              <p class="privacy">${esc(getSetting('partner_form_note', "Applications are reviewed city by city. If we're not currently expanding in your city, we'll keep your details on file and contact you when we are."))}</p>
             </form>
-          </div>
-        </section>
-
-        <section class="pt-sec">
-          <h2>FAQ</h2>
-          <div class="pt-faq">
-            <details><summary>Do I need a shop or office?</summary><p>No. You need a secure place to store devices and reliable local transport.</p></details>
-            <details><summary>Do I need technical knowledge?</summary><p>No. We train you on inspection and handover. Repairs are handled by our team.</p></details>
-            <details><summary>Is this a full-time commitment?</summary><p>No. Most partners work flexible hours around studies, family or another job.</p></details>
-            <details><summary>When do I get my security deposit back?</summary><p>In full, within 15 days of your partnership ending, once all devices and materials are returned and accounts are settled.</p></details>
-            <details><summary>Can I lose my deposit?</summary><p>Only through devices lost, damaged or unaccounted for while in your custody. It is not at market risk.</p></details>
-            <details><summary>How many partners per city?</summary><p>A limited number, so existing partners get enough volume to make it worthwhile.</p></details>
-            <details><summary>When do I get paid?</summary><p>Monthly, with a statement of every delivery you completed.</p></details>
           </div>
         </section>
       </div>
@@ -658,7 +540,7 @@ app.get('/robots.txt', (req, res) => {
 app.get('/sitemap.xml', (req, res) => {
   const base = baseUrl(req);
   const today = new Date().toISOString().slice(0, 10);
-  const pages = db.prepare('SELECT slug FROM content_pages ORDER BY sort_order').all();
+  const pages = db.prepare("SELECT slug FROM content_pages WHERE slug != 'partner' ORDER BY sort_order").all();
   const posts = db.prepare('SELECT slug, updated_at, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC').all();
   const cats = db.prepare('SELECT slug, url_prefix FROM categories WHERE active = 1').all();
   const prefixOf = {}; for (const c of cats) prefixOf[c.slug] = c.url_prefix;
@@ -708,7 +590,7 @@ function siteHeaderHtml() {
 }
 function siteFooterHtml() {
   const legal = esc(getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid'));
-  const pages = db.prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC').all();
+  const pages = db.prepare("SELECT slug, title FROM content_pages WHERE slug != 'partner' ORDER BY sort_order ASC").all();
   const links = ['<a href="/blog">Blog</a>', '<a href="/condition">Condition grades</a>', '<a href="/partner">Partner with us</a>'].concat(pages.map((p) => `<a href="/p/${esc(p.slug)}">${esc(p.title)}</a>`)).join(' · ');
   return `<footer class="site-footer"><div class="footer-bottom"><div class="container footer-bottom-inner">
   <span>© ${new Date().getFullYear()} ${legal}. All rights reserved.</span>
@@ -858,7 +740,7 @@ app.get('/api/site', (req, res) => {
               ORDER BY m.sort_order ASC, m.id ASC`)
     .all();
   const pages = db
-    .prepare('SELECT slug, title FROM content_pages ORDER BY sort_order ASC, title ASC')
+    .prepare("SELECT slug, title FROM content_pages WHERE slug != 'partner' ORDER BY sort_order ASC, title ASC")
     .all();
   const posts = getSetting('blog_enabled', '1') === '1'
     ? db.prepare('SELECT slug, title, excerpt, cover_image, author, created_at FROM blog_posts WHERE published = 1 ORDER BY id DESC LIMIT 3').all()
@@ -1446,6 +1328,7 @@ function businessDetailsHtml() {
 
 // Compliance / content page (server-rendered)
 app.get('/p/:slug', (req, res) => {
+  if (req.params.slug === 'partner') return res.redirect(301, '/partner'); // real page has the form
   const page = db.prepare('SELECT * FROM content_pages WHERE slug = ?').get(req.params.slug);
   if (!page) return res.status(404).send('Page not found');
   const brand = esc(getSetting('brand_name', 'Mobirapid'));

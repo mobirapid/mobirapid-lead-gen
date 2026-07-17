@@ -1264,4 +1264,113 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(MAPS_FLAG)) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(MAPS_FLAG, '1');
 }
 
+const PARTNER_CONTENT = `<h2>What a City Partner does</h2>
+<ul>
+<li><strong>Receive and hold devices</strong> dispatched to you for customers in your city</li>
+<li><strong>Visit the customer</strong> at a scheduled time — home or office</li>
+<li><strong>Conduct the open-box handover</strong>: open the sealed device in front of the customer and let them inspect and test it</li>
+<li><strong>Collect payment to Mobirapid</strong> (never into a personal account) and hand over the device</li>
+<li><strong>Accept returns on the spot</strong> if the customer finds a functional issue</li>
+<li><strong>Provide first-line warranty support</strong> — collect devices needing service and coordinate with our team</li>
+</ul>
+<p>No shop required. No repair skills required. We train you.</p>
+
+<h2>What you earn</h2>
+<p><strong>₹2,000 per device, or 2% of its value — whichever is higher.</strong> Every delivery pays you a minimum of ₹2,000, and high-value devices pay more (a ₹1,80,000 MacBook Pro pays ₹3,600).</p>
+<table>
+<tr><th>Devices delivered / month</th><th>Your earnings</th></tr>
+<tr><td>5</td><td>₹10,000</td></tr>
+<tr><td>15</td><td>₹30,000</td></tr>
+<tr><td>30</td><td>₹60,000</td></tr>
+<tr><td>50</td><td><strong>₹1,00,000</strong></td></tr>
+</table>
+<p>That's roughly <strong>two deliveries a day</strong> to reach ₹1 lakh a month. Paid monthly, against a statement of every delivery you completed.</p>
+<p><em>Earnings depend on order volume in your city and the deliveries you complete. Mobirapid does not guarantee a minimum income — new partners usually start in the lower tiers and grow as their city's demand builds.</em></p>
+
+<h2>Who this suits</h2>
+<ul>
+<li><strong>Students</strong> with flexible hours between classes</li>
+<li><strong>Homemakers</strong> wanting meaningful income around family commitments</li>
+<li><strong>Part-time job seekers</strong> and gig workers looking for a stable second income</li>
+<li><strong>Existing mobile/laptop retailers</strong> who want an additional revenue line</li>
+<li>Anyone presentable, reliable and <strong>honest with high-value assets</strong></li>
+</ul>
+<p><strong>You'll need:</strong> a smartphone, a two-wheeler or reliable local transport, a secure place to store devices, a few hours on weekdays, and the ability to speak politely and clearly with customers.</p>
+
+<h2>Partner fees — stated plainly</h2>
+<p><strong>Partner fee (one-time): ₹25,000 — non-refundable.</strong> Covers onboarding and training, your welcome kit, partner ID and authorisation, access to our partner systems, branding material and ongoing support.</p>
+<p><strong>Security deposit: ₹2,00,000 — fully refundable.</strong> You will personally hold devices worth several lakhs at a time. This deposit secures those assets while they're in your custody. It is <strong>not an investment and earns no return</strong>, and is refunded in full within <strong>15 days</strong> of your partnership ending, once all devices and materials are returned and accounts are settled. Deductions are made only for devices lost, damaged or unaccounted for while in your custody.</p>
+<p><strong>Important:</strong> these amounts are payable only to Mobirapid's company account, after your partner agreement is signed. Never pay any individual. Please read the agreement carefully — and have it reviewed independently — before you commit.</p>
+
+<h2>Your welcome kit</h2>
+<ul>
+<li>Partner ID card and authorisation letter</li>
+<li>Branded carry case for device transport</li>
+<li>Branded T-shirt and lanyard</li>
+<li>Open-box checklist and handover documentation</li>
+<li>Full training on process, inspection and customer handling</li>
+<li>Partner handbook</li>
+<li>Direct line to your Mobirapid support manager</li>
+</ul>
+
+<h2>How to become a partner</h2>
+<ol>
+<li><strong>Apply</strong> — fill in the short form below: name, number and city.</li>
+<li><strong>Interview</strong> — we call you, discuss the role in full and assess suitability. Selection is on merit, and we appoint a limited number of partners per city.</li>
+<li><strong>Verification</strong> — basic KYC and address verification (Aadhaar/PAN).</li>
+<li><strong>Agreement</strong> — a formal partner agreement covering responsibilities, commission, deposit terms and exit conditions. You get a copy and time to review it.</li>
+<li><strong>Onboarding</strong> — pay the fees, complete training, receive your welcome kit.</li>
+<li><strong>Start earning</strong> — your first delivery is supervised, and support stays with you.</li>
+</ol>
+
+<h2>Why partner with Mobirapid</h2>
+<ul>
+<li><strong>Established brand</strong> with GST-compliant operations</li>
+<li><strong>Genuine demand</strong> — refurbished Apple devices are a fast-growing category in India</li>
+<li><strong>No inventory investment</strong> — you never buy stock; devices remain Mobirapid's property</li>
+<li><strong>Work on your own schedule</strong> around studies, family or other work</li>
+<li><strong>Transparent commission</strong> — ₹2,000 minimum per device, paid monthly with a statement</li>
+<li><strong>Real training and support</strong>, not a leave-you-to-it arrangement</li>
+<li><strong>Grow with your city</strong> — strong partners get first refusal on expanded territory</li>
+</ul>
+
+<h2>Honest expectations</h2>
+<p>We'd rather you succeed than simply sign up. So please note:</p>
+<ul>
+<li>Income is <strong>variable</strong> and depends on order volume in your city — there is <strong>no guaranteed minimum</strong></li>
+<li>Early months are usually slower while demand builds</li>
+<li>This is a <strong>responsibility-heavy role</strong>: you handle valuable assets and represent our brand</li>
+<li>The ₹25,000 partner fee is <strong>not refundable</strong> if you later leave</li>
+<li>This is a <strong>partnership, not employment</strong> — no salary, PF or employee benefits apply</li>
+</ul>
+<p>If that sounds fair, we'd love to hear from you.</p>
+
+<h2>FAQ</h2>
+<p><strong>Do I need a shop or office?</strong> No. You need a secure place to store devices and reliable local transport.</p>
+<p><strong>Do I need technical knowledge?</strong> No. We train you on inspection and handover. Repairs are handled by our team.</p>
+<p><strong>Is this a full-time commitment?</strong> No. Most partners work flexible hours around studies, family or another job.</p>
+<p><strong>When do I get my security deposit back?</strong> In full, within 15 days of your partnership ending, once all devices and materials are returned and accounts are settled.</p>
+<p><strong>Can I lose my deposit?</strong> Only through devices lost, damaged or unaccounted for while in your custody. It is not at market risk.</p>
+<p><strong>How many partners per city?</strong> A limited number, so existing partners get enough volume to make it worthwhile.</p>
+<p><strong>When do I get paid?</strong> Monthly, with a statement of every delivery you completed.</p>`;
+
+// One-time: put the /partner page copy into the admin (Compliance Pages → "Partner
+// With Us") so it can be edited without a deploy. Hero text lives in settings.
+const PARTNER_PAGE_FLAG = 'partner_page_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PARTNER_PAGE_FLAG)) {
+  if (!db.prepare("SELECT slug FROM content_pages WHERE slug = 'partner'").get()) {
+    db.prepare('INSERT INTO content_pages (slug, title, content, sort_order) VALUES (?, ?, ?, ?)')
+      .run('partner', 'Partner With Us', PARTNER_CONTENT, 99);
+  }
+  const put = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+  put.run('partner_eyebrow', 'Partner programme');
+  put.run('partner_heading', 'Become a Mobirapid City Partner');
+  put.run('partner_subheading', 'Represent Mobirapid in your city. Handle open-box deliveries and warranty support.<br><strong>Earn ₹2,000 per device — up to ₹1 lakh a month.</strong>');
+  put.run('partner_cta_text', 'Apply to partner →');
+  put.run('partner_form_title', 'Apply to become a partner');
+  put.run('partner_form_sub', "Takes under a minute. We'll verify your number and call you for a short interview.");
+  put.run('partner_form_note', "Applications are reviewed city by city. If we're not currently expanding in your city, we'll keep your details on file and contact you when we are.");
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(PARTNER_PAGE_FLAG, '1');
+}
+
 module.exports = db;

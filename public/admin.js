@@ -1216,6 +1216,9 @@
   on('ptFilterCity', 'change', renderPartners);
   on('ptFilterStage', 'change', renderPartners);
   on('ptRefresh', 'click', loadPartners);
+  on('savePartnerPage', 'click', () => {
+    saveSettings(collectSettings(['partner_eyebrow', 'partner_heading', 'partner_subheading', 'partner_cta_text', 'partner_form_title', 'partner_form_sub', 'partner_form_note']), $('partnerPageSaved'));
+  });
   on('savePtStages', 'click', async () => {
     await saveSettings(collectSettings(['partner_stages']), $('ptStagesSaved'));
     loadPartners();

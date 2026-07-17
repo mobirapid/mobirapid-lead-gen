@@ -169,6 +169,26 @@
         </table>
         <div class="empty" id="ptEmpty" hidden>No partner applications yet. They arrive from the <a href="/partner" target="_blank">/partner</a> page.</div>
       </div>
+      <div class="card" style="margin-top:16px;">
+        <h3>Partner page — top section</h3>
+        <p class="muted">The hero at the top of <a href="/partner" target="_blank">/partner</a>. The rest of the page text is edited under <b>Compliance Pages → "Partner With Us"</b>.</p>
+        <div class="grid2">
+          <div><label class="fld">Eyebrow (small text above the heading)</label><input type="text" id="set-partner_eyebrow" /></div>
+          <div><label class="fld">Heading</label><input type="text" id="set-partner_heading" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Sub-heading (basic HTML allowed)</label>
+        <textarea id="set-partner_subheading" rows="2"></textarea>
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Hero button text</label><input type="text" id="set-partner_cta_text" /></div>
+          <div><label class="fld">Form title</label><input type="text" id="set-partner_form_title" /></div>
+        </div>
+        <label class="fld" style="margin-top:12px;">Form sub-text</label>
+        <input type="text" id="set-partner_form_sub" />
+        <label class="fld" style="margin-top:12px;">Note under the form</label>
+        <input type="text" id="set-partner_form_note" />
+        <div class="save-row"><button class="btn" id="savePartnerPage">Save partner page</button><span class="saved-msg" id="partnerPageSaved" hidden>Saved ✓</span></div>
+      </div>
+
       <div class="card" id="ptStageCard" style="margin-top:16px;">
         <h3>Partner stages</h3>
         <p class="muted">Comma separated — the choices in every application's Stage dropdown.</p>
