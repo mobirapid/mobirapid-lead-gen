@@ -1121,3 +1121,11 @@ body:not(.page-book) .hero { display: none; }
 .dealg-cta { margin-top: auto; padding-top: 8px; color: var(--brand); font-weight: 700; font-size: .88rem; }
 @media (max-width: 900px) { .dealg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 380px) { .dealg-grid { grid-template-columns: 1fr; } }
+
+/* Banner slider on phones: full-bleed (edge to edge) so banners render larger,
+   and support a taller per-banner mobile image via <picture>. */
+.bslide picture { display: block; width: 100%; }
+@media (max-width: 640px) {
+  .bslider-section .container { padding: 0; }
+  .bslider-track { border-radius: 0; }
+}

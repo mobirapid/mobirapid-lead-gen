@@ -330,7 +330,8 @@
     banners = banners.filter((b) => b && b.image);
     if (!banners.length) return;
     track.innerHTML = banners.map((b, i) => {
-      const img = `<img src="${esc(b.image)}" alt="Banner ${i + 1}" ${i === 0 ? '' : 'loading="lazy"'} />`;
+      // Optional taller mobile version of the banner (shown ≤640px)
+      const img = `<picture>${b.mobile ? `<source media="(max-width: 640px)" srcset="${esc(b.mobile)}">` : ''}<img src="${esc(b.image)}" alt="Banner ${i + 1}" ${i === 0 ? '' : 'loading="lazy"'} /></picture>`;
       return b.link ? `<a class="bslide" href="${esc(b.link)}">${img}</a>` : `<div class="bslide">${img}</div>`;
     }).join('');
     section.hidden = false;

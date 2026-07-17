@@ -279,12 +279,19 @@
   function renderSliderRows() {
     const wrap = $('sliderRows'); if (!wrap) return;
     wrap.innerHTML = sliderItems.length ? sliderItems.map((b, i) => `
-      <div class="upload-row" style="margin-bottom:10px;align-items:center;">
+      <div class="upload-row" style="margin-bottom:10px;align-items:center;flex-wrap:wrap;">
         <img src="${esc(b.image)}" style="width:120px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />
         <input type="text" data-slink="${i}" placeholder="Link (optional), e.g. /c/macbooks" value="${esc(b.link || '')}" style="flex:1;min-width:180px;" />
+        <label class="btn small" style="cursor:pointer;">${b.mobile ? '📱 ✓ mobile' : '📱 add mobile version'}<input type="file" data-smf="${i}" accept="image/*" hidden /></label>
+        ${b.mobile ? `<button class="btn small" type="button" data-smx="${i}" title="Remove mobile version">✕📱</button>` : ''}
         <button class="btn small" type="button" data-sup="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="btn small danger" type="button" data-srem="${i}">✕</button>
       </div>`).join('') : '<p class="muted" style="padding:6px 0;">No banners yet.</p>';
+    wrap.querySelectorAll('[data-smf]').forEach((el) => el.addEventListener('change', async () => {
+      const p = await uploadOneFile(el.files[0]);
+      if (p) { sliderItems[+el.dataset.smf].mobile = p; renderSliderRows(); }
+    }));
+    wrap.querySelectorAll('[data-smx]').forEach((el) => el.addEventListener('click', () => { delete sliderItems[+el.dataset.smx].mobile; renderSliderRows(); }));
     wrap.querySelectorAll('[data-slink]').forEach((el) => el.addEventListener('input', () => { sliderItems[+el.dataset.slink].link = el.value.trim(); }));
     wrap.querySelectorAll('[data-srem]').forEach((el) => el.addEventListener('click', () => { sliderItems.splice(+el.dataset.srem, 1); renderSliderRows(); }));
     wrap.querySelectorAll('[data-sup]').forEach((el) => el.addEventListener('click', () => {
