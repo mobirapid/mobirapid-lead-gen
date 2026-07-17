@@ -1095,3 +1095,7 @@ body:not(.page-book) .hero { min-height: 480px; }
   .bslide img { aspect-ratio: 16 / 8; }
   .bslider-track { border-radius: 14px; }
 }
+
+/* Homepage: hero text block removed — banners, category strip and products lead the page.
+   (The hero still renders on /book, where it holds the consultation form.) */
+body:not(.page-book) .hero { display: none; }
