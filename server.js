@@ -700,7 +700,7 @@ function siteHeaderHtml() {
     </div>` : '';
     return shop;
   })()}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
-  <a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
+  <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
 </div></header>`;
 }
 function siteFooterHtml() {
@@ -1466,7 +1466,7 @@ ${headCode}${getSetting('head_code', '')}
 </head><body>
 <header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
-  <a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
+  <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
 </div></header>
 <main class="container page-body">
   <a class="back-link" href="/">← Back to home</a>

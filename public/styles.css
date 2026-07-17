@@ -1237,3 +1237,9 @@ body:not(.page-book) .hero { display: none; }
 .nav-menu a::after { display: none; }
 .nav-menu a:hover { background: var(--brand-soft); color: var(--brand); }
 .nav-menu-all { border-top: 1px solid var(--line); border-radius: 0 0 9px 9px !important; margin-top: 4px; padding-top: 12px !important; color: var(--brand) !important; }
+
+/* Header CTAs: outlined "Partner with us" beside the primary booking button */
+.header-ctas { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.header-cta-ghost { background: #fff; color: var(--brand); border: 1.5px solid var(--line-strong); box-shadow: none; font-weight: 600; }
+.header-cta-ghost:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); box-shadow: none; }
+@media (max-width: 860px) { .header-cta-ghost { display: none; } }
