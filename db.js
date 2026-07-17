@@ -1248,4 +1248,20 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(OBD_FLAG)) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(OBD_FLAG, '1');
 }
 
+// One-time: set the Google Maps embeds for the two offices (head office first,
+// regional second). Only fills fields that are still empty — admin edits are kept.
+const MAPS_FLAG = 'office_maps_v1';
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(MAPS_FLAG)) {
+  const HEAD = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3559.1611631704977!2d75.79377807577154!3d26.8666202620692!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396db5b298081da3%3A0xf5c5758af0edeac1!2sMobirapid%20Private%20Limited!5e0!3m2!1sen!2sin!4v1784328192469!5m2!1sen!2sin';
+  const REGIONAL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.5473520069504!2d77.62594417507587!3d12.936788387375364!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae155a6ab219ff%3A0x50aadd774de4f8b9!2sMobirapid%20Private%20Limited%20(Regional%20Office)!5e0!3m2!1sen!2sin!4v1784327955097!5m2!1sen!2sin';
+  const setIfBlank = (key, val) => {
+    const cur = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+    if (!cur) db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(key, val);
+    else if (!String(cur.value || '').trim()) db.prepare('UPDATE settings SET value = ? WHERE key = ?').run(val, key);
+  };
+  setIfBlank('google_maps_embed', HEAD);
+  setIfBlank('google_maps_embed_2', REGIONAL);
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(MAPS_FLAG, '1');
+}
+
 module.exports = db;
