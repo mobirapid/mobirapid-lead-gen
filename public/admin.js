@@ -43,6 +43,18 @@
   // ========================================================================
   let allLeads = [];
   let leadStatusList = ['New', 'Contacted', 'Converted', 'Lost'];
+  // Requirement filter = configured options + any value actually present on leads
+  // (e.g. "Partner application", which comes from the /partner form, not the options list).
+  function fillReqFilter() {
+    const sel = $('filterReq'); if (!sel) return;
+    let reqs = [];
+    try { reqs = JSON.parse(settings.requirement_options || '[]') || []; } catch { reqs = []; }
+    const fromLeads = [...new Set(allLeads.map((l) => (l.requirement || '').trim()).filter(Boolean))];
+    const all = [...new Set([...reqs, ...fromLeads])];
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All requirements</option>' + all.map((o) => `<option>${esc(o)}</option>`).join('');
+    if (cur && all.includes(cur)) sel.value = cur;
+  }
   // Fill the status filter + lead-dialog dropdowns from the configured status list.
   function fillStatusSelects() {
     const filter = $('filterStatus');
@@ -85,7 +97,7 @@
         <td>${esc(l.phone)} ${l.phone_verified ? '<span class="verified" title="Verified">✓</span>' : ''}</td>
         <td>${l.client_type ? `<span class="pill type">${esc(l.client_type)}</span>` : '—'}</td>
         <td>${l.company_name ? `${esc(l.company_name)}<br><small>${esc(l.company_email || '')}</small>` : '—'}</td>
-        <td>${l.requirement ? `<span class="pill req">${esc(l.requirement)}</span>` : '—'}</td>
+        <td>${l.requirement ? `<span class="pill ${/partner/i.test(l.requirement) ? 'partner' : 'req'}">${esc(l.requirement)}</span>` : '—'}</td>
         <td>${l.interested_model ? `🖥 ${esc(l.interested_model)}` : '—'}</td>
         <td>${esc(l.budget) || '—'}</td>
         <td>${esc(l.best_time) || '—'}${l.call_type ? `<br><span class="pill ${/video/i.test(l.call_type) ? 'req' : 'type'}">${esc(l.call_type)}</span>` : ''}</td>
@@ -181,6 +193,7 @@
     if ($('statVideo')) $('statVideo').textContent = data.video_clicks ?? '—';
     if (Array.isArray(data.statuses) && data.statuses.length) leadStatusList = data.statuses;
     fillStatusSelects();
+    fillReqFilter();
     if ($('set-lead_statuses') && !$('set-lead_statuses').value) $('set-lead_statuses').value = leadStatusList.join(', ');
     updateStats(); renderLeads();
   }
@@ -224,10 +237,7 @@
     });
     // Show the effective status list when none has been saved yet.
     if ($('set-lead_statuses') && !$('set-lead_statuses').value) $('set-lead_statuses').value = leadStatusList.join(', ');
-    // populate leads requirement filter from options
-    let reqs = [];
-    try { reqs = JSON.parse(settings.requirement_options || '[]'); } catch {}
-    $('filterReq').innerHTML = '<option value="">All requirements</option>' + reqs.map((o) => `<option>${esc(o)}</option>`).join('');
+    fillReqFilter();
     // image previews
     if (settings.logo_path) showPrev($('logoPrev'), settings.logo_path);
     if (settings.banner_image) showPrev($('bannerPrev'), settings.banner_image);

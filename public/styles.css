@@ -1243,3 +1243,6 @@ body:not(.page-book) .hero { display: none; }
 .header-cta-ghost { background: #fff; color: var(--brand); border: 1.5px solid var(--line-strong); box-shadow: none; font-weight: 600; }
 .header-cta-ghost:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); box-shadow: none; }
 @media (max-width: 860px) { .header-cta-ghost { display: none; } }
+
+/* Partner application leads stand out in the admin list */
+.pill.partner { background: #ede9fe; color: #5b21b6; }
