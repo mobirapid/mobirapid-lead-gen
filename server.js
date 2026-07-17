@@ -1534,13 +1534,17 @@ app.post('/api/partner', submitLimiter, async (req, res) => {
   const otp = db.prepare('SELECT verified FROM otps WHERE phone = ?').get(phone);
   if (!otp || otp.verified !== 1) return res.status(400).json({ ok: false, error: 'Please verify your phone number first.' });
 
-  const info = db.prepare(
-    `INSERT INTO leads (name, phone, phone_verified, requirement, best_time, message, consent)
-     VALUES (?, ?, 1, ?, ?, ?, ?)`
-  ).run(name, phone, PARTNER_TAG, 'City: ' + city, message, 'v1 · ' + new Date().toISOString());
-  const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(Number(info.lastInsertRowid));
+  db.prepare(
+    `INSERT INTO partners (name, phone, city, message, stage, consent) VALUES (?, ?, ?, ?, 'New', ?)`
+  ).run(name, phone, city, message, 'v1 · ' + new Date().toISOString());
   db.prepare('DELETE FROM otps WHERE phone = ?').run(phone);
-  try { await sendLeadEmail(lead); } catch (e) { console.error('Partner email failed (application still saved):', e.message); }
+  // Notify the team using the existing lead-email plumbing (shaped like a lead).
+  try {
+    await sendLeadEmail({
+      id: '—', name, phone, phone_verified: 1, requirement: PARTNER_TAG,
+      best_time: 'City: ' + city, message, created_at: new Date().toISOString(),
+    });
+  } catch (e) { console.error('Partner email failed (application still saved):', e.message); }
   res.json({ ok: true, message: 'Thanks! Your partner application has been received. Our team will call you shortly for a short interview.' });
 });
 
@@ -1745,6 +1749,39 @@ app.get('/track/video-call', (req, res) => {
   try { db.prepare('INSERT INTO click_events (kind, model) VALUES (?, ?)').run('video-call', model); } catch (e) { console.error('click_events insert failed:', e.message); }
   const q = new URLSearchParams({ ...(model ? { model } : {}), call: 'video', utm_source: 'site', utm_medium: 'pdp', utm_campaign: 'schedule_video_call' });
   res.redirect('/book?' + q.toString() + '#lead-form');
+});
+
+// ---------------------------------------------------------------------------
+// Partner applications (admin)
+// ---------------------------------------------------------------------------
+function partnerStages() {
+  const list = String(getSetting('partner_stages', '')).split(',').map((s) => s.trim()).filter(Boolean);
+  return list.length ? list.slice(0, 20) : ['New', 'Interview scheduled', 'Interviewed', 'Selected', 'Agreement sent', 'Onboarded', 'Rejected'];
+}
+app.get('/api/admin/partners', requireAdmin, (req, res) => {
+  res.json({ ok: true, partners: db.prepare('SELECT * FROM partners ORDER BY id DESC').all(), stages: partnerStages() });
+});
+app.post('/api/admin/partners/:id/stage', requireAdmin, (req, res) => {
+  const stage = req.body.stage;
+  if (!partnerStages().includes(stage)) return res.status(400).json({ ok: false, error: 'Invalid stage.' });
+  db.prepare('UPDATE partners SET stage = ? WHERE id = ?').run(stage, parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.post('/api/admin/partners/:id/remark', requireAdmin, (req, res) => {
+  db.prepare('UPDATE partners SET remark = ? WHERE id = ?').run(String(req.body.remark || '').trim().slice(0, 1000), parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.delete('/api/admin/partners/:id', requireAdmin, requireFullRole, (req, res) => {
+  db.prepare('DELETE FROM partners WHERE id = ?').run(parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.get('/api/admin/partners.csv', requireAdmin, (req, res) => {
+  const rows = db.prepare('SELECT * FROM partners ORDER BY id DESC').all();
+  const cols = ['id', 'name', 'phone', 'city', 'stage', 'remark', 'message', 'consent', 'created_at'];
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="mobirapid-partners.csv"');
+  res.send([cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n'));
 });
 
 // Leads

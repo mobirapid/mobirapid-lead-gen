@@ -92,6 +92,7 @@
   <div class="container">
     <nav class="tabs">
       <button class="tab active" data-tab="leads">Leads</button>
+      <button class="tab" data-tab="partners">Partners</button>
       <button class="tab" data-tab="branding">Branding</button>
       <button class="tab" data-tab="models">MacBook Models</button>
       <button class="tab" data-tab="options">Form Options</button>
@@ -139,6 +140,42 @@
           <input type="text" id="set-lead_statuses" placeholder="New, Contacted, Converted, Lost" style="flex:1;min-width:260px;" />
           <button class="btn small" id="saveLeadStatuses" type="button">Save statuses</button>
           <span class="saved-msg" id="leadStatusesSaved" hidden>Saved ✓</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PARTNERS ===================== -->
+    <section class="panel" id="panel-partners">
+      <div class="stats">
+        <div class="stat"><b id="ptTotal">—</b><span>Applications</span></div>
+        <div class="stat"><b id="ptToday">—</b><span>Today</span></div>
+        <div class="stat"><b id="ptCities">—</b><span>Cities</span></div>
+        <div class="stat"><b id="ptSelected">—</b><span>Selected</span></div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="ptSearch" placeholder="Search name, phone, city, note…" />
+        <select id="ptFilterCity"><option value="">All cities</option></select>
+        <select id="ptFilterStage"><option value="">All stages</option></select>
+        <a class="btn" href="/api/admin/partners.csv">Export CSV</a>
+        <button class="btn" id="ptRefresh">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Phone</th><th>City</th><th>About them</th>
+            <th>Stage</th><th>Remark</th><th>Applied</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="ptRows"></tbody>
+        </table>
+        <div class="empty" id="ptEmpty" hidden>No partner applications yet. They arrive from the <a href="/partner" target="_blank">/partner</a> page.</div>
+      </div>
+      <div class="card" id="ptStageCard" style="margin-top:16px;">
+        <h3>Partner stages</h3>
+        <p class="muted">Comma separated — the choices in every application's Stage dropdown.</p>
+        <div class="upload-row">
+          <input type="text" id="set-partner_stages" placeholder="New, Interview scheduled, Interviewed, Selected, Agreement sent, Onboarded, Rejected" style="flex:1;min-width:280px;" />
+          <button class="btn small" id="savePtStages" type="button">Save stages</button>
+          <span class="saved-msg" id="ptStagesSaved" hidden>Saved ✓</span>
         </div>
       </div>
     </section>

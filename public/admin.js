@@ -1131,6 +1131,96 @@
     loadUsers();
   }
 
+  // ========================================================================
+  // PARTNERS (City Partner applications from /partner)
+  // ========================================================================
+  let allPartners = [];
+  let partnerStageList = ['New', 'Interview scheduled', 'Interviewed', 'Selected', 'Agreement sent', 'Onboarded', 'Rejected'];
+  function fillPartnerFilters() {
+    const cs = $('ptFilterCity'), st = $('ptFilterStage');
+    if (cs) {
+      const cur = cs.value;
+      const cities = [...new Set(allPartners.map((p) => (p.city || '').trim()).filter(Boolean))].sort();
+      cs.innerHTML = '<option value="">All cities</option>' + cities.map((c) => `<option>${esc(c)}</option>`).join('');
+      if (cur && cities.includes(cur)) cs.value = cur;
+    }
+    if (st) {
+      const cur = st.value;
+      st.innerHTML = '<option value="">All stages</option>' + partnerStageList.map((s) => `<option>${esc(s)}</option>`).join('');
+      if (cur && partnerStageList.includes(cur)) st.value = cur;
+    }
+  }
+  function renderPartners() {
+    const wrap = $('ptRows'); if (!wrap) return;
+    const q = ($('ptSearch').value || '').toLowerCase();
+    const fc = $('ptFilterCity').value, fs = $('ptFilterStage').value;
+    const rows = allPartners.filter((p) => {
+      if (fc && (p.city || '') !== fc) return false;
+      if (fs && (p.stage || 'New') !== fs) return false;
+      if (q && !`${p.name} ${p.phone} ${p.city} ${p.message} ${p.remark}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    $('ptEmpty').hidden = rows.length > 0;
+    wrap.innerHTML = rows.map((p) => {
+      const st = p.stage || 'New';
+      const opts = (partnerStageList.includes(st) ? partnerStageList : [st].concat(partnerStageList))
+        .map((s) => `<option ${s === st ? 'selected' : ''}>${esc(s)}</option>`).join('');
+      return `<tr>
+        <td>${p.id}</td>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td>${esc(p.phone)} <span class="verified" title="Verified">✓</span></td>
+        <td><span class="pill type">${esc(p.city || '—')}</span></td>
+        <td class="msg">${esc(p.message) || '—'}</td>
+        <td><select class="status-sel st-${esc(st.toLowerCase().replace(/\s+/g, '-'))}" data-ptstage="${p.id}">${opts}</select></td>
+        <td class="msg"><span class="remark-tx">${esc(p.remark) || '—'}</span> <button class="btn small" data-ptremark="${p.id}" title="Edit remark">✎</button></td>
+        <td>${fmtDate(p.created_at)}</td>
+        <td>${canEditLeads() ? `<button class="btn small danger" data-ptdel="${p.id}">Delete</button>` : '—'}</td>
+      </tr>`;
+    }).join('');
+    wrap.querySelectorAll('[data-ptstage]').forEach((sel) => sel.addEventListener('change', async () => {
+      const r = await api('/api/admin/partners/' + sel.dataset.ptstage + '/stage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: sel.value }) });
+      const d = await r.json();
+      if (d.ok) { const p = allPartners.find((x) => String(x.id) === String(sel.dataset.ptstage)); if (p) p.stage = sel.value; renderPartners(); }
+      else alert(d.error || 'Could not update the stage.');
+    }));
+    wrap.querySelectorAll('[data-ptremark]').forEach((b) => b.addEventListener('click', async () => {
+      const p = allPartners.find((x) => String(x.id) === String(b.dataset.ptremark));
+      if (!p) return;
+      const remark = prompt('Remark for ' + (p.name || 'this applicant') + ':', p.remark || '');
+      if (remark === null) return;
+      const r = await api('/api/admin/partners/' + p.id + '/remark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ remark: remark.trim() }) });
+      if ((await r.json()).ok) { p.remark = remark.trim(); renderPartners(); }
+    }));
+    wrap.querySelectorAll('[data-ptdel]').forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Delete this partner application permanently?')) return;
+      await api('/api/admin/partners/' + b.dataset.ptdel, { method: 'DELETE' });
+      loadPartners();
+    }));
+  }
+  function updatePartnerStats() {
+    const today = new Date().toISOString().slice(0, 10);
+    if ($('ptTotal')) $('ptTotal').textContent = allPartners.length;
+    if ($('ptToday')) $('ptToday').textContent = allPartners.filter((p) => (p.created_at || '').slice(0, 10) === today).length;
+    if ($('ptCities')) $('ptCities').textContent = new Set(allPartners.map((p) => (p.city || '').trim()).filter(Boolean)).size;
+    if ($('ptSelected')) $('ptSelected').textContent = allPartners.filter((p) => /selected|onboarded/i.test(p.stage || '')).length;
+  }
+  async function loadPartners() {
+    const r = await api('/api/admin/partners');
+    const d = await r.json();
+    allPartners = d.partners || [];
+    if (Array.isArray(d.stages) && d.stages.length) partnerStageList = d.stages;
+    if ($('set-partner_stages') && !$('set-partner_stages').value) $('set-partner_stages').value = partnerStageList.join(', ');
+    fillPartnerFilters(); updatePartnerStats(); renderPartners();
+  }
+  on('ptSearch', 'input', renderPartners);
+  on('ptFilterCity', 'change', renderPartners);
+  on('ptFilterStage', 'change', renderPartners);
+  on('ptRefresh', 'click', loadPartners);
+  on('savePtStages', 'click', async () => {
+    await saveSettings(collectSettings(['partner_stages']), $('ptStagesSaved'));
+    loadPartners();
+  });
+
   function showOnlyTabs(tabs) {
     document.querySelectorAll('.tab').forEach((t) => { if (!tabs.includes(t.dataset.tab)) t.style.display = 'none'; });
     document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
@@ -1176,6 +1266,7 @@
     loadPages();
     loadBlog();
     loadUsers();
+    loadPartners();
   }
   init();
 })();

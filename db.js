@@ -180,6 +180,21 @@ db.exec(`
 // scope = category slug a "catalog" uploader is limited to (e.g. 'phones'); NULL for others.
 ensureColumn('users', 'scope', 'TEXT');
 
+// City Partner applications (from the /partner page) — kept separate from customer leads.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS partners (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    phone      TEXT NOT NULL,
+    city       TEXT,
+    message    TEXT,
+    stage      TEXT NOT NULL DEFAULT 'New',
+    remark     TEXT,
+    consent    TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 // Click tracking for site CTAs (e.g. the product page "Schedule video call" button).
 db.exec(`
   CREATE TABLE IF NOT EXISTS click_events (
