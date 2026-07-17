@@ -396,10 +396,37 @@
   function renderHeaderNav(categories) {
     const nav = $('headerNav');
     if (!nav) return;
-    const links = (categories || []).map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`);
-    links.push('<a href="/compare">Compare</a>', '<a href="/condition">Condition</a>', '<a href="/blog">Blog</a>');
-    nav.innerHTML = links.join('');
+    const cats = categories || [];
+    const shop = cats.length
+      ? `<div class="nav-drop">
+          <button type="button" class="nav-drop-btn" aria-expanded="false" aria-haspopup="true">Shop <span class="nav-caret">▾</span></button>
+          <div class="nav-menu">
+            ${cats.map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`).join('')}
+            <a class="nav-menu-all" href="/#modelsSection">All products</a>
+          </div>
+        </div>`
+      : '';
+    nav.innerHTML = shop + '<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a>';
     nav.hidden = false;
+    initNavDrop(nav);
+  }
+
+  // Dropdown behaviour: hover on desktop, click/tap anywhere (works on touch too).
+  function initNavDrop(scope) {
+    scope.querySelectorAll('.nav-drop').forEach((drop) => {
+      const btn = drop.querySelector('.nav-drop-btn');
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const open = drop.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', (e) => {
+        if (!drop.contains(e.target)) { drop.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { drop.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+      });
+    });
   }
 
   function renderCategoryCards(categories, models) {

@@ -692,7 +692,14 @@ function siteHeaderHtml() {
   const logo = getSetting('logo_path', '');
   return `<header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
-  <nav class="header-nav">${db.prepare('SELECT slug, name FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all().map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`).join('')}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
+  <nav class="header-nav">${(() => {
+    const cats = db.prepare('SELECT slug, name FROM categories WHERE active = 1 ORDER BY sort_order ASC, id ASC').all();
+    const shop = cats.length ? `<div class="nav-drop">
+      <button type="button" class="nav-drop-btn" aria-expanded="false" aria-haspopup="true">Shop <span class="nav-caret">&#9662;</span></button>
+      <div class="nav-menu">${cats.map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`).join('')}<a class="nav-menu-all" href="/#modelsSection">All products</a></div>
+    </div>` : '';
+    return shop;
+  })()}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
   <a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a>
 </div></header>`;
 }
@@ -722,7 +729,10 @@ ${HEAD_COMMON}
 ${gaTag}${getSetting('head_code', '')}${extra || ''}
 </head><body>`;
 }
-function pageTail() { return `${siteFooterHtml()}${getSetting('body_code', '')}</body></html>`; }
+// Shared page tail. Includes the header "Shop" dropdown behaviour, since
+// server-rendered pages don't load app.js.
+const NAV_SCRIPT = `<script>(function(){document.querySelectorAll('.nav-drop').forEach(function(d){var b=d.querySelector('.nav-drop-btn');if(!b)return;b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var o=d.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!d.contains(e.target)){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});});})();</script>`;
+function pageTail() { return `${siteFooterHtml()}${NAV_SCRIPT}${getSetting('body_code', '')}</body></html>`; }
 function fmtBlogDate(s) {
   try { return new Date(String(s).replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; }
 }
