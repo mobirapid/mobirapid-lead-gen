@@ -240,7 +240,34 @@
     renderFaqRows();
     try { conditionItems = JSON.parse(settings.condition_grades || '[]'); } catch { conditionItems = []; }
     renderConditionRows();
+    try { sliderItems = JSON.parse(settings.slider_banners || '[]'); } catch { sliderItems = []; }
+    renderSliderRows();
   }
+
+  // ---- Sliding banners editor ----
+  let sliderItems = [];
+  function renderSliderRows() {
+    const wrap = $('sliderRows'); if (!wrap) return;
+    wrap.innerHTML = sliderItems.length ? sliderItems.map((b, i) => `
+      <div class="upload-row" style="margin-bottom:10px;align-items:center;">
+        <img src="${esc(b.image)}" style="width:120px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />
+        <input type="text" data-slink="${i}" placeholder="Link (optional), e.g. /c/macbooks" value="${esc(b.link || '')}" style="flex:1;min-width:180px;" />
+        <button class="btn small" type="button" data-sup="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="btn small danger" type="button" data-srem="${i}">✕</button>
+      </div>`).join('') : '<p class="muted" style="padding:6px 0;">No banners yet.</p>';
+    wrap.querySelectorAll('[data-slink]').forEach((el) => el.addEventListener('input', () => { sliderItems[+el.dataset.slink].link = el.value.trim(); }));
+    wrap.querySelectorAll('[data-srem]').forEach((el) => el.addEventListener('click', () => { sliderItems.splice(+el.dataset.srem, 1); renderSliderRows(); }));
+    wrap.querySelectorAll('[data-sup]').forEach((el) => el.addEventListener('click', () => {
+      const i = +el.dataset.sup; if (i > 0) { [sliderItems[i - 1], sliderItems[i]] = [sliderItems[i], sliderItems[i - 1]]; renderSliderRows(); }
+    }));
+  }
+  on('sliderAddBtn', 'click', async () => {
+    const p = await uploadImage($('sliderFile'));
+    if (p) { sliderItems.push({ image: p, link: '' }); $('sliderFile').value = ''; renderSliderRows(); }
+  });
+  on('saveSliders', 'click', () => {
+    saveSettings({ slider_banners: JSON.stringify(sliderItems.filter((b) => b.image)) }, $('slidersSaved'));
+  });
 
   // ---- USP strip editor ----
   let uspItems = [];

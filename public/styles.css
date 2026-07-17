@@ -1079,3 +1079,19 @@ body:not(.page-book) .hero { min-height: 480px; }
 .cta-band-btn { background: #fff; color: var(--brand); flex-shrink: 0; }
 .cta-band-btn:hover { background: #f1f5ff; color: var(--brand-dark); }
 @media (max-width: 640px) { .cta-band-inner { padding: 30px 24px; } .cta-band h2 { font-size: 1.35rem; } }
+
+/* ============ Sliding promo banners ============ */
+.bslider-section { padding: 16px 0 4px; }
+.bslider { position: relative; }
+.bslider-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 18px; scrollbar-width: none; -ms-overflow-style: none; }
+.bslider-track::-webkit-scrollbar { display: none; }
+.bslide { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; display: block; }
+.bslide img { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; display: block; }
+.bslider-dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 7px; }
+.bdot { width: 8px; height: 8px; border-radius: 999px; border: none; background: rgba(255, 255, 255, .55); padding: 0; transition: width .2s ease, background .2s ease; }
+.bdot.on { width: 22px; background: #fff; }
+@media (max-width: 640px) {
+  .bslider-section { padding: 10px 0 0; }
+  .bslide img { aspect-ratio: 16 / 8; }
+  .bslider-track { border-radius: 14px; }
+}

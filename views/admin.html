@@ -186,6 +186,17 @@
       </div>
 
       <div class="card">
+        <h3>Sliding banners</h3>
+        <p class="muted">Promo banners that slide automatically at the top of the homepage (above the hero). Upload wide images — recommended <b>1600×500&nbsp;px</b>, under ~300&nbsp;KB. Optional: give each banner a link (e.g. <code>/c/macbooks</code> or a product URL). Leave empty to hide the slider.</p>
+        <div id="sliderRows"></div>
+        <div class="upload-row" style="margin-top:8px;">
+          <input type="file" id="sliderFile" accept="image/*" />
+          <button class="btn small" id="sliderAddBtn" type="button">Upload &amp; add banner</button>
+        </div>
+        <div class="save-row"><button class="btn" id="saveSliders">Save sliding banners</button><span class="saved-msg" id="slidersSaved" hidden>Saved ✓</span></div>
+      </div>
+
+      <div class="card">
         <h3>Banner / hero</h3>
         <p class="muted">The big section at the top of the landing page.</p>
         <label class="fld">Banner background image</label>

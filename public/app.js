@@ -44,6 +44,7 @@
       applySettings(data.settings);
       renderHeaderNav(data.categories);
       renderCategoryStrip(data.categories, data.models);
+      renderBannerSlider(data.settings);
       renderRibbon(data.settings);
       renderUsps(data.settings);
       renderDeal(data.settings, data.models);
@@ -276,6 +277,42 @@
       return [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.colour].filter(Boolean).join(' · ');
     }
     return m.specs || '';
+  }
+
+  // Sliding promo banners (admin-uploaded). Swipeable, auto-advancing, dot navigation.
+  function renderBannerSlider(s) {
+    const section = $('bsliderSection'), track = $('bsliderTrack'), dots = $('bsliderDots');
+    if (!section || !track) return;
+    let banners = [];
+    try { banners = JSON.parse(s.slider_banners || '[]') || []; } catch { banners = []; }
+    banners = banners.filter((b) => b && b.image);
+    if (!banners.length) return;
+    track.innerHTML = banners.map((b, i) => {
+      const img = `<img src="${esc(b.image)}" alt="Banner ${i + 1}" ${i === 0 ? '' : 'loading="lazy"'} />`;
+      return b.link ? `<a class="bslide" href="${esc(b.link)}">${img}</a>` : `<div class="bslide">${img}</div>`;
+    }).join('');
+    section.hidden = false;
+    if (banners.length < 2) { if (dots) dots.hidden = true; return; }
+    dots.innerHTML = banners.map((_, i) => `<button class="bdot${i === 0 ? ' on' : ''}" data-b="${i}" aria-label="Banner ${i + 1}"></button>`).join('');
+    let cur = 0, timer = null;
+    const go = (i) => {
+      cur = (i + banners.length) % banners.length;
+      track.scrollTo({ left: cur * track.clientWidth, behavior: 'smooth' });
+    };
+    const syncDots = () => dots.querySelectorAll('.bdot').forEach((d, i) => d.classList.toggle('on', i === cur));
+    dots.addEventListener('click', (e) => { const b = e.target.closest('.bdot'); if (!b) return; go(+b.dataset.b); restart(); });
+    track.addEventListener('scroll', () => {
+      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (i !== cur) { cur = i; syncDots(); }
+    }, { passive: true });
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const start = () => { if (!reduced) timer = setInterval(() => { go(cur + 1); syncDots(); }, 4500); };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+    const restart = () => { stop(); syncDots(); start(); };
+    track.addEventListener('pointerdown', stop, { passive: true });
+    track.addEventListener('mouseenter', stop);
+    track.addEventListener('mouseleave', restart);
+    start();
   }
 
   // Circular category icons under the header (horizontally scrollable on mobile).
