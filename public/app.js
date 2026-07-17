@@ -41,25 +41,28 @@
       const r = await fetch('/api/site');
       const data = await r.json();
       if (!data.ok) return;
-      applySettings(data.settings);
-      renderHeaderNav(data.categories);
-      renderCategoryStrip(data.categories, data.models);
-      renderBannerSlider(data.settings);
-      renderRibbon(data.settings);
-      renderUsps(data.settings);
-      renderDeal(data.settings, data.models, data.categories);
-      renderCategoryCards(data.categories, data.models);
-      renderModels(data.models, data.settings, data.categories);
-      renderReviews(data.reviews, data.settings);
-      renderSteps(data.settings);
-      renderQc(data.settings);
-      renderFaq(data.settings);
-      renderBlog(data.settings, data.posts);
-      applyModelParam(data.models);
-      renderAbout(data.settings);
-      renderContact(data.settings);
-      renderSocial(data.settings);
-      renderFooter(data.settings, data.pages);
+      // Each section renders independently: a failure in one must never blank the rest
+      // of the page (e.g. an error in Contact used to take the footer down with it).
+      const safe = (name, fn) => { try { fn(); } catch (e) { console.error('Section failed:', name, e); } };
+      safe('settings', () => applySettings(data.settings));
+      safe('headerNav', () => renderHeaderNav(data.categories));
+      safe('categoryStrip', () => renderCategoryStrip(data.categories, data.models));
+      safe('bannerSlider', () => renderBannerSlider(data.settings));
+      safe('ribbon', () => renderRibbon(data.settings));
+      safe('usps', () => renderUsps(data.settings));
+      safe('deal', () => renderDeal(data.settings, data.models, data.categories));
+      safe('categoryCards', () => renderCategoryCards(data.categories, data.models));
+      safe('models', () => renderModels(data.models, data.settings, data.categories));
+      safe('reviews', () => renderReviews(data.reviews, data.settings));
+      safe('steps', () => renderSteps(data.settings));
+      safe('qc', () => renderQc(data.settings));
+      safe('faq', () => renderFaq(data.settings));
+      safe('blog', () => renderBlog(data.settings, data.posts));
+      safe('modelParam', () => applyModelParam(data.models));
+      safe('about', () => renderAbout(data.settings));
+      safe('contact', () => renderContact(data.settings));
+      safe('social', () => renderSocial(data.settings));
+      safe('footer', () => renderFooter(data.settings, data.pages));
     } catch (e) {
       console.error('Could not load site content:', e);
     }
@@ -698,10 +701,13 @@
       s.social_email ? { icon: 'email', tone: 'mail', label: 'Email', value: s.social_email, href: 'mailto:' + s.social_email } : null,
     ].filter(Boolean);
 
-    // Embedded Google Map (optional)
-    // Address block: each office as its own line, with the map beside it.
+    // Address block: each office as its own card, with its own map beside it.
     const addr = (s.contact_address || '').trim();
     const mapsUrl = (s.google_maps_url || '').trim();
+    // Split "Head Office: … Regional/Branch Office: …" into separate entries.
+    const offices = addr
+      ? addr.split(/(?=(?:Head|Branch|Regional|Registered|Corporate|Regd\.?)\s+Office\s*:)/i).map((x) => x.trim()).filter(Boolean)
+      : [];
     // Map sources. Each field accepts the full <iframe> snippet from Google's
     // "Embed a map", or a plain embed URL. Blank → we build one from the address.
     const mapSrcOf = (raw, place) => {
