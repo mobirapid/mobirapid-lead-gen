@@ -702,33 +702,23 @@
     // Address block: each office as its own line, with the map beside it.
     const addr = (s.contact_address || '').trim();
     const mapsUrl = (s.google_maps_url || '').trim();
-    // Map source. Accepts: the full <iframe> snippet from Google ("Embed a map" →
-    // Copy HTML), a plain embed URL, or nothing at all — in which case we build a
-    // map from the address itself. Short share links (maps.app.goo.gl) can't be
-    // framed by Google, so those also fall back to the address.
-    const mapSrc = (() => {
-      const raw = (s.google_maps_embed || '').trim();
-      let src = raw;
-      const m = raw.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);   // pasted iframe HTML
+    // Map sources. Each field accepts the full <iframe> snippet from Google's
+    // "Embed a map", or a plain embed URL. Blank → we build one from the address.
+    const mapSrcOf = (raw, place) => {
+      let src = String(raw || '').trim();
+      const m = src.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);   // pasted iframe HTML
       if (m) src = m[1];
       src = src.replace(/&amp;/g, '&').trim();
       if (/^https:\/\/(www\.)?google\.[^"'<>\s]*\/maps\/embed/i.test(src)) return src;
       if (/^https:\/\/(www\.)?google\.[^"'<>\s]*\/maps\?[^"'<>\s]*output=embed/i.test(src)) return src;
-      // Anything else (share links, plain maps URLs) → embed by address/place text.
-      const place = (addr || '').replace(/\s*—\s*GSTIN:[^,]*/gi, '').trim();
-      if (place) return 'https://www.google.com/maps?q=' + encodeURIComponent(place.slice(0, 250)) + '&output=embed';
-      return '';
-    })();
-    const mapOk = !!mapSrc;
-    // Split "Head Office: … Branch Office: …" into separate entries.
-    const offices = addr
-      ? addr.split(/(?=(?:Head|Branch|Registered|Corporate|Regd\.?)\s+Office\s*:)/i).map((x) => x.trim()).filter(Boolean)
-      : [];
+      const p = String(place || '').replace(/\s*—\s*GSTIN:[^,]*/gi, '').trim();
+      return p ? 'https://www.google.com/maps?q=' + encodeURIComponent(p.slice(0, 250)) + '&output=embed' : '';
+    };
 
     const map = $('contactMap');
     if (map) { map.hidden = true; map.innerHTML = ''; } // now rendered inside the address card
 
-    if (!cards.length && !addr && !mapOk) { section.hidden = true; return; }
+    if (!cards.length && !addr) { section.hidden = true; return; }
     section.hidden = false;
     if (s.contact_title) $('contactTitle').textContent = s.contact_title;
     $('contactSubtitle').textContent = s.contact_subtitle || '';
@@ -743,27 +733,27 @@
 
     const addrWrap = $('contactAddress');
     if (addrWrap) {
-      if (!addr && !mapOk) { addrWrap.hidden = true; addrWrap.innerHTML = ''; }
+      // Each office gets its own map: the 1st uses the main embed field, the 2nd the second field.
+      const embeds = [(s.google_maps_embed || '').trim(), (s.google_maps_embed_2 || '').trim()];
+      const entries = (offices.length ? offices : (addr ? [addr] : [])).map((o, i) => {
+        const m = o.match(/^((?:Head|Branch|Regional|Registered|Corporate|Regd\.?)\s+Office)\s*:\s*([\s\S]*)$/i);
+        const title = m ? m[1] : 'Our office';
+        const body = (m ? m[2] : o).replace(/\s*—\s*GSTIN:\s*/i, ' · GSTIN: ').trim();
+        return { title, body, src: mapSrcOf(embeds[i] || '', body) };
+      });
+      if (!entries.length) { addrWrap.hidden = true; addrWrap.innerHTML = ''; }
       else {
         addrWrap.hidden = false;
-        const list = offices.length
-          ? offices.map((o) => {
-              const m = o.match(/^((?:Head|Branch|Registered|Corporate|Regd\.?)\s+Office)\s*:\s*([\s\S]*)$/i);
-              const title = m ? m[1] : 'Our office';
-              const body = (m ? m[2] : o).replace(/\s*—\s*GSTIN:\s*/i, ' · GSTIN: ').trim();
-              return `<li><b>${esc(title)}</b><span>${esc(body)}</span></li>`;
-            }).join('')
-          : `<li><span>${esc(addr)}</span></li>`;
-        addrWrap.innerHTML = `
+        addrWrap.innerHTML = entries.map((e) => `
           <div class="addr-card">
             <div class="addr-info">
               <span class="contact-icon ic-map">${I.mappin || ''}</span>
-              <span class="contact-label">Visit us</span>
-              <ul class="addr-list">${list}</ul>
+              <span class="contact-label">${esc(e.title)}</span>
+              <p class="addr-body">${esc(e.body)}</p>
               ${mapsUrl ? `<a class="addr-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Open in Google Maps →</a>` : ''}
             </div>
-            ${mapOk ? `<div class="addr-map"><iframe src="${esc(mapSrc)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="Mobirapid location"></iframe></div>` : ''}
-          </div>`;
+            ${e.src ? `<div class="addr-map"><iframe src="${esc(e.src)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="${esc(e.title)}"></iframe></div>` : ''}
+          </div>`).join('');
       }
     }
   }

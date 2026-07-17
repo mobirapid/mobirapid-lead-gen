@@ -1334,3 +1334,7 @@ body:not(.page-book) .hero { display: none; }
   .addr-map { min-height: 200px; }
   .addr-map iframe { min-height: 200px; }
 }
+
+/* Two-office address cards */
+.contact-address { display: flex; flex-direction: column; gap: 16px; }
+.addr-body { margin: 6px 0 0; color: var(--ink-soft); font-size: .92rem; line-height: 1.55; }
