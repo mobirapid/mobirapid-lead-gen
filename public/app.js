@@ -569,7 +569,7 @@
     const icons = window.MOBI_ICONS || {};
     grid.innerHTML = items.map((x, i) => {
       const ic = icons[x.icon] || '';
-      const inner = `<span class="step-head">${ic ? `<span class="step-ic">${ic}</span>` : ''}<span class="step-num">${i + 1}</span></span>
+      const inner = `<span class="step-head">${ic ? `<span class="step-ic step-ic-${i % 3}">${ic}</span>` : ''}<span class="step-num">Step ${i + 1}</span></span>
         <h3>${esc(x.title)}</h3>${x.note ? `<p>${esc(x.note)}</p>` : ''}
         ${x.link ? `<span class="step-link">${esc(x.link_text || 'Learn more')} →</span>` : ''}`;
       return x.link

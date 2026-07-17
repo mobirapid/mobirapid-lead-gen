@@ -1141,3 +1141,18 @@ body:not(.page-book) .hero { display: none; }
 .step-clickable { color: inherit; }
 .step-clickable:hover { border-color: var(--brand); box-shadow: 0 2px 6px rgba(11,18,32,.04), 0 20px 44px rgba(11,18,32,.09); transform: translateY(-3px); }
 .step-clickable:hover .step-link { color: var(--brand-dark); }
+
+/* Steps: colourful gradient icon tile, "Step N" pill label */
+.step-head { flex-direction: column; align-items: center; gap: 12px; }
+.step { text-align: center; }
+.step h3, .step p { text-align: center; }
+.step-ic { width: 68px; height: 68px; border-radius: 20px; color: #fff; box-shadow: 0 12px 26px rgba(29, 78, 216, .26); }
+.step-ic svg { width: 30px; height: 30px; }
+.step-ic-0 { background: linear-gradient(135deg, #4f46e5, #2563eb); }
+.step-ic-1 { background: linear-gradient(135deg, #0ea5e9, #06b6d4); box-shadow: 0 12px 26px rgba(14, 165, 233, .26); }
+.step-ic-2 { background: linear-gradient(135deg, #7c3aed, #d946ef); box-shadow: 0 12px 26px rgba(124, 58, 237, .24); }
+.step .step-num {
+  width: auto; height: auto; border-radius: 999px; background: var(--brand-soft); color: var(--brand);
+  font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; box-shadow: none;
+}
+.step-link { margin-top: 12px; }
