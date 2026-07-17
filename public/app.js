@@ -702,8 +702,24 @@
     // Address block: each office as its own line, with the map beside it.
     const addr = (s.contact_address || '').trim();
     const mapsUrl = (s.google_maps_url || '').trim();
-    const embed = (s.google_maps_embed || '').trim();
-    const mapOk = embed && /^https:\/\/(www\.)?google\.[^"'<>]*\/maps/.test(embed);
+    // Map source. Accepts: the full <iframe> snippet from Google ("Embed a map" →
+    // Copy HTML), a plain embed URL, or nothing at all — in which case we build a
+    // map from the address itself. Short share links (maps.app.goo.gl) can't be
+    // framed by Google, so those also fall back to the address.
+    const mapSrc = (() => {
+      const raw = (s.google_maps_embed || '').trim();
+      let src = raw;
+      const m = raw.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);   // pasted iframe HTML
+      if (m) src = m[1];
+      src = src.replace(/&amp;/g, '&').trim();
+      if (/^https:\/\/(www\.)?google\.[^"'<>\s]*\/maps\/embed/i.test(src)) return src;
+      if (/^https:\/\/(www\.)?google\.[^"'<>\s]*\/maps\?[^"'<>\s]*output=embed/i.test(src)) return src;
+      // Anything else (share links, plain maps URLs) → embed by address/place text.
+      const place = (addr || '').replace(/\s*—\s*GSTIN:[^,]*/gi, '').trim();
+      if (place) return 'https://www.google.com/maps?q=' + encodeURIComponent(place.slice(0, 250)) + '&output=embed';
+      return '';
+    })();
+    const mapOk = !!mapSrc;
     // Split "Head Office: … Branch Office: …" into separate entries.
     const offices = addr
       ? addr.split(/(?=(?:Head|Branch|Registered|Corporate|Regd\.?)\s+Office\s*:)/i).map((x) => x.trim()).filter(Boolean)
@@ -746,7 +762,7 @@
               <ul class="addr-list">${list}</ul>
               ${mapsUrl ? `<a class="addr-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Open in Google Maps →</a>` : ''}
             </div>
-            ${mapOk ? `<div class="addr-map"><iframe src="${esc(embed)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="Mobirapid location"></iframe></div>` : ''}
+            ${mapOk ? `<div class="addr-map"><iframe src="${esc(mapSrc)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="Mobirapid location"></iframe></div>` : ''}
           </div>`;
       }
     }
