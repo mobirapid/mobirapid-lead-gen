@@ -1013,7 +1013,12 @@ body { font-size: 16.5px; line-height: 1.65; letter-spacing: .002em; }
 .model-reserve:hover { box-shadow: 0 10px 22px rgba(29, 78, 216, .22); }
 
 /* Buttons: flat, confident, no gradients */
-.pdp-book, .submit-btn, .hero-button, .deal-book, .deal-reserve, .btn.primary { background: var(--brand); border-radius: 12px; box-shadow: none; }
+.pdp-book, .submit-btn, .hero-button, .btn.primary { background: var(--brand); border-radius: 12px; box-shadow: none; }
+/* Deal banner sits on a blue gradient — its buttons must stay white/outlined, not blue-on-blue */
+.deal-book { background: #fff; color: var(--brand-dark); border-radius: 12px; }
+.deal-book:hover { background: #f1f5ff; color: var(--brand-dark); }
+.deal-reserve { background: rgba(255,255,255,.16); color: #fff; border: 1.5px solid rgba(255,255,255,.6); border-radius: 12px; box-shadow: none; }
+.deal-reserve:hover { background: rgba(255,255,255,.28); }
 .pdp-book:hover, .submit-btn:hover { background: var(--brand-dark); box-shadow: 0 14px 30px rgba(29, 78, 216, .28); transform: translateY(-1px); }
 /* Outlined video-call CTA — must win over the .pdp-book fill rule above */
 .pdp-book.pdp-video { background: #fff; color: var(--brand); border: 1.5px solid var(--brand); box-shadow: none; }
