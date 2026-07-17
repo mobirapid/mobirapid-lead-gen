@@ -406,9 +406,28 @@
           </div>
         </div>`
       : '';
-    nav.innerHTML = shop + '<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a>';
+    nav.innerHTML = shop + '<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a>'
+      + '<a class="nav-partner" href="/partner">Partner with us</a>';
     nav.hidden = false;
     initNavDrop(nav);
+    initNavToggle(nav);
+  }
+
+  // Mobile: hamburger opens the nav as a drawer.
+  function initNavToggle(nav) {
+    const t = $('navToggle');
+    if (!t || t.dataset.on) return;
+    t.dataset.on = '1';
+    t.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      t.classList.toggle('on', open);
+      t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', (e) => {
+      if (!nav.contains(e.target) && !t.contains(e.target)) {
+        nav.classList.remove('open'); t.classList.remove('on'); t.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
 
   // Dropdown behaviour: hover on desktop, click/tap anywhere (works on touch too).

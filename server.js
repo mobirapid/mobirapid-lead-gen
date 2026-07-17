@@ -699,7 +699,8 @@ function siteHeaderHtml() {
       <div class="nav-menu">${cats.map((c) => `<a href="/c/${esc(c.slug)}">${esc(String(c.name).replace(/^Refurbished\s+/i, ''))}</a>`).join('')}<a class="nav-menu-all" href="/#modelsSection">All products</a></div>
     </div>` : '';
     return shop;
-  })()}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a></nav>
+  })()}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a><a class="nav-partner" href="/partner">Partner with us</a></nav>
+  <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
 </div></header>`;
 }
@@ -731,7 +732,7 @@ ${gaTag}${getSetting('head_code', '')}${extra || ''}
 }
 // Shared page tail. Includes the header "Shop" dropdown behaviour, since
 // server-rendered pages don't load app.js.
-const NAV_SCRIPT = `<script>(function(){document.querySelectorAll('.nav-drop').forEach(function(d){var b=d.querySelector('.nav-drop-btn');if(!b)return;b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var o=d.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!d.contains(e.target)){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});});})();</script>`;
+const NAV_SCRIPT = `<script>(function(){var t=document.querySelector('.nav-toggle'),n=document.querySelector('.header-nav');if(t&&n){t.addEventListener('click',function(){var o=n.classList.toggle('open');t.classList.toggle('on',o);t.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!n.contains(e.target)&&!t.contains(e.target)){n.classList.remove('open');t.classList.remove('on');t.setAttribute('aria-expanded','false');}});}document.querySelectorAll('.nav-drop').forEach(function(d){var b=d.querySelector('.nav-drop-btn');if(!b)return;b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var o=d.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!d.contains(e.target)){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});});})();</script>`;
 function pageTail() { return `${siteFooterHtml()}${NAV_SCRIPT}${getSetting('body_code', '')}</body></html>`; }
 function fmtBlogDate(s) {
   try { return new Date(String(s).replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; }
@@ -1466,6 +1467,7 @@ ${headCode}${getSetting('head_code', '')}
 </head><body>
 <header class="site-header"><div class="container header-inner">
   <a class="brand" href="/">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${brand}">` : `<span class="brand-mark">${brand.charAt(0)}</span>`}<span class="brand-name">${brand}</span></a>
+  <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
 </div></header>
 <main class="container page-body">

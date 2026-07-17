@@ -1247,14 +1247,48 @@ body:not(.page-book) .hero { display: none; }
 .header-ctas { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .header-cta-ghost { background: #fff; color: var(--brand); border: 1.5px solid var(--line-strong); box-shadow: none; font-weight: 600; }
 .header-cta-ghost:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); box-shadow: none; }
-/* Mobile: keep both CTAs visible — compact them instead of hiding */
+/* ============ Mobile menu (hamburger drawer) ============
+   Phone header stays clean: logo · Book · ☰. Everything else — categories,
+   Compare, Condition, Blog, Partner with us — lives in the drawer. */
+.nav-partner { display: none; }
+.nav-toggle { display: none; }
 @media (max-width: 860px) {
-  .header-ctas { gap: 6px; }
-  .header-cta { padding: 9px 12px; font-size: .82rem; border-radius: 10px; }
-  .header-cta-ghost { border-width: 1px; }
-}
-@media (max-width: 380px) {
-  .header-cta { padding: 8px 9px; font-size: .75rem; }
+  .nav-toggle {
+    display: flex; flex-direction: column; justify-content: center; gap: 5px; order: 3;
+    width: 42px; height: 42px; padding: 0 10px; margin-left: 4px; background: none;
+    border: 1px solid var(--line-strong); border-radius: 11px; cursor: pointer;
+  }
+  .nav-toggle span { display: block; height: 2px; background: var(--ink); border-radius: 2px; transition: transform .25s ease, opacity .2s ease; }
+  .nav-toggle.on span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-toggle.on span:nth-child(2) { opacity: 0; }
+  .nav-toggle.on span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .header-inner { gap: 8px; }
+  .header-ctas { order: 2; margin-left: auto; }
+  .header-cta-ghost { display: none; }        /* lives in the drawer instead */
+  .header-cta { padding: 10px 14px; font-size: .85rem; }
+  /* The nav becomes a full-width drawer under the header */
+  .header-nav {
+    display: block; position: absolute; top: 100%; left: 0; right: 0; margin: 0;
+    background: #fff; border-bottom: 1px solid var(--line);
+    box-shadow: 0 20px 44px rgba(11, 18, 32, .12); padding: 8px 18px 16px;
+    max-height: 0; overflow: hidden; visibility: hidden; opacity: 0;
+    transition: max-height .28s ease, opacity .2s ease, visibility .28s, padding .28s ease;
+  }
+  .header-nav.open { max-height: 78vh; overflow-y: auto; visibility: visible; opacity: 1; }
+  .site-header { position: relative; }
+  .header-nav > a, .nav-drop-btn { display: block; width: 100%; text-align: left; padding: 13px 4px; border-bottom: 1px solid var(--line); font-size: 1rem; }
+  .header-nav a::after { display: none; }
+  /* Categories show inline under "Shop" — no nested dropdown on touch */
+  .nav-drop { border-bottom: 1px solid var(--line); }
+  .nav-drop-btn { border-bottom: none; font-weight: 700; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; padding-bottom: 4px; }
+  .nav-caret { display: none; }
+  .nav-menu {
+    position: static; transform: none; opacity: 1; visibility: visible; min-width: 0;
+    border: none; box-shadow: none; padding: 0 0 8px; background: none; display: block;
+  }
+  .nav-menu a { padding: 11px 12px; }
+  .nav-menu-all { border-top: none; }
+  .nav-partner { display: block; color: var(--brand) !important; font-weight: 700; border-bottom: none !important; }
 }
 
 /* Partner application leads stand out in the admin list */
