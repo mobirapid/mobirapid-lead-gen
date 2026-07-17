@@ -691,35 +691,65 @@
     if (!s.contact_enabled) { section.hidden = true; return; }
     const I = window.MOBI_ICONS || {};
     const digits = (v) => String(v || '').replace(/[^\d]/g, '');
+    // Quick-contact cards (compact row). The address gets its own wide card below.
     const cards = [
-      s.social_phone ? { icon: 'phone', label: 'Call us', value: s.social_phone, href: 'tel:' + s.social_phone.replace(/[^\d+]/g, '') } : null,
-      digits(s.social_whatsapp) ? { icon: 'whatsapp', label: 'WhatsApp', value: s.social_whatsapp, href: 'https://wa.me/' + digits(s.social_whatsapp) } : null,
-      s.social_email ? { icon: 'email', label: 'Email', value: s.social_email, href: 'mailto:' + s.social_email } : null,
-      ((s.contact_address || '').trim() || (s.google_maps_url || '').trim())
-        ? { icon: 'mappin', label: 'Visit us', value: s.contact_address || 'View on Google Maps', href: (s.google_maps_url || '').trim() }
-        : null,
+      s.social_phone ? { icon: 'phone', tone: 'call', label: 'Call us', value: s.social_phone, href: 'tel:' + s.social_phone.replace(/[^\d+]/g, '') } : null,
+      digits(s.social_whatsapp) ? { icon: 'whatsapp', tone: 'wa', label: 'WhatsApp', value: s.social_whatsapp, href: 'https://wa.me/' + digits(s.social_whatsapp) } : null,
+      s.social_email ? { icon: 'email', tone: 'mail', label: 'Email', value: s.social_email, href: 'mailto:' + s.social_email } : null,
     ].filter(Boolean);
 
     // Embedded Google Map (optional)
-    const map = $('contactMap');
+    // Address block: each office as its own line, with the map beside it.
+    const addr = (s.contact_address || '').trim();
+    const mapsUrl = (s.google_maps_url || '').trim();
     const embed = (s.google_maps_embed || '').trim();
-    if (embed && /^https:\/\/(www\.)?google\.[^"'<>]*\/maps/.test(embed)) {
-      map.hidden = false;
-      map.innerHTML = `<iframe src="${esc(embed)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="Mobirapid location"></iframe>`;
-    } else { map.hidden = true; map.innerHTML = ''; }
+    const mapOk = embed && /^https:\/\/(www\.)?google\.[^"'<>]*\/maps/.test(embed);
+    // Split "Head Office: … Branch Office: …" into separate entries.
+    const offices = addr
+      ? addr.split(/(?=(?:Head|Branch|Registered|Corporate|Regd\.?)\s+Office\s*:)/i).map((x) => x.trim()).filter(Boolean)
+      : [];
 
-    if (!cards.length && map.hidden) { section.hidden = true; return; }
+    const map = $('contactMap');
+    if (map) { map.hidden = true; map.innerHTML = ''; } // now rendered inside the address card
+
+    if (!cards.length && !addr && !mapOk) { section.hidden = true; return; }
     section.hidden = false;
     if (s.contact_title) $('contactTitle').textContent = s.contact_title;
     $('contactSubtitle').textContent = s.contact_subtitle || '';
     $('contactGrid').innerHTML = cards.map((c) => {
-      const inner = `<span class="contact-icon">${I[c.icon] || ''}</span>
-        <span class="contact-label">${esc(c.label)}</span>
-        <span class="contact-value">${esc(c.value)}</span>`;
+      const inner = `<span class="contact-icon ic-${esc(c.tone || '')}">${I[c.icon] || ''}</span>
+        <span class="contact-tx"><span class="contact-label">${esc(c.label)}</span>
+        <span class="contact-value">${esc(c.value)}</span></span>`;
       return c.href
         ? `<a class="contact-card" href="${esc(c.href)}" target="_blank" rel="noopener">${inner}</a>`
         : `<div class="contact-card">${inner}</div>`;
     }).join('');
+
+    const addrWrap = $('contactAddress');
+    if (addrWrap) {
+      if (!addr && !mapOk) { addrWrap.hidden = true; addrWrap.innerHTML = ''; }
+      else {
+        addrWrap.hidden = false;
+        const list = offices.length
+          ? offices.map((o) => {
+              const m = o.match(/^((?:Head|Branch|Registered|Corporate|Regd\.?)\s+Office)\s*:\s*([\s\S]*)$/i);
+              const title = m ? m[1] : 'Our office';
+              const body = (m ? m[2] : o).replace(/\s*—\s*GSTIN:\s*/i, ' · GSTIN: ').trim();
+              return `<li><b>${esc(title)}</b><span>${esc(body)}</span></li>`;
+            }).join('')
+          : `<li><span>${esc(addr)}</span></li>`;
+        addrWrap.innerHTML = `
+          <div class="addr-card">
+            <div class="addr-info">
+              <span class="contact-icon ic-map">${I.mappin || ''}</span>
+              <span class="contact-label">Visit us</span>
+              <ul class="addr-list">${list}</ul>
+              ${mapsUrl ? `<a class="addr-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Open in Google Maps →</a>` : ''}
+            </div>
+            ${mapOk ? `<div class="addr-map"><iframe src="${esc(embed)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="Mobirapid location"></iframe></div>` : ''}
+          </div>`;
+      }
+    }
   }
 
   function renderSocial(s) {
