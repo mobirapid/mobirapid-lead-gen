@@ -1247,7 +1247,15 @@ body:not(.page-book) .hero { display: none; }
 .header-ctas { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .header-cta-ghost { background: #fff; color: var(--brand); border: 1.5px solid var(--line-strong); box-shadow: none; font-weight: 600; }
 .header-cta-ghost:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); box-shadow: none; }
-@media (max-width: 860px) { .header-cta-ghost { display: none; } }
+/* Mobile: keep both CTAs visible — compact them instead of hiding */
+@media (max-width: 860px) {
+  .header-ctas { gap: 6px; }
+  .header-cta { padding: 9px 12px; font-size: .82rem; border-radius: 10px; }
+  .header-cta-ghost { border-width: 1px; }
+}
+@media (max-width: 380px) {
+  .header-cta { padding: 8px 9px; font-size: .75rem; }
+}
 
 /* Partner application leads stand out in the admin list */
 .pill.partner { background: #ede9fe; color: #5b21b6; }
