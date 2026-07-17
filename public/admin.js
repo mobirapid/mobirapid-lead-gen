@@ -252,14 +252,27 @@
   let stepItems = [];
   function renderStepRows() {
     const wrap = $('stepRows'); if (!wrap) return;
+    const icons = window.MOBI_ICONS || {};
+    const list = window.MOBI_ICON_LIST || [];
     wrap.innerHTML = stepItems.length ? stepItems.map((x, i) => `
-      <div class="upload-row" style="margin-bottom:8px;align-items:center;">
-        <span class="cat-tag" style="min-width:26px;text-align:center;">${i + 1}</span>
-        <input type="text" data-stt="${i}" placeholder="Step title" value="${esc(x.title || '')}" style="width:210px;" />
-        <input type="text" data-stn="${i}" placeholder="Short description" value="${esc(x.note || '')}" style="flex:1;min-width:220px;" />
-        <button class="btn small" type="button" data-stu="${i}" ${i === 0 ? 'disabled' : ''} title="Move up">↑</button>
-        <button class="btn small danger" type="button" data-stx="${i}">✕</button>
+      <div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-bottom:10px;">
+        <div class="upload-row" style="align-items:center;">
+          <span class="cat-tag" style="min-width:26px;text-align:center;">${i + 1}</span>
+          <span style="width:26px;height:26px;color:#2563eb;">${icons[x.icon] || ''}</span>
+          <select data-sti="${i}" style="width:140px;"><option value="">— icon —</option>${list.map(([k, l]) => `<option value="${k}"${k === x.icon ? ' selected' : ''}>${l}</option>`).join('')}</select>
+          <input type="text" data-stt="${i}" placeholder="Step title" value="${esc(x.title || '')}" style="width:190px;" />
+          <button class="btn small" type="button" data-stu="${i}" ${i === 0 ? 'disabled' : ''} title="Move up">↑</button>
+          <button class="btn small danger" type="button" data-stx="${i}">✕</button>
+        </div>
+        <div class="upload-row" style="margin-top:8px;">
+          <input type="text" data-stn="${i}" placeholder="Short description" value="${esc(x.note || '')}" style="flex:1;min-width:240px;" />
+          <input type="text" data-stl="${i}" placeholder="Link (optional), e.g. /p/open-box-delivery" value="${esc(x.link || '')}" style="width:230px;" />
+          <input type="text" data-stlt="${i}" placeholder="Link text" value="${esc(x.link_text || '')}" style="width:120px;" />
+        </div>
       </div>`).join('') : '<p class="muted" style="padding:6px 0;">No steps yet.</p>';
+    wrap.querySelectorAll('[data-sti]').forEach((el) => el.addEventListener('change', () => { stepItems[+el.dataset.sti].icon = el.value; renderStepRows(); }));
+    wrap.querySelectorAll('[data-stl]').forEach((el) => el.addEventListener('input', () => { stepItems[+el.dataset.stl].link = el.value.trim(); }));
+    wrap.querySelectorAll('[data-stlt]').forEach((el) => el.addEventListener('input', () => { stepItems[+el.dataset.stlt].link_text = el.value; }));
     wrap.querySelectorAll('[data-stt]').forEach((el) => el.addEventListener('input', () => { stepItems[+el.dataset.stt].title = el.value; }));
     wrap.querySelectorAll('[data-stn]').forEach((el) => el.addEventListener('input', () => { stepItems[+el.dataset.stn].note = el.value; }));
     wrap.querySelectorAll('[data-stu]').forEach((el) => el.addEventListener('click', () => {
@@ -270,7 +283,10 @@
   on('addStepBtn', 'click', () => { stepItems.push({ title: '', note: '' }); renderStepRows(); });
   on('saveSteps', 'click', () => {
     const payload = collectSettings(['how_enabled', 'how_title']);
-    payload.how_steps = JSON.stringify(stepItems.filter((x) => (x.title || '').trim()).map((x) => ({ title: x.title.trim(), note: (x.note || '').trim() })));
+    payload.how_steps = JSON.stringify(stepItems.filter((x) => (x.title || '').trim()).map((x) => ({
+      icon: x.icon || '', title: x.title.trim(), note: (x.note || '').trim(),
+      link: (x.link || '').trim(), link_text: (x.link_text || '').trim(),
+    })));
     saveSettings(payload, $('stepsSaved'));
   });
 

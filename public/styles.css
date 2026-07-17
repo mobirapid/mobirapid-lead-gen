@@ -1131,3 +1131,13 @@ body:not(.page-book) .hero { display: none; }
   .bslider-section .container { padding: 0; }
   .bslider-track { border-radius: 0; }
 }
+
+/* "How it works" steps: icon + number head, optional link */
+.step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.step-head .step-num { margin: 0; }
+.step-ic { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: var(--brand-soft); color: var(--brand); }
+.step-ic svg { width: 22px; height: 22px; }
+.step-link { display: inline-block; margin-top: 10px; color: var(--brand); font-weight: 700; font-size: .88rem; }
+.step-clickable { color: inherit; }
+.step-clickable:hover { border-color: var(--brand); box-shadow: 0 2px 6px rgba(11,18,32,.04), 0 20px 44px rgba(11,18,32,.09); transform: translateY(-3px); }
+.step-clickable:hover .step-link { color: var(--brand-dark); }

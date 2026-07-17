@@ -283,9 +283,9 @@ const DEFAULT_SETTINGS = {
   how_enabled: '1',
   how_title: 'How it works',
   how_steps: JSON.stringify([
-    { title: 'Schedule a video call', note: 'See the exact device live on a video call and verify its condition before you commit.' },
-    { title: 'Reserve the device', note: 'Book it with a small reservation amount — adjusted in your final invoice.' },
-    { title: 'Open-box delivery', note: 'Delivered open-box to your doorstep (prepaid), or collect it from our office.' },
+    { icon: 'videocall', title: 'Schedule a video call', note: 'See the exact device live on a video call and verify its condition before you commit.', link: '/book', link_text: 'Book a call' },
+    { icon: 'tag', title: 'Reserve the device', note: 'Book it with a small reservation amount — adjusted in your final invoice.', link: '', link_text: '' },
+    { icon: 'openbox', title: 'Open-box delivery', note: 'Delivered open-box to your doorstep (prepaid), or collect it from our office.', link: '/p/open-box-delivery', link_text: 'How it works' },
   ]),
   qc_video_enabled: '1',
   qc_video_text: 'Prefer to see it yourself? Book a free video-call verification and inspect your exact device — serial number, condition and performance — live before you pay.',
@@ -1145,15 +1145,20 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(DPDP_FLAG)) {
 
 // One-time: seed the "How it works" steps into existing installs (settings rows are
 // only inserted on first run, so upgrades need this).
-const HOW_FLAG = 'how_steps_v1';
+const HOW_FLAG = 'how_steps_v2'; // v2 adds icons + links
 if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(HOW_FLAG)) {
   const put = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   put.run('how_enabled', '1');
   put.run('how_title', 'How it works');
+  // Only replace steps that are still the untouched v1 defaults (no icons) — admin edits are kept.
+  const cur = db.prepare("SELECT value FROM settings WHERE key = 'how_steps'").get();
+  if (cur && cur.value && !/"icon"/.test(cur.value) && /Schedule a video call/.test(cur.value)) {
+    db.prepare("DELETE FROM settings WHERE key = 'how_steps'").run();
+  }
   put.run('how_steps', JSON.stringify([
-    { title: 'Schedule a video call', note: 'See the exact device live on a video call and verify its condition before you commit.' },
-    { title: 'Reserve the device', note: 'Book it with a small reservation amount — adjusted in your final invoice.' },
-    { title: 'Open-box delivery', note: 'Delivered open-box to your doorstep (prepaid), or collect it from our office.' },
+    { icon: 'videocall', title: 'Schedule a video call', note: 'See the exact device live on a video call and verify its condition before you commit.', link: '/book', link_text: 'Book a call' },
+    { icon: 'tag', title: 'Reserve the device', note: 'Book it with a small reservation amount — adjusted in your final invoice.', link: '', link_text: '' },
+    { icon: 'openbox', title: 'Open-box delivery', note: 'Delivered open-box to your doorstep (prepaid), or collect it from our office.', link: '/p/open-box-delivery', link_text: 'How it works' },
   ]));
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(HOW_FLAG, '1');
 }

@@ -566,8 +566,16 @@
     if (String(s.how_enabled ?? '1') === '0' || !items.length) { section.hidden = true; return; }
     section.hidden = false;
     if (s.how_title) $('howTitle').textContent = s.how_title;
-    grid.innerHTML = items.map((x, i) => `
-      <div class="step"><span class="step-num">${i + 1}</span><h3>${esc(x.title)}</h3>${x.note ? `<p>${esc(x.note)}</p>` : ''}</div>`).join('');
+    const icons = window.MOBI_ICONS || {};
+    grid.innerHTML = items.map((x, i) => {
+      const ic = icons[x.icon] || '';
+      const inner = `<span class="step-head">${ic ? `<span class="step-ic">${ic}</span>` : ''}<span class="step-num">${i + 1}</span></span>
+        <h3>${esc(x.title)}</h3>${x.note ? `<p>${esc(x.note)}</p>` : ''}
+        ${x.link ? `<span class="step-link">${esc(x.link_text || 'Learn more')} →</span>` : ''}`;
+      return x.link
+        ? `<a class="step step-clickable" href="${esc(x.link)}">${inner}</a>`
+        : `<div class="step">${inner}</div>`;
+    }).join('');
   }
 
   function renderQc(s) {
