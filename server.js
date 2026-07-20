@@ -54,7 +54,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // Cache-busting version for CSS/JS (changes whenever those files change on deploy).
 const ASSET_VER = (() => {
   try {
-    const parts = ['styles.css', 'app.js', 'icons.js', 'admin.js', 'partner.js'].map((f) => {
+    const parts = ['styles.css', 'app.js', 'icons.js', 'admin.js', 'partner.js', 'shop.js'].map((f) => {
       try { return fs.statSync(path.join(__dirname, 'public', f)).mtimeMs; } catch { return 0; }
     });
     return crypto.createHash('md5').update(parts.join('|')).digest('hex').slice(0, 8);
@@ -534,6 +534,93 @@ app.get('/partner', (req, res) => {
   );
 });
 
+// ---- Shop pages (rendered shells; shop.js populates them) ----
+function shopShell(req, title, bodyHtml) {
+  const brand = getSetting('brand_name', 'Mobirapid');
+  const reserveAmt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 1999;
+  return pageHead(req, title + ' — ' + brand, title, baseUrl(req) + req.path, '<meta name="robots" content="noindex">') +
+    siteHeaderHtml() +
+    `<main class="container page-body shop-page"><script>window.MOBI_RESERVE=${reserveAmt};</script>${bodyHtml}</main>` +
+    `<script src="${ver('/shop.js')}"></script>` + pageTail();
+}
+app.get('/cart', (req, res) => {
+  if (!shopOn()) return res.redirect('/');
+  res.send(shopShell(req, 'Your cart', '<h1>Your cart</h1><div id="cartPage"></div>'));
+});
+app.get('/checkout', (req, res) => {
+  if (!shopOn()) return res.redirect('/');
+  res.send(shopShell(req, 'Checkout', '<h1>Checkout</h1><div id="checkoutPage"></div>'));
+});
+app.get('/account', (req, res) => {
+  if (!shopOn()) return res.redirect('/');
+  res.send(shopShell(req, 'My account', '<h1>My account</h1><p><a class="pdp-book" href="/orders">My orders</a> &nbsp; <button class="pdp-compare" id="logoutBtn">Log out</button></p>'));
+});
+app.get('/orders', (req, res) => {
+  if (!shopOn()) return res.redirect('/');
+  res.send(shopShell(req, 'My orders', '<h1>My orders</h1><div id="ordersPage"></div>'));
+});
+// Order confirmation page.
+app.get('/order/:no', (req, res) => {
+  if (!shopOn()) return res.redirect('/');
+  const o = db.prepare('SELECT * FROM orders WHERE order_no = ?').get(req.params.no);
+  if (!o) return res.status(404).send(shopShell(req, 'Order not found', '<h1>Order not found</h1><p><a href="/">Back to home</a></p>'));
+  const items = safeJson(o.items);
+  const payline = o.payment_mode === 'openbox'
+    ? 'Our representative will contact you to arrange open-box delivery. You pay after inspecting the device.'
+    : (o.payment_status === 'paid' ? 'Payment received.' : 'Complete your payment to confirm dispatch.');
+  res.send(shopShell(req, 'Order placed', `
+    <div class="order-done">
+      <div class="reserve-check">✓</div>
+      <h1>Order placed</h1>
+      <p>Your order <strong>#${esc(o.order_no)}</strong> has been received.</p>
+      <div class="order-done-items">${items.map((i) => `<div class="co-line"><span>${i.qty}× ${esc(i.name)}</span><b>₹${(i.line).toLocaleString('en-IN')}</b></div>`).join('')}
+        <div class="co-line co-total"><span>Total</span><b>₹${Number(o.total).toLocaleString('en-IN')}</b></div></div>
+      <p class="muted">${payline}</p>
+      <p><a class="pdp-book" href="/orders">View my orders</a> &nbsp; <a class="pdp-compare" href="/#modelsSection">Continue shopping</a></p>
+    </div>`));
+});
+// Pay online for an order via the existing PayU flow.
+app.get('/pay/:no', (req, res) => {
+  if (!shopOn()) return res.redirect('/');
+  const o = db.prepare('SELECT * FROM orders WHERE order_no = ?').get(req.params.no);
+  if (!o) return res.redirect('/');
+  const reserveAmt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 1999;
+  const amount = (o.payment_mode === 'full' ? o.total : reserveAmt);
+  const key = getSetting('payu_merchant_key', ''), salt = getSetting('payu_salt', '');
+  if (getSetting('payu_enabled', '0') !== '1' || !key || !salt || amount <= 0) {
+    return res.redirect('/order/' + encodeURIComponent(o.order_no));
+  }
+  const amt = Number(amount).toFixed(2);
+  const txnid = 'ORD' + o.id + Date.now().toString(36);
+  db.prepare('UPDATE orders SET txnid = ? WHERE id = ?').run(txnid, o.id);
+  const productinfo = ('Order ' + o.order_no).slice(0, 100);
+  const firstname = String(o.name || 'Customer').slice(0, 60);
+  const email = String(o.email || 'orders@mobirapid.in').slice(0, 120);
+  const phone = String(o.phone || '').replace(/[^\d+]/g, '').slice(0, 15);
+  const base = baseUrl(req);
+  const udf = ['', '', '', '', '', '', '', '', '', ''];
+  const hash = crypto.createHash('sha512').update([key, txnid, amt, productinfo, firstname, email, ...udf, salt].join('|')).digest('hex');
+  const f = (n, v) => `<input type="hidden" name="${n}" value="${String(v).replace(/"/g, '&quot;')}">`;
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Redirecting to secure payment…</title></head>
+    <body style="font-family:sans-serif;text-align:center;padding:60px;"><p>Redirecting you to PayU secure checkout…</p>
+    <form id="payu" method="POST" action="${payuUrl()}">
+      ${f('key', key)}${f('txnid', txnid)}${f('amount', amt)}${f('productinfo', productinfo)}
+      ${f('firstname', firstname)}${f('email', email)}${f('phone', phone)}
+      ${f('surl', base + '/order/paid')}${f('furl', base + '/order/failed')}${f('hash', hash)}
+    </form><script>document.getElementById('payu').submit();</script></body></html>`);
+});
+app.post('/order/paid', (req, res) => {
+  const ok = verifyPayu(req.body);
+  const o = db.prepare('SELECT * FROM orders WHERE txnid = ?').get(String(req.body.txnid || ''));
+  if (o && ok) db.prepare('UPDATE orders SET payment_status = ?, amount_paid = ?, status = ? WHERE id = ?')
+    .run('paid', Math.round(parseFloat(req.body.amount) || 0), 'Confirmed', o.id);
+  res.redirect('/order/' + encodeURIComponent(o ? o.order_no : ''));
+});
+app.post('/order/failed', (req, res) => {
+  const o = db.prepare('SELECT order_no FROM orders WHERE txnid = ?').get(String(req.body.txnid || ''));
+  res.redirect('/order/' + encodeURIComponent(o ? o.order_no : ''));
+});
+
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /manage\nDisallow: /api/\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
 });
@@ -583,10 +670,19 @@ function siteHeaderHtml() {
     return shop;
   })()}<a href="/compare">Compare</a><a href="/condition">Condition</a><a href="/blog">Blog</a><a class="nav-partner" href="/partner">Partner with us</a></nav>
   <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  ${shopHeaderHtml()}
   <span class="header-ctas"><a class="header-cta header-cta-ghost" href="/partner">Partner with us</a><a class="header-cta" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></span>
 </div>
 <div class="cta-bar"><a class="cta-bar-btn ghost" href="/partner">Partner with us</a><a class="cta-bar-btn" href="/book">${esc(getSetting('header_cta_text', 'Book Consultation'))}</a></div>
 </header>`;
+}
+// Cart + account icons — only when the shop is enabled.
+function shopHeaderHtml() {
+  if (!shopOn()) return '';
+  return `<span class="shop-icons">
+    <a class="shop-ic" id="accountLink" href="/account" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span class="shop-ic-tx">Login</span></a>
+    <a class="shop-ic" href="/cart" aria-label="Cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg><span class="shop-badge" id="cartBadge" hidden>0</span></a>
+  </span>`;
 }
 function siteFooterHtml() {
   const legal = esc(getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid'));
@@ -617,7 +713,7 @@ ${gaTag}${getSetting('head_code', '')}${extra || ''}
 // Shared page tail. Includes the header "Shop" dropdown behaviour, since
 // server-rendered pages don't load app.js.
 const NAV_SCRIPT = `<script>(function(){var t=document.querySelector('.nav-toggle'),n=document.querySelector('.header-nav');if(t&&n){t.addEventListener('click',function(){var o=n.classList.toggle('open');t.classList.toggle('on',o);t.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!n.contains(e.target)&&!t.contains(e.target)){n.classList.remove('open');t.classList.remove('on');t.setAttribute('aria-expanded','false');}});}document.querySelectorAll('.nav-drop').forEach(function(d){var b=d.querySelector('.nav-drop-btn');if(!b)return;b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var o=d.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!d.contains(e.target)){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){d.classList.remove('open');b.setAttribute('aria-expanded','false');}});});})();</script>`;
-function pageTail() { return `${siteFooterHtml()}${NAV_SCRIPT}${getSetting('body_code', '')}</body></html>`; }
+function pageTail() { return `${siteFooterHtml()}${NAV_SCRIPT}${shopOn() ? `<script src="${ver('/shop.js')}"></script>` : ''}${getSetting('body_code', '')}</body></html>`; }
 function fmtBlogDate(s) {
   try { return new Date(String(s).replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; }
 }
@@ -1041,7 +1137,9 @@ function renderProductPage(req, res, m, cat) {
             ${soldOut
               ? `${availabilityButton(m, 'pdp-book pdp-avail')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
-              : `<a class="pdp-book" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book Now →</a>
+              : `${shopOn() ? `<button class="pdp-book" data-buy-now data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(defVariant ? defVariant.grade : '')}">Buy now →</button>
+            <button class="pdp-book pdp-addcart" data-add-cart data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(defVariant ? defVariant.grade : '')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg> Add to cart</button>` : ''}
+            <a class="pdp-book${shopOn() ? ' pdp-video' : ''}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book a consultation</a>
             <a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>
             ${reserveButton(m.slug, 'pdp-reserve')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
@@ -1124,7 +1222,7 @@ app.get('/c/:slug', (req, res) => {
         })()}
         ${bestForHtml(m, 3)}
         <div class="model-foot">
-          ${so ? availabilityButton(m, 'model-reserve model-avail') : reserveButton(m.slug, 'model-reserve')}
+          ${so ? availabilityButton(m, 'model-reserve model-avail') : (shopOn() ? `<button class="model-reserve" data-add-cart data-slug="${esc(m.slug)}">Add to cart</button>` : reserveButton(m.slug, 'model-reserve'))}
           <a class="model-cta" href="${productUrl(m, cat)}">View details →</a>
         </div>
       </div>
@@ -1406,6 +1504,143 @@ app.post('/api/otp/verify', otpLimiter, (req, res) => {
   res.json({ ok: true, message: 'Phone verified.' });
 });
 
+// ===========================================================================
+// SHOP: customer accounts (mobile+OTP), cart pricing, orders
+// ===========================================================================
+function shopOn() { return getSetting('shop_enabled', '0') === '1'; }
+function orderStatuses() {
+  const list = String(getSetting('order_statuses', '')).split(',').map((s) => s.trim()).filter(Boolean);
+  return list.length ? list.slice(0, 20) : ['New', 'Confirmed', 'Dispatched', 'Delivered', 'Cancelled'];
+}
+// Customer session cookie — same signing scheme as admin, namespaced with role 'customer'.
+function signCustomer(id, phone) {
+  const payload = Buffer.from(JSON.stringify({ cid: id, phone, k: 'cust', t: Date.now() })).toString('base64url');
+  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+function customerFromReq(req) {
+  const token = req.cookies.customer_session;
+  if (!token || !token.includes('.')) return null;
+  const [payload, sig] = token.split('.');
+  if (crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url') !== sig) return null;
+  try {
+    const d = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (d.k !== 'cust') return null;
+    return db.prepare('SELECT id, phone, name, email FROM customers WHERE id = ?').get(d.cid) || null;
+  } catch { return null; }
+}
+function requireCustomer(req, res, next) {
+  const c = customerFromReq(req);
+  if (!c) return res.status(401).json({ ok: false, error: 'Please log in.' });
+  req.customer = c; next();
+}
+const priceToNum = (s) => Math.round(parseFloat(String(s || '').replace(/[^\d.]/g, '')) || 0);
+// Server-side price for a product+condition (never trust the client's price).
+function serverPrice(slug, grade) {
+  const m = db.prepare('SELECT price, condition_prices FROM macbook_models WHERE slug = ? AND active = 1').get(slug);
+  if (!m) return null;
+  if (grade) {
+    try {
+      const v = JSON.parse(m.condition_prices || '[]');
+      const hit = Array.isArray(v) ? v.find((x) => x && x.grade === grade) : null;
+      if (hit && hit.price) return priceToNum(hit.price);
+    } catch { /* ignore */ }
+  }
+  return priceToNum(m.price);
+}
+
+// Log in / register a customer after their phone is OTP-verified.
+app.post('/api/customer/login', otpLimiter, (req, res) => {
+  if (!shopOn()) return res.status(403).json({ ok: false, error: 'Shop is not enabled.' });
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return res.status(400).json({ ok: false, error: 'A valid phone number is required.' });
+  const otp = db.prepare('SELECT verified FROM otps WHERE phone = ?').get(phone);
+  if (!otp || otp.verified !== 1) return res.status(400).json({ ok: false, error: 'Please verify your phone number first.' });
+  let c = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
+  if (!c) {
+    const info = db.prepare('INSERT INTO customers (phone, name) VALUES (?, ?)').run(phone, String(req.body.name || '').trim().slice(0, 80) || null);
+    c = db.prepare('SELECT * FROM customers WHERE id = ?').get(Number(info.lastInsertRowid));
+  } else if (req.body.name && !c.name) {
+    db.prepare('UPDATE customers SET name = ? WHERE id = ?').run(String(req.body.name).trim().slice(0, 80), c.id);
+  }
+  db.prepare('DELETE FROM otps WHERE phone = ?').run(phone);
+  res.cookie('customer_session', signCustomer(c.id, c.phone), { httpOnly: true, sameSite: 'lax', maxAge: 60 * 24 * 60 * 60 * 1000 });
+  res.json({ ok: true, customer: { id: c.id, phone: c.phone, name: c.name, email: c.email } });
+});
+app.get('/api/customer/me', (req, res) => {
+  const c = customerFromReq(req);
+  res.json({ ok: true, loggedIn: !!c, customer: c || null, shop_enabled: shopOn() });
+});
+app.post('/api/customer/logout', (req, res) => { res.clearCookie('customer_session'); res.json({ ok: true }); });
+app.get('/api/customer/addresses', requireCustomer, (req, res) => {
+  res.json({ ok: true, addresses: db.prepare('SELECT * FROM addresses WHERE customer_id = ? ORDER BY is_default DESC, id DESC').all(req.customer.id) });
+});
+
+// Validate a cart against live products/prices (client sends slugs+grade+qty only).
+function priceCart(items) {
+  const out = [];
+  let subtotal = 0;
+  for (const it of Array.isArray(items) ? items : []) {
+    const slug = String(it.slug || '').trim();
+    const grade = String(it.grade || '').trim() || null;
+    const qty = Math.max(1, Math.min(10, parseInt(it.qty, 10) || 1));
+    const m = db.prepare('SELECT slug, name, image, badge FROM macbook_models WHERE slug = ? AND active = 1').get(slug);
+    if (!m) continue;
+    if (/sold|out\s*of\s*stock/i.test(m.badge || '')) continue;
+    const price = serverPrice(slug, grade);
+    if (!price) continue;
+    out.push({ slug, name: m.name + (grade ? ' — ' + grade : ''), image: m.image || '', grade, price, qty, line: price * qty });
+    subtotal += price * qty;
+  }
+  return { items: out, subtotal };
+}
+app.post('/api/cart/price', (req, res) => {
+  if (!shopOn()) return res.status(403).json({ ok: false, error: 'Shop is not enabled.' });
+  res.json({ ok: true, ...priceCart(req.body.items) });
+});
+
+// Place an order. payment_mode: 'full' (pay device price online), 'reserve'
+// (pay the reservation amount online, balance at open-box), 'openbox' (book, pay at delivery).
+app.post('/api/order', submitLimiter, (req, res) => {
+  if (!shopOn()) return res.status(403).json({ ok: false, error: 'Shop is not enabled.' });
+  const c = customerFromReq(req);
+  if (!c) return res.status(401).json({ ok: false, error: 'Please log in to place an order.' });
+  const b = req.body || {};
+  const { items, subtotal } = priceCart(b.items);
+  if (!items.length) return res.status(400).json({ ok: false, error: 'Your cart is empty or the items are no longer available.' });
+  const a = b.address || {};
+  const need = ['name', 'phone', 'line1', 'city', 'state', 'pincode'];
+  for (const k of need) if (!String(a[k] || '').trim()) return res.status(400).json({ ok: false, error: 'Please complete the delivery address.' });
+  if (!/^\d{6}$/.test(String(a.pincode).trim())) return res.status(400).json({ ok: false, error: 'Enter a valid 6-digit PIN code.' });
+  const mode = ['full', 'reserve', 'openbox'].includes(b.payment_mode) ? b.payment_mode : 'openbox';
+  const reserveAmt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 1999;
+  const total = subtotal;
+  const addrStr = [a.name, a.phone, a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(', ');
+  const orderNo = 'MR' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+  // Save the address for reuse
+  try { db.prepare('INSERT INTO addresses (customer_id, name, phone, line1, line2, city, state, pincode) VALUES (?,?,?,?,?,?,?,?)').run(c.id, a.name, a.phone, a.line1, a.line2 || '', a.city, a.state, a.pincode); } catch (e) {}
+  const info = db.prepare(
+    `INSERT INTO orders (order_no, customer_id, name, phone, email, address, items, subtotal, total, payment_mode, payment_status, status, consent)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  ).run(orderNo, c.id, a.name, a.phone, String(b.email || c.email || '').trim(), addrStr, JSON.stringify(items), subtotal, total, mode, 'pending', 'New', 'v1 · ' + new Date().toISOString());
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(info.lastInsertRowid));
+  // Notify the team (reuse the lead email plumbing).
+  try {
+    sendLeadEmail({ id: order.order_no, name: a.name, phone: a.phone, phone_verified: 1,
+      requirement: 'ORDER (' + mode + ')', best_time: addrStr,
+      message: items.map((i) => `${i.qty}× ${i.name} @ ₹${i.price.toLocaleString('en-IN')}`).join('\n') + `\nSubtotal: ₹${subtotal.toLocaleString('en-IN')}`,
+      created_at: order.created_at });
+  } catch (e) { console.error('Order email failed:', e.message); }
+  const payAmount = mode === 'full' ? total : (mode === 'reserve' ? reserveAmt : 0);
+  res.json({ ok: true, order_no: orderNo, pay_amount: payAmount, payment_mode: mode,
+    pay_online: payAmount > 0 && getSetting('payu_enabled', '0') === '1' });
+});
+app.get('/api/customer/orders', requireCustomer, (req, res) => {
+  const rows = db.prepare('SELECT order_no, items, subtotal, total, amount_paid, payment_mode, payment_status, status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC').all(req.customer.id);
+  res.json({ ok: true, orders: rows.map((o) => ({ ...o, items: safeJson(o.items) })) });
+});
+function safeJson(s) { try { return JSON.parse(s || '[]'); } catch { return []; } }
+
 // Submit lead
 // Partner application — stored as a lead tagged "Partner application" so it lands
 // in the same admin inbox (filter by Requirement) and email flow as other enquiries.
@@ -1638,6 +1873,40 @@ app.get('/track/video-call', (req, res) => {
   try { db.prepare('INSERT INTO click_events (kind, model) VALUES (?, ?)').run('video-call', model); } catch (e) { console.error('click_events insert failed:', e.message); }
   const q = new URLSearchParams({ ...(model ? { model } : {}), call: 'video', utm_source: 'site', utm_medium: 'pdp', utm_campaign: 'schedule_video_call' });
   res.redirect('/book?' + q.toString() + '#lead-form');
+});
+
+// ---------------------------------------------------------------------------
+// Orders (admin)
+// ---------------------------------------------------------------------------
+app.get('/api/admin/orders', requireAdmin, (req, res) => {
+  const rows = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+  res.json({ ok: true, orders: rows.map((o) => ({ ...o, items: safeJson(o.items) })), statuses: orderStatuses() });
+});
+app.post('/api/admin/orders/:id/status', requireAdmin, (req, res) => {
+  if (!orderStatuses().includes(req.body.status)) return res.status(400).json({ ok: false, error: 'Invalid status.' });
+  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(req.body.status, parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.post('/api/admin/orders/:id/payment', requireAdmin, (req, res) => {
+  const st = ['pending', 'paid', 'failed'].includes(req.body.payment_status) ? req.body.payment_status : 'pending';
+  db.prepare('UPDATE orders SET payment_status = ? WHERE id = ?').run(st, parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.post('/api/admin/orders/:id/remark', requireAdmin, (req, res) => {
+  db.prepare('UPDATE orders SET remark = ? WHERE id = ?').run(String(req.body.remark || '').trim().slice(0, 1000), parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.delete('/api/admin/orders/:id', requireAdmin, requireFullRole, (req, res) => {
+  db.prepare('DELETE FROM orders WHERE id = ?').run(parseInt(req.params.id, 10));
+  res.json({ ok: true });
+});
+app.get('/api/admin/orders.csv', requireAdmin, (req, res) => {
+  const rows = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+  const cols = ['order_no', 'created_at', 'name', 'phone', 'email', 'address', 'items', 'subtotal', 'total', 'amount_paid', 'payment_mode', 'payment_status', 'status', 'remark'];
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="mobirapid-orders.csv"');
+  res.send([cols.join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n'));
 });
 
 // ---------------------------------------------------------------------------

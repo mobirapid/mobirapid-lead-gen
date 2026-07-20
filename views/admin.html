@@ -92,6 +92,7 @@
   <div class="container">
     <nav class="tabs">
       <button class="tab active" data-tab="leads">Leads</button>
+      <button class="tab" data-tab="orders">Orders</button>
       <button class="tab" data-tab="partners">Partners</button>
       <button class="tab" data-tab="branding">Branding</button>
       <button class="tab" data-tab="models">MacBook Models</button>
@@ -140,6 +141,47 @@
           <input type="text" id="set-lead_statuses" placeholder="New, Contacted, Converted, Lost" style="flex:1;min-width:260px;" />
           <button class="btn small" id="saveLeadStatuses" type="button">Save statuses</button>
           <span class="saved-msg" id="leadStatusesSaved" hidden>Saved ✓</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ORDERS ===================== -->
+    <section class="panel" id="panel-orders">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div><h3>Online shop</h3><p class="muted">Turn on the cart + checkout (mobile-OTP login, Buy now, Add to cart). Off = the site stays a lead-gen page.</p></div>
+          <div><label class="fld">Shop enabled?</label>
+            <select id="set-shop_enabled"><option value="0">Off (lead-gen only)</option><option value="1">On (full shop)</option></select>
+          </div>
+        </div>
+        <div class="save-row"><button class="btn" id="saveShop">Save shop setting</button><span class="saved-msg" id="shopSaved" hidden>Saved ✓</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="odTotal">—</b><span>Orders</span></div>
+        <div class="stat"><b id="odToday">—</b><span>Today</span></div>
+        <div class="stat"><b id="odPaid">—</b><span>Paid</span></div>
+        <div class="stat"><b id="odRevenue">—</b><span>Revenue (paid)</span></div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="odSearch" placeholder="Search order #, name, phone…" />
+        <select id="odFilterStatus"><option value="">All statuses</option></select>
+        <a class="btn" href="/api/admin/orders.csv">Export CSV</a>
+        <button class="btn" id="odRefresh">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Remark</th><th>Placed</th><th></th></tr></thead>
+          <tbody id="odRows"></tbody>
+        </table>
+        <div class="empty" id="odEmpty" hidden>No orders yet.</div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h3>Order statuses</h3>
+        <p class="muted">Comma separated — the choices in every order's Status dropdown.</p>
+        <div class="upload-row">
+          <input type="text" id="set-order_statuses" placeholder="New, Confirmed, Dispatched, Delivered, Cancelled" style="flex:1;min-width:280px;" />
+          <button class="btn small" id="saveOrderStatuses" type="button">Save statuses</button>
+          <span class="saved-msg" id="orderStatusesSaved" hidden>Saved ✓</span>
         </div>
       </div>
     </section>

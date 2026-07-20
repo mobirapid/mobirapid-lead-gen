@@ -45,6 +45,7 @@
       // of the page (e.g. an error in Contact used to take the footer down with it).
       const safe = (name, fn) => { try { fn(); } catch (e) { console.error('Section failed:', name, e); } };
       safe('settings', () => applySettings(data.settings));
+      safe('shopIcons', () => { if (String(data.settings.shop_enabled) === '1') { const si = $('shopIcons'); if (si) si.hidden = false; } });
       safe('headerNav', () => renderHeaderNav(data.categories));
       safe('categoryStrip', () => renderCategoryStrip(data.categories, data.models));
       safe('bannerSlider', () => renderBannerSlider(data.settings));
@@ -548,7 +549,9 @@
           <div class="model-foot">
             ${so
               ? `<a class="model-reserve model-avail" href="/book?notify=${encodeURIComponent(m.slug)}" data-notify-model="${esc(m.name)}">Check future availability →</a>`
-              : reserveBtn(m, s)}
+              : (String(s.shop_enabled) === '1'
+                ? `<button class="model-reserve" data-add-cart data-slug="${esc(m.slug)}">Add to cart</button>`
+                : reserveBtn(m, s))}
             <a class="model-cta" href="${prodUrl(m)}">View details →</a>
           </div>
         </div>

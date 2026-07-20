@@ -1132,6 +1132,88 @@
   }
 
   // ========================================================================
+  // ORDERS (online shop)
+  // ========================================================================
+  let allOrders = [];
+  let orderStatusList = ['New', 'Confirmed', 'Dispatched', 'Delivered', 'Cancelled'];
+  const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+  function fillOrderStatusFilter() {
+    const sel = $('odFilterStatus'); if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All statuses</option>' + orderStatusList.map((s) => `<option>${esc(s)}</option>`).join('');
+    if (cur && orderStatusList.includes(cur)) sel.value = cur;
+  }
+  function renderOrders() {
+    const wrap = $('odRows'); if (!wrap) return;
+    const q = ($('odSearch').value || '').toLowerCase();
+    const fs = $('odFilterStatus').value;
+    const rows = allOrders.filter((o) => {
+      if (fs && (o.status || 'New') !== fs) return false;
+      if (q && !`${o.order_no} ${o.name} ${o.phone}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    $('odEmpty').hidden = rows.length > 0;
+    wrap.innerHTML = rows.map((o) => {
+      const st = o.status || 'New';
+      const opts = (orderStatusList.includes(st) ? orderStatusList : [st].concat(orderStatusList)).map((s) => `<option ${s === st ? 'selected' : ''}>${esc(s)}</option>`).join('');
+      const items = (o.items || []).map((i) => `${i.qty}× ${esc(i.name)}`).join('<br>');
+      const payTag = o.payment_status === 'paid' ? '<span class="pill req">Paid</span>' : `<span class="pill type">${esc(o.payment_mode || '')}</span>`;
+      return `<tr>
+        <td><strong>${esc(o.order_no)}</strong></td>
+        <td>${esc(o.name || '')}<br><small>${esc(o.phone || '')}</small><br><small>${esc(o.address || '')}</small></td>
+        <td class="msg">${items || '—'}</td>
+        <td><b>${inr(o.total)}</b>${o.amount_paid ? `<br><small>paid ${inr(o.amount_paid)}</small>` : ''}</td>
+        <td>${payTag}<br><button class="btn small" data-odpay="${o.id}" data-cur="${esc(o.payment_status || 'pending')}">Mark ${o.payment_status === 'paid' ? 'pending' : 'paid'}</button></td>
+        <td><select class="status-sel" data-odstatus="${o.id}">${opts}</select></td>
+        <td class="msg"><span>${esc(o.remark) || '—'}</span> <button class="btn small" data-odremark="${o.id}">✎</button></td>
+        <td>${fmtDate(o.created_at)}</td>
+        <td>${canEditLeads() ? `<button class="btn small danger" data-oddel="${o.id}">✕</button>` : ''}</td>
+      </tr>`;
+    }).join('');
+    wrap.querySelectorAll('[data-odstatus]').forEach((sel) => sel.addEventListener('change', async () => {
+      const r = await api('/api/admin/orders/' + sel.dataset.odstatus + '/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: sel.value }) });
+      if ((await r.json()).ok) { const o = allOrders.find((x) => String(x.id) === String(sel.dataset.odstatus)); if (o) o.status = sel.value; }
+    }));
+    wrap.querySelectorAll('[data-odpay]').forEach((b) => b.addEventListener('click', async () => {
+      const next = b.dataset.cur === 'paid' ? 'pending' : 'paid';
+      const r = await api('/api/admin/orders/' + b.dataset.odpay + '/payment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payment_status: next }) });
+      if ((await r.json()).ok) loadOrders();
+    }));
+    wrap.querySelectorAll('[data-odremark]').forEach((b) => b.addEventListener('click', async () => {
+      const o = allOrders.find((x) => String(x.id) === String(b.dataset.odremark)); if (!o) return;
+      const remark = prompt('Remark for order ' + o.order_no + ':', o.remark || '');
+      if (remark === null) return;
+      const r = await api('/api/admin/orders/' + o.id + '/remark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ remark: remark.trim() }) });
+      if ((await r.json()).ok) { o.remark = remark.trim(); renderOrders(); }
+    }));
+    wrap.querySelectorAll('[data-oddel]').forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Delete this order permanently?')) return;
+      await api('/api/admin/orders/' + b.dataset.oddel, { method: 'DELETE' }); loadOrders();
+    }));
+  }
+  function updateOrderStats() {
+    const today = new Date().toISOString().slice(0, 10);
+    const paid = allOrders.filter((o) => o.payment_status === 'paid');
+    if ($('odTotal')) $('odTotal').textContent = allOrders.length;
+    if ($('odToday')) $('odToday').textContent = allOrders.filter((o) => (o.created_at || '').slice(0, 10) === today).length;
+    if ($('odPaid')) $('odPaid').textContent = paid.length;
+    if ($('odRevenue')) $('odRevenue').textContent = inr(paid.reduce((n, o) => n + (o.amount_paid || 0), 0));
+  }
+  async function loadOrders() {
+    const r = await api('/api/admin/orders');
+    const d = await r.json();
+    allOrders = d.orders || [];
+    if (Array.isArray(d.statuses) && d.statuses.length) orderStatusList = d.statuses;
+    if ($('set-order_statuses') && !$('set-order_statuses').value) $('set-order_statuses').value = orderStatusList.join(', ');
+    fillOrderStatusFilter(); updateOrderStats(); renderOrders();
+  }
+  on('odSearch', 'input', renderOrders);
+  on('odFilterStatus', 'change', renderOrders);
+  on('odRefresh', 'click', loadOrders);
+  on('saveShop', 'click', () => saveSettings(collectSettings(['shop_enabled']), $('shopSaved')));
+  on('saveOrderStatuses', 'click', async () => { await saveSettings(collectSettings(['order_statuses']), $('orderStatusesSaved')); loadOrders(); });
+
+  // ========================================================================
   // PARTNERS (City Partner applications from /partner)
   // ========================================================================
   let allPartners = [];
@@ -1270,6 +1352,7 @@
     loadBlog();
     loadUsers();
     loadPartners();
+    loadOrders();
   }
   init();
 })();

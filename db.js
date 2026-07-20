@@ -180,6 +180,50 @@ db.exec(`
 // scope = category slug a "catalog" uploader is limited to (e.g. 'phones'); NULL for others.
 ensureColumn('users', 'scope', 'TEXT');
 
+// ---- Shop: customer accounts, saved addresses, orders ----
+db.exec(`
+  CREATE TABLE IF NOT EXISTS customers (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone      TEXT UNIQUE NOT NULL,
+    name       TEXT,
+    email      TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS addresses (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    name        TEXT,
+    phone       TEXT,
+    line1       TEXT,
+    line2       TEXT,
+    city        TEXT,
+    state       TEXT,
+    pincode     TEXT,
+    is_default  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS orders (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_no       TEXT UNIQUE NOT NULL,
+    customer_id    INTEGER,
+    name           TEXT,
+    phone          TEXT,
+    email          TEXT,
+    address        TEXT,
+    items          TEXT,          -- JSON: [{slug,name,price,qty,image}]
+    subtotal       INTEGER,       -- rupees
+    total          INTEGER,       -- rupees (what is due overall)
+    amount_paid    INTEGER DEFAULT 0,
+    payment_mode   TEXT,          -- 'full' | 'reserve' | 'openbox'
+    payment_status TEXT DEFAULT 'pending',  -- pending | paid | failed
+    txnid          TEXT,
+    status         TEXT NOT NULL DEFAULT 'New', -- New | Confirmed | Dispatched | Delivered | Cancelled
+    remark         TEXT,
+    consent        TEXT,
+    created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 // City Partner applications (from the /partner page) — kept separate from customer leads.
 db.exec(`
   CREATE TABLE IF NOT EXISTS partners (
@@ -1371,6 +1415,14 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PARTNER_PAGE_FLA
   put.run('partner_form_sub', "Takes under a minute. We'll verify your number and call you for a short interview.");
   put.run('partner_form_note', "Applications are reviewed city by city. If we're not currently expanding in your city, we'll keep your details on file and contact you when we are.");
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(PARTNER_PAGE_FLAG, '1');
+}
+
+// Shop is OFF by default so the site keeps working as a lead-gen page until you enable it.
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('shop_enabled')) {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('shop_enabled', '0');
+}
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('order_statuses')) {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('order_statuses', 'New, Confirmed, Dispatched, Delivered, Cancelled');
 }
 
 module.exports = db;

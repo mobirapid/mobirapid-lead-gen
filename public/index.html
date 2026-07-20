@@ -18,6 +18,10 @@
       </a>
       <nav class="header-nav" id="headerNav" hidden></nav>
       <button class="nav-toggle" id="navToggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      <span class="shop-icons" id="shopIcons" hidden>
+        <a class="shop-ic" id="accountLink" href="/account" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span class="shop-ic-tx">Login</span></a>
+        <a class="shop-ic" href="/cart" aria-label="Cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg><span class="shop-badge" id="cartBadge" hidden>0</span></a>
+      </span>
       <span class="header-ctas">
         <a class="header-cta header-cta-ghost" href="/partner">Partner with us</a>
         <a class="header-cta" href="/book" id="headerCta">Book Consultation</a>
@@ -363,6 +367,7 @@
 
   <script src="/icons.js" defer></script>
   <script src="/app.js" defer></script>
+  <script src="/shop.js" defer></script>
   <!--BODY_CODE-->
 </body>
 </html>
