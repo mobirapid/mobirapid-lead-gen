@@ -540,7 +540,7 @@ function shopShell(req, title, bodyHtml) {
   const reserveAmt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 1999;
   return pageHead(req, title + ' — ' + brand, title, baseUrl(req) + req.path, '<meta name="robots" content="noindex">') +
     siteHeaderHtml() +
-    `<main class="container page-body shop-page"><script>window.MOBI_RESERVE=${reserveAmt};</script>${bodyHtml}</main>` +
+    `<main class="container page-body shop-page"><script>window.MOBI_RESERVE=${reserveAmt};window.MOBI_PREPAID_PCT=${parseFloat(getSetting('prepaid_discount_pct', '2')) || 0};</script>${bodyHtml}</main>` +
     `<script src="${ver('/shop.js')}"></script>` + pageTail();
 }
 app.get('/cart', (req, res) => {
@@ -585,7 +585,7 @@ app.get('/pay/:no', (req, res) => {
   const o = db.prepare('SELECT * FROM orders WHERE order_no = ?').get(req.params.no);
   if (!o) return res.redirect('/');
   const reserveAmt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 1999;
-  const amount = (o.payment_mode === 'full' ? o.total : reserveAmt);
+  const amount = (o.payment_mode === 'full' ? o.total : reserveAmt); // o.total already has the prepaid discount applied
   const key = getSetting('payu_merchant_key', ''), salt = getSetting('payu_salt', '');
   if (getSetting('payu_enabled', '0') !== '1' || !key || !salt || amount <= 0) {
     return res.redirect('/order/' + encodeURIComponent(o.order_no));
@@ -1614,15 +1614,18 @@ app.post('/api/order', submitLimiter, (req, res) => {
   if (!/^\d{6}$/.test(String(a.pincode).trim())) return res.status(400).json({ ok: false, error: 'Enter a valid 6-digit PIN code.' });
   const mode = ['full', 'reserve', 'openbox'].includes(b.payment_mode) ? b.payment_mode : 'openbox';
   const reserveAmt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 1999;
-  const total = subtotal;
+  // Prepaid (full online payment) discount — computed server-side so it can't be gamed.
+  const prepaidPct = parseFloat(getSetting('prepaid_discount_pct', '2')) || 0;
+  const discount = mode === 'full' ? Math.round(subtotal * prepaidPct / 100) : 0;
+  const total = subtotal - discount;
   const addrStr = [a.name, a.phone, a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(', ');
   const orderNo = 'MR' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
   // Save the address for reuse
   try { db.prepare('INSERT INTO addresses (customer_id, name, phone, line1, line2, city, state, pincode) VALUES (?,?,?,?,?,?,?,?)').run(c.id, a.name, a.phone, a.line1, a.line2 || '', a.city, a.state, a.pincode); } catch (e) {}
   const info = db.prepare(
-    `INSERT INTO orders (order_no, customer_id, name, phone, email, address, items, subtotal, total, payment_mode, payment_status, status, consent)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
-  ).run(orderNo, c.id, a.name, a.phone, String(b.email || c.email || '').trim(), addrStr, JSON.stringify(items), subtotal, total, mode, 'pending', 'New', 'v1 · ' + new Date().toISOString());
+    `INSERT INTO orders (order_no, customer_id, name, phone, email, address, items, subtotal, discount, total, payment_mode, payment_status, status, consent)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  ).run(orderNo, c.id, a.name, a.phone, String(b.email || c.email || '').trim(), addrStr, JSON.stringify(items), subtotal, discount, total, mode, 'pending', 'New', 'v1 · ' + new Date().toISOString());
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(info.lastInsertRowid));
   // Notify the team (reuse the lead email plumbing).
   try {
@@ -1632,7 +1635,7 @@ app.post('/api/order', submitLimiter, (req, res) => {
       created_at: order.created_at });
   } catch (e) { console.error('Order email failed:', e.message); }
   const payAmount = mode === 'full' ? total : (mode === 'reserve' ? reserveAmt : 0);
-  res.json({ ok: true, order_no: orderNo, pay_amount: payAmount, payment_mode: mode,
+  res.json({ ok: true, order_no: orderNo, pay_amount: payAmount, payment_mode: mode, discount,
     pay_online: payAmount > 0 && getSetting('payu_enabled', '0') === '1' });
 });
 app.get('/api/customer/orders', requireCustomer, (req, res) => {
@@ -1902,7 +1905,7 @@ app.delete('/api/admin/orders/:id', requireAdmin, requireFullRole, (req, res) =>
 });
 app.get('/api/admin/orders.csv', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
-  const cols = ['order_no', 'created_at', 'name', 'phone', 'email', 'address', 'items', 'subtotal', 'total', 'amount_paid', 'payment_mode', 'payment_status', 'status', 'remark'];
+  const cols = ['order_no', 'created_at', 'name', 'phone', 'email', 'address', 'items', 'subtotal', 'discount', 'total', 'amount_paid', 'payment_mode', 'payment_status', 'status', 'remark'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="mobirapid-orders.csv"');

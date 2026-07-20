@@ -1417,7 +1417,11 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PARTNER_PAGE_FLA
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(PARTNER_PAGE_FLAG, '1');
 }
 
+ensureColumn('orders', 'discount', 'INTEGER DEFAULT 0'); // prepaid (full-payment) discount in rupees
 // Shop is OFF by default so the site keeps working as a lead-gen page until you enable it.
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('prepaid_discount_pct')) {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('prepaid_discount_pct', '2');
+}
 if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('shop_enabled')) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('shop_enabled', '0');
 }

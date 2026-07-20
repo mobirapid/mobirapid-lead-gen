@@ -154,6 +154,10 @@
             <select id="set-shop_enabled"><option value="0">Off (lead-gen only)</option><option value="1">On (full shop)</option></select>
           </div>
         </div>
+        <div class="grid2" style="margin-top:12px;">
+          <div><label class="fld">Prepaid discount % (full online payment)</label><input type="number" id="set-prepaid_discount_pct" min="0" max="50" step="0.5" placeholder="2" /></div>
+        </div>
+        <p class="muted" style="margin:6px 0 0;">Customers who pay the full amount online get this % off. Set to 0 to disable.</p>
         <div class="save-row"><button class="btn" id="saveShop">Save shop setting</button><span class="saved-msg" id="shopSaved" hidden>Saved ✓</span></div>
       </div>
       <div class="stats">

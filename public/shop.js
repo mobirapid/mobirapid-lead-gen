@@ -173,6 +173,9 @@
     try { saved = (await (await fetch('/api/customer/addresses')).json()).addresses || []; } catch {}
     const d = saved.find((a) => a.is_default) || saved[0] || {};
     const reserveAmt = window.MOBI_RESERVE || 1999;
+    const prepaidPct = window.MOBI_PREPAID_PCT || 0;
+    const prepaidDisc = Math.round(subtotal * prepaidPct / 100);
+    const fullPay = subtotal - prepaidDisc;
     wrap.innerHTML = `
       <div class="checkout-grid">
         <div class="checkout-main">
@@ -192,7 +195,7 @@
           </section>
           <section class="pdp-card">
             <h2>Payment</h2>
-            <label class="pay-opt"><input type="radio" name="paymode" value="full" checked> <span><b>Pay full amount now</b><small>Pay ${inr(subtotal)} online — device is dispatched after payment.</small></span></label>
+            <label class="pay-opt"><input type="radio" name="paymode" value="full" checked> <span><b>Pay full amount now ${prepaidPct ? `<span class="pay-save">Save ${prepaidPct}%</span>` : ''}</b><small>${prepaidPct ? `Pay <b>${inr(fullPay)}</b> online (${inr(subtotal)} − ${inr(prepaidDisc)}) — dispatched after payment.` : `Pay ${inr(subtotal)} online — device is dispatched after payment.`}</small></span></label>
             <label class="pay-opt"><input type="radio" name="paymode" value="reserve"> <span><b>Reserve now, pay balance at open-box delivery</b><small>Pay ${inr(reserveAmt)} online to block the unit; pay the rest after you inspect it.</small></span></label>
             <label class="pay-opt"><input type="radio" name="paymode" value="openbox"> <span><b>Book — pay at open-box delivery</b><small>No online payment. Our representative brings it; you pay after inspecting.</small></span></label>
           </section>
@@ -201,12 +204,23 @@
           <div class="pdp-card">
             <h2>Order summary</h2>
             ${items.map((i) => `<div class="co-line"><span>${i.qty}× ${esc(i.name)}</span><b>${inr(i.line)}</b></div>`).join('')}
-            <div class="co-line co-total"><span>Subtotal</span><b>${inr(subtotal)}</b></div>
+            <div class="co-line"><span>Subtotal</span><b>${inr(subtotal)}</b></div>
+            <div class="co-line co-disc" id="coDiscRow" hidden><span>Prepaid discount (${prepaidPct}%)</span><b>− ${inr(prepaidDisc)}</b></div>
+            <div class="co-line co-total"><span>Total</span><b id="coTotal">${inr(subtotal)}</b></div>
             <button class="pdp-book co-place" id="placeOrder">Place order</button>
             <p class="form-status" id="coStatus"></p>
           </div>
         </aside>
       </div>`;
+    // Reflect the prepaid discount in the summary when "Pay full" is selected.
+    const syncTotal = () => {
+      const mode = (document.querySelector('input[name="paymode"]:checked') || {}).value;
+      const isFull = mode === 'full' && prepaidDisc > 0;
+      if ($('coDiscRow')) $('coDiscRow').hidden = !isFull;
+      if ($('coTotal')) $('coTotal').textContent = inr(isFull ? fullPay : subtotal);
+    };
+    wrap.querySelectorAll('input[name="paymode"]').forEach((r) => r.addEventListener('change', syncTotal));
+    syncTotal();
     $('placeOrder').addEventListener('click', placeOrder);
   }
 

@@ -1210,7 +1210,7 @@
   on('odSearch', 'input', renderOrders);
   on('odFilterStatus', 'change', renderOrders);
   on('odRefresh', 'click', loadOrders);
-  on('saveShop', 'click', () => saveSettings(collectSettings(['shop_enabled']), $('shopSaved')));
+  on('saveShop', 'click', () => saveSettings(collectSettings(['shop_enabled', 'prepaid_discount_pct']), $('shopSaved')));
   on('saveOrderStatuses', 'click', async () => { await saveSettings(collectSettings(['order_statuses']), $('orderStatusesSaved')); loadOrders(); });
 
   // ========================================================================
