@@ -195,9 +195,8 @@
           </section>
           <section class="pdp-card">
             <h2>Payment</h2>
-            <label class="pay-opt"><input type="radio" name="paymode" value="full" checked> <span><b>Pay full amount now ${prepaidPct ? `<span class="pay-save">Save ${prepaidPct}%</span>` : ''}</b><small>${prepaidPct ? `Pay <b>${inr(fullPay)}</b> online (${inr(subtotal)} − ${inr(prepaidDisc)}) — dispatched after payment.` : `Pay ${inr(subtotal)} online — device is dispatched after payment.`}</small></span></label>
-            <label class="pay-opt"><input type="radio" name="paymode" value="reserve"> <span><b>Reserve now, pay balance at open-box delivery</b><small>Pay ${inr(reserveAmt)} online to block the unit; pay the rest after you inspect it.</small></span></label>
-            <label class="pay-opt"><input type="radio" name="paymode" value="openbox"> <span><b>Book — pay at open-box delivery</b><small>No online payment. Our representative brings it; you pay after inspecting.</small></span></label>
+            <div class="pay-note"><b>Prepaid order — pay securely online.</b>${prepaidPct ? ` You save <b>${prepaidPct}%</b> by paying online.` : ''} Your device is dispatched after payment.</div>
+            <p class="muted" style="margin:10px 0 0;">Prefer to inspect before paying? Use <b>Book with ₹X</b> on any product page for open-box delivery.</p>
           </section>
         </div>
         <aside class="checkout-side">
@@ -205,29 +204,20 @@
             <h2>Order summary</h2>
             ${items.map((i) => `<div class="co-line"><span>${i.qty}× ${esc(i.name)}</span><b>${inr(i.line)}</b></div>`).join('')}
             <div class="co-line"><span>Subtotal</span><b>${inr(subtotal)}</b></div>
-            <div class="co-line co-disc" id="coDiscRow" hidden><span>Prepaid discount (${prepaidPct}%)</span><b>− ${inr(prepaidDisc)}</b></div>
-            <div class="co-line co-total"><span>Total</span><b id="coTotal">${inr(subtotal)}</b></div>
-            <button class="pdp-book co-place" id="placeOrder">Place order</button>
+            ${prepaidDisc > 0 ? `<div class="co-line co-disc"><span>Prepaid discount (${prepaidPct}%)</span><b>− ${inr(prepaidDisc)}</b></div>` : ''}
+            <div class="co-line co-total"><span>Total payable</span><b>${inr(fullPay)}</b></div>
+            <button class="pdp-book co-place" id="placeOrder">Pay ${inr(fullPay)} &amp; place order →</button>
             <p class="form-status" id="coStatus"></p>
           </div>
         </aside>
       </div>`;
-    // Reflect the prepaid discount in the summary when "Pay full" is selected.
-    const syncTotal = () => {
-      const mode = (document.querySelector('input[name="paymode"]:checked') || {}).value;
-      const isFull = mode === 'full' && prepaidDisc > 0;
-      if ($('coDiscRow')) $('coDiscRow').hidden = !isFull;
-      if ($('coTotal')) $('coTotal').textContent = inr(isFull ? fullPay : subtotal);
-    };
-    wrap.querySelectorAll('input[name="paymode"]').forEach((r) => r.addEventListener('change', syncTotal));
-    syncTotal();
     $('placeOrder').addEventListener('click', placeOrder);
   }
 
   async function placeOrder() {
     const st = (m, k) => { $('coStatus').textContent = m || ''; $('coStatus').className = 'form-status' + (k ? ' ' + k : ''); };
     const address = { name: $('ad-name').value.trim(), phone: $('ad-phone').value.trim(), line1: $('ad-line1').value.trim(), line2: $('ad-line2').value.trim(), city: $('ad-city').value.trim(), state: $('ad-state').value.trim(), pincode: $('ad-pincode').value.trim() };
-    const payment_mode = (document.querySelector('input[name="paymode"]:checked') || {}).value || 'openbox';
+    const payment_mode = 'full'; // cart checkout is prepaid-only; open-box is via "Book with ₹X"
     $('placeOrder').disabled = true; $('placeOrder').textContent = 'Placing…'; st('');
     try {
       const r = await fetch('/api/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.read(), address, payment_mode }) });
