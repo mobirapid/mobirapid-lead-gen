@@ -243,7 +243,7 @@
 
     // Reserve / booking amount: manual field, else auto 10% of price
     let reserveAmt = (s.offer_reserve_amount || '').trim();
-    if (!reserveAmt && price && num(price) > 0) reserveAmt = '₹' + Math.round(num(price) * 0.1).toLocaleString('en-IN');
+    if (!reserveAmt) { const ba = bookingAmt(m, s); if (ba) reserveAmt = '₹' + ba.toLocaleString('en-IN'); }
     // Reserve destination: PayU checkout page > static payment link > lead form fallback
     const payuOn = String(s.payu_enabled) === '1';
     const reserveUrl = payuOn ? ('/reserve?model=' + encodeURIComponent(m.slug)) : (s.offer_reserve_url || '').trim();
@@ -252,7 +252,7 @@
     const actions = soldOut
       ? `<span class="deal-soldout">Sold out — <a href="/book" class="deal-notify">notify me of similar deals</a></span>`
       : `<a class="deal-book" href="/book?model=${encodeURIComponent(m.slug)}&call=video" data-deal-model="${esc(m.name)}" data-video="1"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Book a video call</a>
-         ${reserveAmt ? `<a class="deal-reserve" ${reserveUrl ? `href="${esc(reserveUrl)}"${reserveExternal ? ' target="_blank" rel="noopener"' : ''}` : `href="/book?model=${encodeURIComponent(m.slug)}"`} data-deal-model="${esc(m.name)}" data-reserve="${esc(reserveAmt)}">Reserve with ${esc(reserveAmt)}</a>` : ''}
+         ${reserveAmt ? `<a class="deal-reserve" ${reserveUrl ? `href="${esc(reserveUrl)}"${reserveExternal ? ' target="_blank" rel="noopener"' : ''}` : `href="/book?model=${encodeURIComponent(m.slug)}"`} data-deal-model="${esc(m.name)}" data-reserve="${esc(reserveAmt)}">Book with ${esc(reserveAmt)} →</a>` : ''}
          <a class="deal-view" href="/macbook/${esc(m.slug)}">View full specs</a>`;
 
     $('dealInner').innerHTML = `
@@ -307,16 +307,28 @@
     const c = CAT_MAP[m.category];
     return m.slug ? '/' + (c ? c.url_prefix : 'macbook') + '/' + esc(m.slug) : '#lead-form';
   }
+  // Booking amount = max(percent of price, floor). Matches the server's bookingAmount().
+  function bookingAmt(m, s) {
+    const pn = (v) => parseFloat(String(v || '').replace(/[^\d.]/g, '')) || 0;
+    let price = pn(m.price);
+    if (!price) { // fall back to lowest condition variant
+      try { const v = JSON.parse(m.condition_prices || '[]') || []; const nums = v.filter((x) => x && x.price).map((x) => pn(x.price)); if (nums.length) price = Math.min(...nums); } catch {}
+    }
+    if (!price) return 0;
+    const pct = parseFloat(s.booking_percent || '10') || 0;
+    const floor = parseInt(String(s.booking_min_amount || '3999').replace(/[^\d]/g, ''), 10) || 0;
+    return Math.max(Math.round(price * pct / 100), floor);
+  }
   function reserveBtn(m, s) {
     if (String(s.reserve_button_enabled) === '0') return '';
     const link = (s.reserve_payment_link || '').trim();
     const payuOn = String(s.payu_enabled) === '1';
     if (!link && !payuOn) return '';
-    const amt = parseInt(String(s.reserve_flat_amount || '1999').replace(/[^\d]/g, ''), 10) || 0;
+    const amt = bookingAmt(m, s);
     if (!amt) return '';
     const href = link || ('/reserve?model=' + encodeURIComponent(m.slug));
     const ext = link ? ' target="_blank" rel="noopener"' : '';
-    return `<a class="model-reserve" href="${esc(href)}"${ext}>Reserve now — ₹${amt.toLocaleString('en-IN')}</a>`;
+    return `<a class="model-reserve" href="${esc(href)}"${ext}>Book with ₹${amt.toLocaleString('en-IN')} →</a>`;
   }
   function specLine(m, s) {
     const c = CAT_MAP[m.category];

@@ -996,16 +996,31 @@ function catBySlug(slug) { return db.prepare('SELECT * FROM categories WHERE slu
 function catForProduct(m) { return db.prepare('SELECT * FROM categories WHERE slug = ?').get(m.category) || { slug: m.category, name: 'Products', singular: 'Product', url_prefix: 'macbook', fields: 'macbook' }; }
 function productUrl(m, cat) { return '/' + (cat || catForProduct(m)).url_prefix + '/' + m.slug; }
 // Flat "Reserve with ₹X" button. Uses a fixed PayU payment link if set, else the dynamic flow.
+// Booking amount = max(percent of sale price, floor). Both admin-configurable.
+function bookingAmount(priceLike) {
+  const price = digits(priceLike);
+  if (!price) return 0;
+  const pct = parseFloat(getSetting('booking_percent', '10')) || 0;
+  const floor = parseInt(String(getSetting('booking_min_amount', '3999')).replace(/[^\d]/g, ''), 10) || 0;
+  return Math.max(Math.round(price * pct / 100), floor);
+}
+// Effective price for a product (falls back to the lowest condition variant).
+function effectivePrice(m) {
+  if (digits(m.price)) return digits(m.price);
+  const lv = lowestVariant(m);
+  return lv ? digits(lv.price) : 0;
+}
 function reserveButton(slug, cls) {
   if (getSetting('reserve_button_enabled', '1') !== '1') return '';
   const link = getSetting('reserve_payment_link', '').trim();
   const payuOn = getSetting('payu_enabled', '0') === '1';
   if (!link && !payuOn) return '';
-  const amt = parseInt(String(getSetting('reserve_flat_amount', '1999')).replace(/[^\d]/g, ''), 10) || 0;
+  const m = db.prepare('SELECT price, condition_prices FROM macbook_models WHERE slug = ?').get(slug);
+  const amt = m ? bookingAmount(effectivePrice(m)) : 0;
   if (!amt) return '';
   const href = link || ('/reserve?model=' + encodeURIComponent(slug));
   const ext = link ? ' target="_blank" rel="noopener"' : '';
-  return `<a class="${cls || 'pdp-reserve'}" href="${esc(href)}"${ext}>Reserve now — ₹${amt.toLocaleString('en-IN')}</a>`;
+  return `<a class="${cls || 'pdp-reserve'}" href="${esc(href)}"${ext}>Book with ₹${amt.toLocaleString('en-IN')} →</a>`;
 }
 
 // A product is out of stock when its badge says "Sold out" / "Out of stock".
@@ -1137,11 +1152,11 @@ function renderProductPage(req, res, m, cat) {
             ${soldOut
               ? `${availabilityButton(m, 'pdp-book pdp-avail')}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`
-              : `${shopOn() ? `<button class="pdp-book" data-buy-now data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(defVariant ? defVariant.grade : '')}">Buy now →</button>
-            <button class="pdp-book pdp-addcart" data-add-cart data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(defVariant ? defVariant.grade : '')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg> Add to cart</button>` : ''}
-            <a class="pdp-book${shopOn() ? ' pdp-video' : ''}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book a consultation</a>
+              : `${shopOn() ? `<button class="pdp-book pdp-buynow" data-buy-now data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(defVariant ? defVariant.grade : '')}">Buy now →</button>
+            <button class="pdp-book pdp-addcart" data-add-cart data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(defVariant ? defVariant.grade : '')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg> Add to cart</button>` : reserveButton(m.slug, 'pdp-book')}
+            <a class="pdp-book pdp-consult" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book a consultation</a>
             <a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>
-            ${reserveButton(m.slug, 'pdp-reserve')}
+            ${shopOn() ? reserveButton(m.slug, 'pdp-reserve') : ''}
             ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`}
           </div>
           <ul class="pdp-trust">
@@ -1290,9 +1305,9 @@ function reserveContext(slug) {
   const model = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND active = 1').get(slug);
   if (!model) return null;
   const isDeal = getSetting('offer_model_slug', '') === slug;
-  const price = digits((isDeal && getSetting('offer_price', '')) || model.price);
+  const price = digits((isDeal && getSetting('offer_price', '')) || model.price) || effectivePrice(model);
   let amount = digits(isDeal ? getSetting('offer_reserve_amount', '') : '');
-  if (!amount && price) amount = Math.round(price * 0.1);
+  if (!amount) amount = bookingAmount(price);
   return { model, amount };
 }
 function payuUrl() { return getSetting('payu_mode', 'test') === 'live' ? 'https://secure.payu.in/_payment' : 'https://test.payu.in/_payment'; }

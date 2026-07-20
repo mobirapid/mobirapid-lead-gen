@@ -1418,6 +1418,13 @@ if (!db.prepare('SELECT value FROM settings WHERE key = ?').get(PARTNER_PAGE_FLA
 }
 
 ensureColumn('orders', 'discount', 'INTEGER DEFAULT 0'); // prepaid (full-payment) discount in rupees
+// Booking button amount = max(percent of sale price, minimum). Defaults 10% / ₹3,999.
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('booking_percent')) {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('booking_percent', '10');
+}
+if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('booking_min_amount')) {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('booking_min_amount', '3999');
+}
 // Shop is OFF by default so the site keeps working as a lead-gen page until you enable it.
 if (!db.prepare('SELECT value FROM settings WHERE key = ?').get('prepaid_discount_pct')) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('prepaid_discount_pct', '2');

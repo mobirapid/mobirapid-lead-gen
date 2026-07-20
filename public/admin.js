@@ -586,7 +586,7 @@
     saveSettings(collectSettings(['offer_enabled', 'offer_model_slug', 'offer_label', 'offer_badge', 'offer_price', 'offer_mrp', 'offer_subtitle', 'offer_gst_note', 'offer_qty', 'offer_reserve_amount', 'offer_reserve_url']), $('offerSaved'));
   });
   on('payuSaveBtn', 'click', () => {
-    saveSettings(collectSettings(['payu_enabled', 'payu_mode', 'payu_merchant_key', 'payu_salt', 'reserve_thankyou_text', 'reserve_button_enabled', 'reserve_flat_amount', 'reserve_payment_link']), $('payuSaved'));
+    saveSettings(collectSettings(['payu_enabled', 'payu_mode', 'payu_merchant_key', 'payu_salt', 'reserve_thankyou_text', 'reserve_button_enabled', 'reserve_flat_amount', 'booking_percent', 'booking_min_amount', 'reserve_payment_link']), $('payuSaved'));
   });
   function renderModelsList() {
     if (!models.length) { $('modelsList').innerHTML = '<p class="muted" style="padding:14px 0;">No products yet. Click “Add product”.</p>'; return; }

@@ -382,14 +382,16 @@
         <label class="fld" style="margin-top:12px;">Thank-you message (shown after successful payment)</label>
         <input type="text" id="set-reserve_thankyou_text" />
 
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e7eaf1;font-weight:700;font-size:0.85rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Reserve button on every product</div>
-        <div class="grid2" style="margin-top:12px;">
-          <div><label class="fld">Show Reserve button?</label>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e7eaf1;font-weight:700;font-size:0.85rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">"Book with ₹X" button on every product</div>
+        <p class="muted" style="margin:8px 0 0;">The booking amount is <b>the % of the sale price or the minimum, whichever is higher</b> — computed per product. It goes straight to PayU payment.</p>
+        <div class="grid3" style="margin-top:12px;">
+          <div><label class="fld">Show booking button?</label>
             <select id="set-reserve_button_enabled"><option value="1">Show on all products</option><option value="0">Hidden</option></select>
           </div>
-          <div><label class="fld">Reserve amount (₹)</label><input type="text" id="set-reserve_flat_amount" placeholder="1999" /></div>
+          <div><label class="fld">Booking %</label><input type="number" id="set-booking_percent" min="0" max="100" step="1" placeholder="10" /></div>
+          <div><label class="fld">Minimum ₹</label><input type="text" id="set-booking_min_amount" placeholder="3999" /></div>
         </div>
-        <label class="fld" style="margin-top:12px;">Fixed PayU payment link (₹1999)</label>
+        <label class="fld" style="margin-top:12px;">Fixed PayU payment link (optional — overrides the dynamic amount)</label>
         <input type="text" id="set-reserve_payment_link" placeholder="https://pmny.in/… or your PayU payment page URL" />
         <p class="muted" style="margin-top:6px;">If set, the Reserve button opens this link directly. Leave blank to use the built-in PayU checkout (which also captures the buyer's details).</p>
 

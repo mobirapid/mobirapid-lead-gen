@@ -1424,3 +1424,8 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
 .pay-save { display: inline-block; background: #e8f7ee; color: #14743c; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
 .co-disc { color: #14743c; }
 .co-disc b { color: #14743c; }
+
+/* Booking button primary; consultation demoted to outline on the product page */
+.pdp-consult { background: #fff; color: var(--brand); border: 1.5px solid var(--line-strong); box-shadow: none; }
+.pdp-consult:hover { background: var(--brand-soft); border-color: var(--brand); box-shadow: none; }
+.pdp-reserve { background: #fff; color: var(--brand); border: 1.5px solid var(--brand); box-shadow: none; }
