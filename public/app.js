@@ -561,7 +561,7 @@
           <div class="model-foot">
             ${so
               ? `<a class="model-reserve model-avail" href="/book?notify=${encodeURIComponent(m.slug)}" data-notify-model="${esc(m.name)}">Check future availability →</a>`
-              : (String(s.shop_enabled) === '1'
+              : (String(s.shop_enabled) === '1' && bookingAmt(m, s) > 0
                 ? `<button class="model-reserve" data-add-cart data-slug="${esc(m.slug)}">Add to cart</button>`
                 : reserveBtn(m, s))}
             <a class="model-cta" href="${prodUrl(m)}">View details →</a>
