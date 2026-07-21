@@ -1184,7 +1184,8 @@ function renderProductPage(req, res, m, cat) {
               const prepaidNote = prepaidPct > 0 ? `<p class="pdp-prepaid-note">${prepaidPct}% discount on prepaid order</p>` : '';
               const shopBtns = canBuy ? `<button class="pdp-book pdp-buynow" data-buy-now data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(g)}">Buy Now with full amount →</button>
                 <button class="pdp-book pdp-addcart" data-add-cart data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(g)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg> Add to cart</button>${prepaidNote}` : '';
-              const book = reserveButton(m.slug, canBuy ? 'pdp-reserve' : 'pdp-book'); // '' if PayU off / no price
+              let book = reserveButton(m.slug, canBuy ? 'pdp-reserve' : 'pdp-book'); // '' if PayU off / no price
+              if (book) book += `<p class="pdp-openbox-note">For <a href="/p/open-box-delivery">Open Box Delivery</a> — pay the balance after inspecting the device</p>`;
               // Consultation is the primary CTA only when nothing else can be (no buy, no booking button).
               const consultPrimary = !canBuy && !book;
               const consult = `<a class="pdp-book ${consultPrimary ? '' : 'pdp-consult'}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(variantKey(defVariant))}#lead-form` : bookUrl}">Book a consultation</a>`;

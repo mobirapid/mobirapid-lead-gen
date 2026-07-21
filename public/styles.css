@@ -1487,3 +1487,8 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
 /* "% discount on prepaid order" note under the Buy Now button */
 .pdp-prepaid-note { flex-basis: 100%; width: 100%; margin: -4px 0 2px; font-size: .82rem; font-weight: 600; color: #15803d; }
 .pdp-prepaid-note::before { content: "✦ "; }
+
+/* "For Open Box Delivery" note under the Book with ₹X button */
+.pdp-openbox-note { flex-basis: 100%; width: 100%; margin: -4px 0 2px; font-size: .82rem; font-weight: 600; color: #475569; }
+.pdp-openbox-note::before { content: "📦 "; }
+.pdp-openbox-note a { color: var(--brand); text-decoration: underline; }
