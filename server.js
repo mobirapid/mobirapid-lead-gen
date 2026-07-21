@@ -1191,7 +1191,7 @@ function renderProductPage(req, res, m, cat) {
               const consult = `<a class="pdp-book ${consultPrimary ? '' : 'pdp-consult'}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(variantKey(defVariant))}#lead-form` : bookUrl}">Book a consultation</a>`;
               const video = `<a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>`;
               const compare = !isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : '';
-              return `${shopBtns}${book}${consult}${video}${compare}`;
+              return `${book}${consult}${video}${shopBtns}${compare}`;
             })()}
           </div>
           <ul class="pdp-trust">
