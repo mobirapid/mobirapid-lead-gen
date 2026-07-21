@@ -1492,3 +1492,27 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
 .pdp-openbox-note { flex-basis: 100%; width: 100%; margin: -4px 0 2px; font-size: .82rem; font-weight: 600; color: #475569; }
 .pdp-openbox-note::before { content: "📦 "; }
 .pdp-openbox-note a { color: var(--brand); text-decoration: underline; }
+
+/* ---- PDP actions: tidy 2-column grid with consistent button sizes ---- */
+.pdp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; max-width: 600px; }
+.pdp-actions > * { margin: 0; }
+.pdp-actions .pdp-book, .pdp-actions .pdp-reserve {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 16px; min-height: 52px; font-size: .96rem; font-weight: 700;
+  text-align: center; white-space: normal; line-height: 1.25;
+}
+.pdp-actions .pdp-book:hover, .pdp-actions .pdp-reserve:hover { transform: translateY(-1px); }
+/* Featured booking CTA spans the full row and goes solid */
+.pdp-actions > a:first-child, .pdp-actions .pdp-reserve { grid-column: 1 / -1; }
+.pdp-actions .pdp-reserve { background: var(--grad-primary); color: #fff; border: none; box-shadow: 0 10px 24px rgba(37, 99, 235, .3); }
+.pdp-actions .pdp-reserve:hover { background: var(--grad-primary); color: #fff; }
+/* Buy Now gets its own identity (deep navy) so the two payment paths read differently */
+.pdp-actions .pdp-buynow { background: #0f172a; color: #fff; border: none; box-shadow: 0 10px 24px rgba(15, 23, 42, .22); }
+.pdp-actions .pdp-buynow:hover { background: #1e293b; }
+/* Notes + compare stretch across both columns */
+.pdp-actions .pdp-openbox-note, .pdp-actions .pdp-prepaid-note { grid-column: 1 / -1; margin: -3px 2px 3px; }
+.pdp-actions .pdp-compare { grid-column: 1 / -1; text-align: center; margin-top: 2px; }
+@media (max-width: 420px) {
+  .pdp-actions { gap: 8px; }
+  .pdp-actions .pdp-book, .pdp-actions .pdp-reserve { padding: 12px 10px; font-size: .9rem; min-height: 48px; }
+}
