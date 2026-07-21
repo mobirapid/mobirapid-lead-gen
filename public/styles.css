@@ -1516,3 +1516,6 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
   .pdp-actions { gap: 8px; }
   .pdp-actions .pdp-book, .pdp-actions .pdp-reserve { padding: 12px 10px; font-size: .9rem; min-height: 48px; }
 }
+
+/* Consultation button removed from PDP — video call takes the full row */
+.pdp-actions .pdp-video { grid-column: 1 / -1; }

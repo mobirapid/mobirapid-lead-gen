@@ -1186,9 +1186,9 @@ function renderProductPage(req, res, m, cat) {
                 <button class="pdp-book pdp-addcart" data-add-cart data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(g)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg> Add to cart</button>${prepaidNote}` : '';
               let book = reserveButton(m.slug, canBuy ? 'pdp-reserve' : 'pdp-book'); // '' if PayU off / no price
               if (book) book += `<p class="pdp-openbox-note">For <a href="/p/open-box-delivery">Open Box Delivery</a> — pay the balance after inspecting the device</p>`;
-              // Consultation is the primary CTA only when nothing else can be (no buy, no booking button).
+              // Consultation button only when nothing else is available (no buy, no booking button).
               const consultPrimary = !canBuy && !book;
-              const consult = `<a class="pdp-book ${consultPrimary ? '' : 'pdp-consult'}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(variantKey(defVariant))}#lead-form` : bookUrl}">Book a consultation</a>`;
+              const consult = consultPrimary ? `<a class="pdp-book" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(variantKey(defVariant))}#lead-form` : bookUrl}">Book a consultation</a>` : '';
               const video = `<a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>`;
               const compare = !isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : '';
               return `${book}${consult}${video}${shopBtns}${compare}`;
