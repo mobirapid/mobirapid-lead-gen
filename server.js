@@ -1083,8 +1083,12 @@ app.get('/:prefix/:slug', (req, res, next) => {
   const cat = catByPrefix(req.params.prefix);
   if (!cat) return next(); // not a product prefix — let /p/:slug, /blog/:slug, etc. handle it
   const m = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND category = ? AND active = 1').get(req.params.slug, cat.slug);
-  if (!m) return res.status(404).send('Product not found');
-  renderProductPage(req, res, m, cat);
+  if (m) return renderProductPage(req, res, m, cat);
+  // Slug exists but under a DIFFERENT (or renamed) category prefix → 301 to the correct URL.
+  // Keeps old /macbook/… links and shared/ad links working after a category rename.
+  const any = db.prepare('SELECT * FROM macbook_models WHERE slug = ? AND active = 1').get(req.params.slug);
+  if (any) return res.redirect(301, productUrl(any));
+  return res.status(404).send('Product not found');
 });
 
 function renderProductPage(req, res, m, cat) {
