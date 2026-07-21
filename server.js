@@ -903,14 +903,14 @@ app.get('/compare', (req, res) => {
   ];
   // Server-rendered fallback: full spec table for all models (SEO + no-JS)
   const fallbackCols = models.map((m) =>
-    `<th scope="col"><a href="/macbook/${esc(m.slug)}">${esc(m.name)}</a></th>`).join('');
+    `<th scope="col"><a href="${esc(productUrl(m))}">${esc(m.name)}</a></th>`).join('');
   const fallbackRows = ROWS.map(([k, label]) =>
     `<tr><th scope="row">${esc(label)}</th>${models.map((m) => `<td>${esc(m[k] || '—')}</td>`).join('')}</tr>`).join('');
   const fallback = `<div class="cmp-scroll"><table class="cmp-table"><thead><tr><th></th>${fallbackCols}</tr></thead>
     <tbody>${fallbackRows}</tbody></table></div>`;
 
   const data = models.map((m) => ({
-    slug: m.slug, name: m.name, image: m.image || '', price: m.price || '', mrp: m.mrp || '', condition_prices: m.condition_prices || '', best_for: m.best_for || '', badge: m.badge || '',
+    slug: m.slug, name: m.name, url: productUrl(m), image: m.image || '', price: m.price || '', mrp: m.mrp || '', condition_prices: m.condition_prices || '', best_for: m.best_for || '', badge: m.badge || '',
     cpu: m.cpu || '', gpu: m.gpu || '', memory: m.memory || '', storage: m.storage || '',
     display: m.display || '', condition_grade: m.condition_grade || '', warranty: m.warranty || '',
   }));
@@ -920,7 +920,7 @@ app.get('/compare', (req, res) => {
 
   const ld = {
     '@context': 'https://schema.org', '@type': 'ItemList', name: 'Compare refurbished MacBooks',
-    itemListElement: models.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + '/macbook/' + esc(m.slug), name: m.name })),
+    itemListElement: models.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + productUrl(m), name: m.name })),
   };
   const ldTag = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
 
@@ -957,7 +957,7 @@ app.get('/compare', (req, res) => {
           return '<th scope="col"><div class="cmp-card">'+
             (m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'">':'<div class="cmp-ph"></div>')+
             (m.badge?'<span class="cmp-badge">'+esc(m.badge)+'</span>':'')+
-            '<a href="/macbook/'+esc(m.slug)+'">'+esc(m.name)+'</a></div></th>';
+            '<a href="'+esc(m.url||('/macbook/'+m.slug))+'">'+esc(m.name)+'</a></div></th>';
         }).join('')+'</tr>';
         var body=ROWS.map(function(r){
           return '<tr><th scope="row">'+esc(r[1])+'</th>'+models.map(function(m){

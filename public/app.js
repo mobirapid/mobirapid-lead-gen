@@ -253,7 +253,7 @@
       ? `<span class="deal-soldout">Sold out — <a href="/book" class="deal-notify">notify me of similar deals</a></span>`
       : `<a class="deal-book" href="/book?model=${encodeURIComponent(m.slug)}&call=video" data-deal-model="${esc(m.name)}" data-video="1"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Book a video call</a>
          ${reserveAmt ? `<a class="deal-reserve" ${reserveUrl ? `href="${esc(reserveUrl)}"${reserveExternal ? ' target="_blank" rel="noopener"' : ''}` : `href="/book?model=${encodeURIComponent(m.slug)}"`} data-deal-model="${esc(m.name)}" data-reserve="${esc(reserveAmt)}">Book with ${esc(reserveAmt)} →</a>` : ''}
-         <a class="deal-view" href="/macbook/${esc(m.slug)}">View full specs</a>`;
+         <a class="deal-view" href="${prodUrl(m)}">View full specs</a>`;
 
     $('dealInner').innerHTML = `
       <div class="deal-copy">
