@@ -998,6 +998,10 @@ function catForProduct(m) { return db.prepare('SELECT * FROM categories WHERE sl
 function productUrl(m, cat) { return '/' + (cat || catForProduct(m)).url_prefix + '/' + m.slug; }
 // Flat "Reserve with ₹X" button. Uses a fixed PayU payment link if set, else the dynamic flow.
 // Booking amount = max(percent of sale price, floor). Both admin-configurable.
+// GST / price note: per-product override → category note → global default.
+function priceNoteFor(m, cat) {
+  return (m.price_note || '').trim() || ((cat && cat.price_note) || '').trim() || getSetting('price_note', '');
+}
 function bookingAmount(priceLike) {
   const price = digits(priceLike);
   if (!price) return 0;
@@ -1096,7 +1100,7 @@ function renderProductPage(req, res, m, cat) {
   const isPhone = cat.fields === 'phone';
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
-  const priceNote = (cat.price_note || '').trim() || getSetting('price_note', '');
+  const priceNote = priceNoteFor(m, cat);
   const bookUrl = `/book?model=${encodeURIComponent(m.slug)}#lead-form`;
   const priceNum = String(m.price || '').replace(/[^\d.]/g, '');
   const ld = {
@@ -1235,7 +1239,7 @@ app.get('/c/:slug', (req, res) => {
   if (!cat) return res.status(404).send('Category not found');
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
-  const priceNote = (cat.price_note || '').trim() || getSetting('price_note', '');
+  const priceNote = priceNoteFor(m, cat);
   const items = db.prepare('SELECT * FROM macbook_models WHERE category = ? AND active = 1 ORDER BY sort_order ASC, id ASC').all(cat.slug);
   const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: cat.name,
     itemListElement: items.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + productUrl(m, cat), name: m.name })) };
@@ -2150,6 +2154,7 @@ function modelFromBody(b) {
     price: normalizePrice(String(b.price || '').trim()),
     mrp: normalizePrice(String(b.mrp || '').trim()),
     best_for: String(b.best_for || '').trim().slice(0, 300),
+    price_note: String(b.price_note || '').trim().slice(0, 60),
     condition_prices: JSON.stringify(
       (Array.isArray(b.condition_prices) ? b.condition_prices : [])
         .map((r) => ({ grade: String((r && r.grade) || '').trim().slice(0, 60), price: normalizePrice(String((r && r.price) || '').trim().slice(0, 30)), mrp: normalizePrice(String((r && r.mrp) || '').trim().slice(0, 30)) }))
@@ -2183,8 +2188,8 @@ app.post('/api/admin/models', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ?').get(slug)) slug = m.slug + '-' + n++;
   const info = db.prepare(
-    `INSERT INTO macbook_models (name, category, slug, price, mrp, best_for, condition_prices, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
-     VALUES (@name, @category, @slug, @price, @mrp, @best_for, @condition_prices, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
+    `INSERT INTO macbook_models (name, category, slug, price, mrp, best_for, price_note, condition_prices, image, images, specs, description, badge, condition_grade, warranty, cpu, gpu, memory, storage, display, software, battery_health, colour, sort_order, active)
+     VALUES (@name, @category, @slug, @price, @mrp, @best_for, @price_note, @condition_prices, @image, @images, @specs, @description, @badge, @condition_grade, @warranty, @cpu, @gpu, @memory, @storage, @display, @software, @battery_health, @colour, @sort_order, @active)`
   ).run({ ...m, slug });
   res.json({ ok: true, id: Number(info.lastInsertRowid), slug });
 });
@@ -2200,7 +2205,7 @@ app.put('/api/admin/models/:id', requireAdmin, (req, res) => {
   let slug = m.slug, n = 2;
   while (db.prepare('SELECT id FROM macbook_models WHERE slug = ? AND id != ?').get(slug, id)) slug = m.slug + '-' + n++;
   db.prepare(
-    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, best_for=@best_for, condition_prices=@condition_prices, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
+    `UPDATE macbook_models SET name=@name, category=@category, slug=@slug, price=@price, mrp=@mrp, best_for=@best_for, price_note=@price_note, condition_prices=@condition_prices, image=@image, images=@images, specs=@specs, description=@description, badge=@badge,
      condition_grade=@condition_grade, warranty=@warranty, cpu=@cpu, gpu=@gpu, memory=@memory, storage=@storage, display=@display, software=@software,
      battery_health=@battery_health, colour=@colour, sort_order=@sort_order, active=@active WHERE id=@id`
   ).run({ ...m, slug, id });
