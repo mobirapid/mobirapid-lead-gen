@@ -688,7 +688,14 @@ function siteFooterHtml() {
   const legal = esc(getSetting('legal_name', '') || getSetting('brand_name', 'Mobirapid'));
   const pages = db.prepare("SELECT slug, title FROM content_pages WHERE slug != 'partner' ORDER BY sort_order ASC").all();
   const links = ['<a href="/blog">Blog</a>', '<a href="/condition">Condition grades</a>', '<a href="/partner">Partner with us</a>'].concat(pages.map((p) => `<a href="/p/${esc(p.slug)}">${esc(p.title)}</a>`)).join(' · ');
-  return `<footer class="site-footer"><div class="footer-bottom"><div class="container footer-bottom-inner">
+  let trust = '';
+  try {
+    const logos = (JSON.parse(getSetting('trust_logos', '[]')) || []).filter((l) => l && ((l.label || '').trim() || l.image));
+    const items = (logos.length ? logos : [{ label: 'Startup India' }, { label: 'iStart Rajasthan' }, { label: 'Ingram Micro' }])
+      .map((l) => l.image ? `<span class="ft-logo"><img src="${esc(l.image)}" alt="${esc(l.label || 'Partner logo')}" loading="lazy"></span>` : `<span class="ft-badge">${esc(l.label)}</span>`).join('');
+    trust = `<div class="footer-trust"><div class="container footer-trust-inner"><span class="ft-label">Recognised &amp; partnered with</span>${items}</div></div>`;
+  } catch { trust = ''; }
+  return `<footer class="site-footer">${trust}<div class="footer-bottom"><div class="container footer-bottom-inner">
   <span>© ${new Date().getFullYear()} ${legal}. All rights reserved.</span>
   <span class="footer-links">${links}</span>
   <span class="pay-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure payments · Powered by <b>PayU</b></span>

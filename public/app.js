@@ -846,6 +846,19 @@
       gEl.hidden = false; gEl.innerHTML = g;
     } else { gEl.hidden = true; gEl.innerHTML = ''; }
 
+    // Trust / recognition logos strip
+    const ft = $('footerTrust');
+    if (ft) {
+      let logos = [];
+      try { logos = JSON.parse(s.trust_logos || '[]') || []; } catch { logos = []; }
+      logos = logos.filter((l) => l && ((l.label || '').trim() || l.image));
+      if (!logos.length) logos = [{ label: 'Startup India' }, { label: 'iStart Rajasthan' }, { label: 'Ingram Micro' }];
+      ft.hidden = false;
+      ft.innerHTML = `<div class="container footer-trust-inner"><span class="ft-label">Recognised &amp; partnered with</span>${logos.map((l) => l.image
+        ? `<span class="ft-logo"><img src="${esc(l.image)}" alt="${esc(l.label || 'Partner logo')}" loading="lazy"></span>`
+        : `<span class="ft-badge">${esc(l.label)}</span>`).join('')}</div>`;
+    }
+
     // Bottom legal bar
     const year = new Date().getFullYear();
     const legalName = (s.legal_name || s.brand_name || 'Mobirapid').trim();

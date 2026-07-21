@@ -252,6 +252,9 @@
     renderConditionRows();
     try { sliderItems = JSON.parse(settings.slider_banners || '[]'); } catch { sliderItems = []; }
     renderSliderRows();
+    try { trustItems = JSON.parse(settings.trust_logos || '[]') || []; } catch { trustItems = []; }
+    if (!trustItems.length) trustItems = [{ label: 'Startup India', image: '' }, { label: 'iStart Rajasthan', image: '' }, { label: 'Ingram Micro', image: '' }];
+    renderTrustRows();
     try { dealItems = JSON.parse(settings.deals_list || '[]'); } catch { dealItems = []; }
     renderDealRows();
     try { stepItems = JSON.parse(settings.how_steps || '[]'); } catch { stepItems = []; }
@@ -358,6 +361,33 @@
   });
   on('saveSliders', 'click', () => {
     saveSettings({ slider_banners: JSON.stringify(sliderItems.filter((b) => b.image)) }, $('slidersSaved'));
+  });
+
+  // ---- Footer trust logos editor ----
+  let trustItems = [];
+  function renderTrustRows() {
+    const wrap = $('trustRows'); if (!wrap) return;
+    wrap.innerHTML = trustItems.length ? trustItems.map((t, i) => `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);">
+        ${t.image ? `<img src="${esc(t.image)}" alt="" style="height:34px;max-width:120px;object-fit:contain;background:#fff;border-radius:6px;padding:2px 6px;" />` : '<span class="muted" style="font-size:.85rem;">no image</span>'}
+        <input type="text" data-tlabel="${i}" value="${esc(t.label || '')}" placeholder="Name e.g. Startup India" style="flex:1;min-width:150px;" />
+        <input type="file" data-tfile="${i}" accept="image/*" style="width:150px;" />
+        <button class="btn small" data-tup="${i}" type="button">Upload logo</button>
+        ${t.image ? `<button class="btn small" data-tclear="${i}" type="button">Remove image</button>` : ''}
+        <button class="btn small danger" data-trem="${i}" type="button">✕</button>
+      </div>`).join('') : '<p class="muted" style="padding:6px 0;">No logos yet.</p>';
+    wrap.querySelectorAll('[data-tlabel]').forEach((el) => el.addEventListener('input', () => { trustItems[+el.dataset.tlabel].label = el.value; }));
+    wrap.querySelectorAll('[data-tup]').forEach((el) => el.addEventListener('click', async () => {
+      const i = +el.dataset.tup;
+      const p = await uploadImage(wrap.querySelector(`[data-tfile="${i}"]`));
+      if (!p) return; trustItems[i].image = p; renderTrustRows();
+    }));
+    wrap.querySelectorAll('[data-tclear]').forEach((el) => el.addEventListener('click', () => { trustItems[+el.dataset.tclear].image = ''; renderTrustRows(); }));
+    wrap.querySelectorAll('[data-trem]').forEach((el) => el.addEventListener('click', () => { trustItems.splice(+el.dataset.trem, 1); renderTrustRows(); }));
+  }
+  on('addTrust', 'click', () => { trustItems.push({ label: '', image: '' }); renderTrustRows(); });
+  on('saveTrust', 'click', () => {
+    saveSettings({ trust_logos: JSON.stringify(trustItems.filter((t) => (t.label || '').trim() || t.image)) }, $('trustSaved'));
   });
 
   // ---- USP strip editor ----
