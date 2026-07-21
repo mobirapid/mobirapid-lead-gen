@@ -1056,8 +1056,11 @@ function bestForHtml(m, max) {
 }
 // Per-condition price variations: JSON [{grade, price, mrp}] on the model row (empty = single price).
 function condPrices(m) {
-  try { const v = JSON.parse(m.condition_prices || '[]'); return Array.isArray(v) ? v.filter((r) => r && r.grade && r.price) : []; } catch { return []; }
+  // Variant rows: {grade?, ram?, storage?, price, mrp?} — any combination of the three attributes.
+  try { const v = JSON.parse(m.condition_prices || '[]'); return Array.isArray(v) ? v.filter((r) => r && r.price && (r.grade || r.ram || r.storage)) : []; } catch { return []; }
 }
+// Human-readable variant identity, e.g. "Very Good · 16GB · 512GB". Used as the cart/checkout variant key too.
+function variantKey(v) { return [v.grade, v.ram, v.storage].map((x) => String(x || '').trim()).filter(Boolean).join(' · '); }
 const priceNum2 = (s) => parseFloat(String(s || '').replace(/[^\d.]/g, '')) || 0;
 // Lowest-priced variant (for "From ₹X" on cards); null when the product has no variations.
 function lowestVariant(m) {
@@ -1156,11 +1159,16 @@ function renderProductPage(req, res, m, cat) {
           ${(() => {
             if (!defVariant) return m.price ? `<div class="pdp-price">${esc(m.price)}${discountHtml(m)} ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>` : '<div class="pdp-price-req">Price on request</div>';
             const dm = priceNum2(defVariant.mrp), dp = priceNum2(defVariant.price), hasD = dm > dp;
+            // One chip group per attribute that any variant uses (Condition / RAM / Storage).
+            const attrs = [['grade', 'Condition', '/condition'], ['ram', 'RAM', ''], ['storage', 'Storage', '']]
+              .map(([k, label, link]) => ({ k, label, link, vals: [...new Set(variants.map((v) => String(v[k] || '').trim()).filter(Boolean))] }))
+              .filter((g) => g.vals.length);
+            const single = attrs.length === 1; // classic condition-only setup → show price on each chip
+            const priceOf = (k, val) => { const r = variants.find((v) => String(v[k] || '').trim() === val); return r ? r.price : ''; };
+            const groups = attrs.map((g) => `<div class="pdp-cond-label">${g.label} ${g.link ? `<a href="${g.link}" title="What do these grades mean?">ⓘ</a>` : ''}</div>
+              <div class="pdp-cond-opts">${g.vals.map((val) => `<button type="button" class="pdp-cond-opt${String(defVariant[g.k] || '').trim() === val ? ' on' : ''}" data-attr="${g.k}" data-val="${esc(val)}"><b>${esc(val)}</b>${single ? `<small>${esc(priceOf(g.k, val))}</small>` : ''}</button>`).join('')}</div>`).join('');
             return `<div class="pdp-price"><span id="pdpPriceVal">${esc(defVariant.price)}</span> <span class="mrp-strike" id="pdpStrike"${hasD ? '' : ' hidden'}>${hasD ? '₹' + Math.round(dm).toLocaleString('en-IN') : ''}</span> <span class="off-tag" id="pdpOff"${hasD ? '' : ' hidden'}>${hasD ? Math.round(((dm - dp) / dm) * 100) + '% off' : ''}</span> ${priceNote ? `<span class="pdp-gst">${esc(priceNote)}</span>` : ''}</div>
-            <div class="pdp-cond-label">Condition <a href="/condition" title="What do these grades mean?">ⓘ</a></div>
-            <div class="pdp-cond-opts" id="condOpts">
-              ${variants.map((v) => `<button type="button" class="pdp-cond-opt${v === defVariant ? ' on' : ''}" data-grade="${esc(v.grade)}" data-price="${esc(v.price)}" data-mrp="${esc(v.mrp || '')}"><b>${esc(v.grade)}</b><small>${esc(v.price)}</small></button>`).join('')}
-            </div>`;
+            <div id="condOpts">${groups}<input type="hidden" id="pdpVariantKey" value="${esc(variantKey(defVariant))}"></div>`;
           })()}
           ${bestForHtml(m)}
           <div class="pdp-meta">${metaBits.filter(Boolean).join('')}</div>
@@ -1171,13 +1179,13 @@ function renderProductPage(req, res, m, cat) {
               if (soldOut) return `${availabilityButton(m, 'pdp-book pdp-avail')}
                 ${!isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : ''}`;
               const canBuy = shopOn() && effectivePrice(m) > 0;   // priced products only
-              const g = defVariant ? defVariant.grade : '';
+              const g = defVariant ? variantKey(defVariant) : '';
               const shopBtns = canBuy ? `<button class="pdp-book pdp-buynow" data-buy-now data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(g)}">Buy now →</button>
                 <button class="pdp-book pdp-addcart" data-add-cart data-pdp="1" data-slug="${esc(m.slug)}" data-grade="${esc(g)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2 3h3l2.5 13h11l2-8H6"/></svg> Add to cart</button>` : '';
               const book = reserveButton(m.slug, canBuy ? 'pdp-reserve' : 'pdp-book'); // '' if PayU off / no price
               // Consultation is the primary CTA only when nothing else can be (no buy, no booking button).
               const consultPrimary = !canBuy && !book;
-              const consult = `<a class="pdp-book ${consultPrimary ? '' : 'pdp-consult'}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(defVariant.grade)}#lead-form` : bookUrl}">Book a consultation</a>`;
+              const consult = `<a class="pdp-book ${consultPrimary ? '' : 'pdp-consult'}" id="pdpBookBtn" data-base="/book?model=${encodeURIComponent(m.slug)}" href="${defVariant ? `/book?model=${encodeURIComponent(m.slug)}&cond=${encodeURIComponent(variantKey(defVariant))}#lead-form` : bookUrl}">Book a consultation</a>`;
               const video = `<a class="pdp-book pdp-video" href="/track/video-call?model=${encodeURIComponent(m.slug)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg> Schedule video call</a>`;
               const compare = !isPhone ? `<a class="pdp-compare" href="/compare?ids=${encodeURIComponent(m.slug)}">Compare with other models</a>` : '';
               return `${shopBtns}${book}${consult}${video}${compare}`;
@@ -1219,15 +1227,32 @@ function renderProductPage(req, res, m, cat) {
     </main>
     <script>(function(){var t=document.getElementById('pdpThumbs');if(!t)return;var main=document.getElementById('pdpMainImg');t.addEventListener('click',function(e){var b=e.target.closest('.pdp-thumb');if(!b)return;main.src=b.getAttribute('data-img');t.querySelectorAll('.pdp-thumb').forEach(function(x){x.classList.toggle('on',x===b);});});})();</script>
     <script>(function(){var w=document.getElementById('condOpts');if(!w)return;
-      var pv=document.getElementById('pdpPriceVal'),st=document.getElementById('pdpStrike'),off=document.getElementById('pdpOff'),book=document.getElementById('pdpBookBtn');
+      var V=${JSON.stringify(variants).replace(/</g, '\\u003c')};
+      var KEYS=['grade','ram','storage'].filter(function(k){return V.some(function(r){return String(r[k]||'').trim();});});
+      var pv=document.getElementById('pdpPriceVal'),st=document.getElementById('pdpStrike'),off=document.getElementById('pdpOff'),book=document.getElementById('pdpBookBtn'),keyEl=document.getElementById('pdpVariantKey');
       var num=function(s){return parseFloat(String(s||'').replace(/[^\\d.]/g,''))||0;};
-      w.addEventListener('click',function(e){var b=e.target.closest('.pdp-cond-opt');if(!b)return;
-        w.querySelectorAll('.pdp-cond-opt').forEach(function(x){x.classList.toggle('on',x===b);});
-        if(pv)pv.textContent=b.dataset.price;
-        var mv=num(b.dataset.mrp),p=num(b.dataset.price),has=mv>p;
+      var val=function(r,k){return String(r[k]||'').trim();};
+      var kOf=function(r){return KEYS.map(function(k){return val(r,k);}).filter(Boolean).join(' \\u00b7 ');};
+      var sel={};
+      function apply(row){
+        KEYS.forEach(function(k){sel[k]=val(row,k);});
+        w.querySelectorAll('.pdp-cond-opt').forEach(function(x){x.classList.toggle('on',sel[x.dataset.attr]===x.dataset.val);});
+        var p=num(row.price),mv=num(row.mrp),has=mv>p;
+        if(pv)pv.textContent=row.price;
         if(st){st.hidden=!has;if(has)st.textContent='₹'+Math.round(mv).toLocaleString('en-IN');}
         if(off){off.hidden=!has;if(has)off.textContent=Math.round(((mv-p)/mv)*100)+'% off';}
-        if(book&&book.dataset.base)book.href=book.dataset.base+'&cond='+encodeURIComponent(b.dataset.grade)+'#lead-form';
+        var key=kOf(row);
+        if(book&&book.dataset.base)book.href=book.dataset.base+'&cond='+encodeURIComponent(key)+'#lead-form';
+        if(keyEl)keyEl.value=key;
+        document.querySelectorAll('[data-pdp="1"]').forEach(function(b){b.setAttribute('data-grade',key);});
+      }
+      // Initial selection from the server-rendered default.
+      (function(){var k0=keyEl?keyEl.value:'';var r0=V.find(function(r){return kOf(r)===k0;})||V[0];if(r0)KEYS.forEach(function(k){sel[k]=val(r0,k);});})();
+      w.addEventListener('click',function(e){var b=e.target.closest('.pdp-cond-opt');if(!b)return;
+        var k=b.dataset.attr,v2=b.dataset.val;
+        var row=V.find(function(r){return KEYS.every(function(x){return val(r,x)===(x===k?v2:sel[x]);});});
+        if(!row)row=V.find(function(r){return val(r,k)===v2;}); // no exact combo — jump to the nearest variant with that value
+        if(row)apply(row);
       });})();</script>` +
     pageTail()
   );
@@ -1239,11 +1264,11 @@ app.get('/c/:slug', (req, res) => {
   if (!cat) return res.status(404).send('Category not found');
   const base = baseUrl(req);
   const brand = getSetting('brand_name', 'Mobirapid');
-  const priceNote = priceNoteFor(m, cat);
   const items = db.prepare('SELECT * FROM macbook_models WHERE category = ? AND active = 1 ORDER BY sort_order ASC, id ASC').all(cat.slug);
   const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: cat.name,
     itemListElement: items.map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: base + productUrl(m, cat), name: m.name })) };
   const card = (m) => {
+    const priceNote = priceNoteFor(m, cat);
     const sub = cat.fields === 'phone'
       ? [m.cpu, m.storage, m.battery_health ? 'Battery ' + m.battery_health : '', m.condition_grade].filter(Boolean).join(' · ')
       : [m.specs || [m.cpu, m.memory, m.storage].filter(Boolean).join(' · '), m.condition_grade].filter(Boolean).join(' · ');
@@ -1578,7 +1603,8 @@ function serverPrice(slug, grade) {
   if (grade) {
     try {
       const v = JSON.parse(m.condition_prices || '[]');
-      const hit = Array.isArray(v) ? v.find((x) => x && x.grade === grade) : null;
+      // Match by full variant key ("Good · 16GB · 512GB") or by plain grade (older carts).
+      const hit = Array.isArray(v) ? v.find((x) => x && (variantKey(x) === grade || x.grade === grade)) : null;
       if (hit && hit.price) return priceToNum(hit.price);
     } catch { /* ignore */ }
   }
@@ -2157,9 +2183,9 @@ function modelFromBody(b) {
     price_note: String(b.price_note || '').trim().slice(0, 60),
     condition_prices: JSON.stringify(
       (Array.isArray(b.condition_prices) ? b.condition_prices : [])
-        .map((r) => ({ grade: String((r && r.grade) || '').trim().slice(0, 60), price: normalizePrice(String((r && r.price) || '').trim().slice(0, 30)), mrp: normalizePrice(String((r && r.mrp) || '').trim().slice(0, 30)) }))
-        .filter((r) => r.grade && r.price)
-        .slice(0, 8)
+        .map((r) => ({ grade: String((r && r.grade) || '').trim().slice(0, 60), ram: String((r && r.ram) || '').trim().slice(0, 40), storage: String((r && r.storage) || '').trim().slice(0, 40), price: normalizePrice(String((r && r.price) || '').trim().slice(0, 30)), mrp: normalizePrice(String((r && r.mrp) || '').trim().slice(0, 30)) }))
+        .filter((r) => r.price && (r.grade || r.ram || r.storage))
+        .slice(0, 24)
     ),
     image: primary,
     images: JSON.stringify(gallery),

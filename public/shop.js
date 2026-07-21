@@ -47,8 +47,13 @@
     e.preventDefault();
     // Read the currently selected condition on a product page, if present.
     let grade = el.getAttribute('data-grade') || '';
-    const sel = document.querySelector('.pdp-cond-opt.on');
-    if (sel && el.getAttribute('data-pdp') === '1') grade = sel.getAttribute('data-grade') || '';
+    // New variant UI keeps the buttons' data-grade current; #pdpVariantKey is the source of truth.
+    const keyEl = document.getElementById('pdpVariantKey');
+    if (keyEl && el.getAttribute('data-pdp') === '1') grade = keyEl.value || grade;
+    else {
+      const sel = document.querySelector('.pdp-cond-opt.on');
+      if (sel && el.getAttribute('data-pdp') === '1' && sel.getAttribute('data-grade')) grade = sel.getAttribute('data-grade');
+    }
     cart.add({ slug: el.getAttribute('data-slug'), grade, qty: 1 });
     if (buy) location.href = '/cart';
     else toast('Added to cart');

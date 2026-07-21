@@ -648,17 +648,21 @@
     const wrap = $('condPriceRows'); if (!wrap) return;
     wrap.innerHTML = condPriceRows.map((r, i) => `
       <div class="upload-row" style="margin-bottom:8px;">
-        <select data-cpg="${i}" style="min-width:150px;">${condGradeOpts(r.grade)}</select>
-        <input type="text" data-cpp="${i}" placeholder="Price e.g. ₹1,15,000" value="${esc(r.price || '')}" style="width:150px;" />
-        <input type="text" data-cpm="${i}" placeholder="MRP (optional)" value="${esc(r.mrp || '')}" style="width:130px;" />
+        <select data-cpg="${i}" style="min-width:130px;">${condGradeOpts(r.grade)}</select>
+        <input type="text" data-cpr="${i}" placeholder="RAM e.g. 16GB" value="${esc(r.ram || '')}" style="width:110px;" />
+        <input type="text" data-cps="${i}" placeholder="Storage e.g. 512GB" value="${esc(r.storage || '')}" style="width:130px;" />
+        <input type="text" data-cpp="${i}" placeholder="Price e.g. ₹1,15,000" value="${esc(r.price || '')}" style="width:140px;" />
+        <input type="text" data-cpm="${i}" placeholder="MRP (optional)" value="${esc(r.mrp || '')}" style="width:120px;" />
         <button class="btn small danger" type="button" data-cpx="${i}" title="Remove">✕</button>
       </div>`).join('');
     wrap.querySelectorAll('[data-cpg]').forEach((el) => el.addEventListener('change', () => { condPriceRows[+el.dataset.cpg].grade = el.value; }));
+    wrap.querySelectorAll('[data-cpr]').forEach((el) => el.addEventListener('input', () => { condPriceRows[+el.dataset.cpr].ram = el.value; }));
+    wrap.querySelectorAll('[data-cps]').forEach((el) => el.addEventListener('input', () => { condPriceRows[+el.dataset.cps].storage = el.value; }));
     wrap.querySelectorAll('[data-cpp]').forEach((el) => el.addEventListener('input', () => { condPriceRows[+el.dataset.cpp].price = el.value; }));
     wrap.querySelectorAll('[data-cpm]').forEach((el) => el.addEventListener('input', () => { condPriceRows[+el.dataset.cpm].mrp = el.value; }));
     wrap.querySelectorAll('[data-cpx]').forEach((el) => el.addEventListener('click', () => { condPriceRows.splice(+el.dataset.cpx, 1); renderCondPriceRows(); }));
   }
-  on('addCondPrice', 'click', () => { condPriceRows.push({ grade: '', price: '', mrp: '' }); renderCondPriceRows(); });
+  on('addCondPrice', 'click', () => { condPriceRows.push({ grade: '', ram: '', storage: '', price: '', mrp: '' }); renderCondPriceRows(); });
 
   function openModel(id) {
     const m = id ? models.find((x) => String(x.id) === String(id)) : null;
@@ -718,7 +722,7 @@
     const payload = {
       category: $('m-category') ? $('m-category').value : 'macbooks',
       name: $('m-name').value.trim(), slug: $('m-slug').value.trim(), price: $('m-price').value.trim(), mrp: $('m-mrp') ? $('m-mrp').value.trim() : '', best_for: $('m-best_for') ? $('m-best_for').value.trim() : '', price_note: $('m-price_note') ? $('m-price_note').value : '', specs: $('m-specs').value.trim(),
-      condition_prices: condPriceRows.filter((r) => (r.grade || '').trim() && (r.price || '').trim()),
+      condition_prices: condPriceRows.filter((r) => (r.price || '').trim() && ((r.grade || '').trim() || (r.ram || '').trim() || (r.storage || '').trim())),
       description: $('m-description').value.trim(),
       badge: $('m-badge').value, condition_grade: $('m-condition_grade').value.trim(),
       warranty: $('m-warranty').value.trim(),

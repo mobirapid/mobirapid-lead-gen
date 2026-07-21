@@ -540,7 +540,7 @@
               const pn = (v) => parseFloat(String(v || '').replace(/[^\d.]/g, '')) || 0;
               let variants = [];
               try { variants = JSON.parse(m.condition_prices || '[]') || []; } catch { variants = []; }
-              variants = variants.filter((v) => v && v.grade && v.price);
+              variants = variants.filter((v) => v && v.price && (v.grade || v.ram || v.storage));
               if (variants.length) {
                 const low = variants.reduce((a, b) => (pn(b.price) < pn(a.price) ? b : a));
                 return `<span class="model-price"><span class="from-tag">From</span> ${esc(low.price)}</span>`;

@@ -767,10 +767,10 @@
             <select id="m-price_note"><option value="">Use category default</option><option value="+ 18% GST">+ 18% GST (exclusive)</option><option value="incl. 18% GST">incl. 18% GST (inclusive)</option><option value="+ 12% GST">+ 12% GST</option><option value="incl. 12% GST">incl. 12% GST</option><option value="GST included">GST included</option></select>
           </div>
           <div style="grid-column:1 / -1;">
-            <label class="fld">Condition-based pricing (optional)</label>
-            <p class="muted" style="margin:4px 0 8px;">One row per condition with its own price (and optional MRP). When set, buyers pick the condition on the product page and the price switches — cards show "From ₹lowest". The single price above is ignored on the product page.</p>
+            <label class="fld">Variant pricing — condition / RAM / storage (optional)</label>
+            <p class="muted" style="margin:4px 0 8px;">One row per variant with its own price (and optional MRP). Fill any mix of condition, RAM and storage — leave a field blank if it doesn't vary. Buyers pick the variant on the product page and the price switches; cards show "From ₹lowest". The single price above is ignored when rows exist.</p>
             <div id="condPriceRows"></div>
-            <button class="btn small" type="button" id="addCondPrice">+ Add condition price</button>
+            <button class="btn small" type="button" id="addCondPrice">+ Add variant</button>
           </div>
           <div><label class="fld">Badge</label>
             <select id="m-badge"><option value="">None</option><option>Hot</option><option>Available</option><option>Out of stock</option><option>Sold out</option></select>
