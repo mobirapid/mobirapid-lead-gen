@@ -754,8 +754,8 @@
         <input type="hidden" id="m-id" />
         <label class="fld">Category *</label>
         <select id="m-category"></select>
-        <label class="fld" style="margin-top:12px;">Product name *</label>
-        <input type="text" id="m-name" required placeholder='MacBook Pro 14" M3 / iPhone 13 128GB' />
+        <label class="fld" style="margin-top:12px;">Product name * <small style="color:#64748b;">(best under 60 characters)</small></label>
+        <input type="text" id="m-name" required maxlength="80" placeholder='MacBook Pro 14" M3 / iPhone 13 128GB' />
         <label class="fld" style="margin-top:12px;">Product URL slug <small style="color:#64748b;">(leave blank to auto-generate — /macbook/&lt;slug&gt;)</small></label>
         <input type="text" id="m-slug" placeholder="macbook-pro-14-m3" />
         <div class="grid2" style="margin-top:12px;">
@@ -772,10 +772,10 @@
             <select id="m-badge"><option value="">None</option><option>Hot</option><option>Available</option><option>Out of stock</option><option>Sold out</option></select>
           </div>
         </div>
-        <label class="fld" style="margin-top:12px;">Specs (short line)</label>
-        <input type="text" id="m-specs" placeholder="M3 · 16GB · 512GB SSD" />
-        <label class="fld" style="margin-top:12px;">Description</label>
-        <textarea id="m-description" rows="3" placeholder="Short description shown on the card"></textarea>
+        <label class="fld" style="margin-top:12px;">Specs (short line) <small style="color:#64748b;">(one line, ~40 chars)</small></label>
+        <input type="text" id="m-specs" maxlength="60" placeholder="M3 · 16GB · 512GB SSD" />
+        <label class="fld" style="margin-top:12px;">Description <small style="color:#64748b;">(2 lines show on the card; full text on the product page)</small></label>
+        <textarea id="m-description" rows="3" maxlength="600" placeholder="Short description shown on the card"></textarea>
         <div class="grid2" style="margin-top:12px;">
           <div><label class="fld">Condition grade</label><select id="m-condition_grade"></select></div>
           <div><label class="fld">Warranty note</label><input type="text" id="m-warranty" placeholder="6-month warranty" /></div>

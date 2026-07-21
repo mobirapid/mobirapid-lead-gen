@@ -1432,3 +1432,29 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
 
 /* Checkout: prepaid-only note */
 .pay-note { background: var(--brand-soft); border: 1px solid rgba(29,78,216,.2); border-radius: 12px; padding: 14px 16px; font-size: .95rem; line-height: 1.55; color: var(--ink-soft); }
+
+/* ================= Product cards: uniform sizing for a clean grid =================
+   Square white image (nothing cropped), and clamped text so long names/specs/
+   descriptions never make cards different heights. */
+.model-img, .model-media {
+  height: auto; aspect-ratio: 1 / 1; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.model-media img { max-width: 86%; max-height: 86%; width: auto; height: auto; object-fit: contain; }
+/* Homepage cards render the image as a CSS background — switch to 'contain' on white */
+.model-img { background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #fff; }
+.cat-grid-page .model-media { height: auto; aspect-ratio: 1 / 1; }
+
+/* Text clamps — keep every card the same height */
+.model-body h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; line-height: 1.3; }
+.model-specs { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.model-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Deal cards + shop cart thumbs stay square-fit on white too */
+.dealg-media { aspect-ratio: 1 / 1; height: auto; background: #fff; display: flex; align-items: center; justify-content: center; }
+.dealg-media img { width: 86%; height: 86%; object-fit: contain; }
+.dealg-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
+
+/* Product page main image: square, fit on white, consistent height */
+.pdp-media { aspect-ratio: 1 / 1; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pdp-media img { max-width: 90%; max-height: 90%; width: auto; height: auto; object-fit: contain; }
