@@ -1479,3 +1479,7 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
 @media (max-width: 380px) {
   .cat-strip .cat-chip-ring { width: 52px; height: 52px; }
 }
+
+/* Add to cart button: keep the cart icon small and inline with the label */
+.pdp-addcart { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.pdp-addcart svg { width: 18px; height: 18px; flex: none; }
