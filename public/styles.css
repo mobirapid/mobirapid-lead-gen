@@ -1468,3 +1468,14 @@ button.pdp-book, button.model-reserve { font: inherit; cursor: pointer; border: 
 .pay-powered b { color: #cbd5e1; }
 .footer-bottom-inner .pay-badge { background: rgba(255,255,255,.05); }
 @media (max-width: 640px) { .footer-bottom-inner .pay-badge { order: 3; } }
+
+/* Mobile: category icons as a 4-per-row grid (instead of horizontal scroll) */
+@media (max-width: 640px) {
+  .cat-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; overflow-x: visible; padding: 14px 4px; }
+  .cat-strip .cat-chip { min-width: 0; }
+  .cat-strip .cat-chip-ring { width: 58px; height: 58px; }
+  .cat-strip .cat-chip-name { font-size: .68rem; max-width: 100%; }
+}
+@media (max-width: 380px) {
+  .cat-strip .cat-chip-ring { width: 52px; height: 52px; }
+}
