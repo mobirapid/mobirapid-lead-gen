@@ -7,15 +7,26 @@
   let cats = [];
   const canEditLeads = () => userRole === 'admin';
 
-  // ---------- Tabs ----------
+  // ---------- Tabs (sidebar menu) ----------
+  const sideEl = document.getElementById('adminSide');
+  const sideToggle = document.getElementById('sideToggle');
+  const syncToggleLabel = () => {
+    const a = document.querySelector('.tab.active');
+    if (sideToggle && a) sideToggle.textContent = '☰ ' + a.textContent.trim();
+  };
+  if (sideToggle) sideToggle.addEventListener('click', () => sideEl.classList.toggle('open'));
   document.querySelectorAll('.tab').forEach((t) => {
     t.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
       document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
       t.classList.add('active');
       $('panel-' + t.dataset.tab).classList.add('active');
+      if (sideEl) sideEl.classList.remove('open'); // collapse the menu on mobile after choosing
+      syncToggleLabel();
+      window.scrollTo({ top: 0 });
     });
   });
+  syncToggleLabel();
 
   async function api(url, opts) {
     const r = await fetch(url, opts);
@@ -1346,6 +1357,16 @@
     document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
     const t = document.querySelector(`.tab[data-tab="${tabs[0]}"]`); if (t) t.classList.add('active');
     const p = $('panel-' + tabs[0]); if (p) p.classList.add('active');
+    // Hide sidebar group headings whose buttons are all hidden (role-limited staff)
+    document.querySelectorAll('.side-group').forEach((g) => {
+      let el = g.nextElementSibling, any = false;
+      while (el && !el.classList.contains('side-group')) {
+        if (el.classList.contains('tab') && el.style.display !== 'none') any = true;
+        el = el.nextElementSibling;
+      }
+      g.style.display = any ? '' : 'none';
+    });
+    syncToggleLabel();
   }
 
   // ---------- Init (role-aware; staff users can hold multiple roles) ----------

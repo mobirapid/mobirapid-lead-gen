@@ -76,6 +76,24 @@
     .dlg-body { padding: 18px 22px; max-height: 70vh; overflow: auto; }
     .dlg-foot { padding: 14px 22px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
     @media (max-width: 720px){ .grid2 { grid-template-columns: 1fr; } }
+    /* ---- Sidebar layout ---- */
+    .admin-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 22px; }
+    .admin-side { flex: 0 0 225px; position: sticky; top: 14px; }
+    .side-nav { display: flex; flex-direction: column; gap: 2px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin: 0; border-bottom: 1px solid var(--line); }
+    .side-nav .side-group { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); padding: 12px 10px 4px; }
+    .side-nav .side-group:first-child { padding-top: 4px; }
+    .side-nav .tab { text-align: left; border-radius: 9px; padding: 9px 12px; font-size: 0.92rem; border-bottom: none; }
+    .side-nav .tab:hover { background: #f1f5f9; color: #0f172a; }
+    .side-nav .tab.active { background: var(--brand); color: #fff; }
+    .admin-main { flex: 1 1 auto; min-width: 0; }
+    .side-toggle { display: none; }
+    @media (max-width: 900px) {
+      .admin-layout { display: block; margin-top: 14px; }
+      .admin-side { position: static; margin-bottom: 14px; }
+      .side-toggle { display: block; width: 100%; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+      .side-nav { display: none; margin-top: 8px; }
+      .admin-side.open .side-nav { display: flex; }
+    }
   </style>
 </head>
 <body>
@@ -90,20 +108,29 @@
   </div>
 
   <div class="container">
-    <nav class="tabs">
-      <button class="tab active" data-tab="leads">Leads</button>
-      <button class="tab" data-tab="orders">Orders</button>
-      <button class="tab" data-tab="partners">Partners</button>
-      <button class="tab" data-tab="branding">Branding</button>
-      <button class="tab" data-tab="models">MacBook Models</button>
-      <button class="tab" data-tab="options">Form Options</button>
-      <button class="tab" data-tab="reviews">Google Reviews</button>
-      <button class="tab" data-tab="integrations">SMS &amp; Email</button>
-      <button class="tab" data-tab="seo">SEO &amp; Analytics</button>
-      <button class="tab" data-tab="blog">Blog</button>
-      <button class="tab" data-tab="pages">Compliance Pages</button>
-      <button class="tab" data-tab="users">Users</button>
-    </nav>
+    <div class="admin-layout">
+    <aside class="admin-side" id="adminSide">
+      <button class="side-toggle" id="sideToggle" type="button">☰ Admin menu</button>
+      <nav class="tabs side-nav">
+        <span class="side-group">Sales</span>
+        <button class="tab active" data-tab="leads">📋 Leads</button>
+        <button class="tab" data-tab="orders">🛒 Orders</button>
+        <button class="tab" data-tab="partners">🤝 Partners</button>
+        <span class="side-group">Catalog</span>
+        <button class="tab" data-tab="models">💻 Products</button>
+        <button class="tab" data-tab="reviews">⭐ Google Reviews</button>
+        <span class="side-group">Website</span>
+        <button class="tab" data-tab="branding">🎨 Branding &amp; Home</button>
+        <button class="tab" data-tab="blog">📝 Blog</button>
+        <button class="tab" data-tab="pages">📄 Compliance Pages</button>
+        <span class="side-group">Setup</span>
+        <button class="tab" data-tab="options">🧾 Form Options</button>
+        <button class="tab" data-tab="integrations">🔌 Payments, SMS &amp; Email</button>
+        <button class="tab" data-tab="seo">📈 SEO &amp; Analytics</button>
+        <button class="tab" data-tab="users">👥 Users</button>
+      </nav>
+    </aside>
+    <div class="admin-main">
 
     <!-- ===================== LEADS ===================== -->
     <section class="panel active" id="panel-leads">
@@ -979,6 +1006,8 @@
         <div id="usersList"></div>
       </div>
     </section>
+    </div><!-- /admin-main -->
+    </div><!-- /admin-layout -->
 
   <!-- Staff user editor dialog -->
   <dialog id="userDialog">
