@@ -807,8 +807,10 @@
             <div id="condPriceRows"></div>
             <button class="btn small" type="button" id="addCondPrice">+ Add variant</button>
           </div>
-          <div><label class="fld">Badge</label>
-            <select id="m-badge"><option value="">None</option><option>Hot</option><option>Available</option><option>Out of stock</option><option>Sold out</option></select>
+          <div><label class="fld">Badge <small style="color:#64748b;">— pick one or type a new badge</small></label>
+            <input type="text" id="m-badge" list="badgeList" placeholder="e.g. Hot, New arrival, Deal of the week" />
+            <datalist id="badgeList"></datalist>
+            <p class="muted" style="margin:4px 0 0;font-size:.78rem;">"Sold out" / "Out of stock" marks the product unavailable; any badge containing "hot" shows in red, others in green.</p>
           </div>
         </div>
         <label class="fld" style="margin-top:12px;">Specs (short line) <small style="color:#64748b;">(one line, ~40 chars)</small></label>

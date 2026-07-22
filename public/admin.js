@@ -603,6 +603,13 @@
     renderModelsList();
     fillOfferModels();
     renderDealRows(); // product dropdowns need the models list
+    // Badge suggestions: defaults + every badge already used on any product
+    const bl = $('badgeList');
+    if (bl) {
+      const seen = new Set(['Hot', 'Available', 'Out of stock', 'Sold out']);
+      models.forEach((m) => { const b = (m.badge || '').trim(); if (b) seen.add(b); });
+      bl.innerHTML = [...seen].map((b) => `<option value="${esc(b)}"></option>`).join('');
+    }
   }
   function catName(slug) { const c = cats.find((x) => x.slug === slug); return c ? c.name : slug; }
   let modelFilter = '';
